@@ -35,8 +35,12 @@
             class="absolute inset-0 bg-cover bg-center blur-sm brightness-[0.45]"
             :style="heroBackgroundStyle"
           />
-          <div class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/10" />
-          <div class="relative mx-auto flex h-full max-w-5xl items-end px-4 pb-6 sm:px-8 sm:pb-10">
+          <div
+            class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/10"
+          />
+          <div
+            class="relative mx-auto flex h-full max-w-5xl items-end px-4 pb-6 sm:px-8 sm:pb-10"
+          >
             <div class="flex gap-4 sm:gap-6">
               <!-- Poster -->
               <div
@@ -55,7 +59,10 @@
                 <div
                   class="inline-flex items-center gap-2 text-[11px] text-zinc-300 sm:text-xs"
                 >
-                  <span v-if="series.origin_country" class="rounded border border-white/20 px-1.5 py-0.5">
+                  <span
+                    v-if="series.origin_country"
+                    class="rounded border border-white/20 px-1.5 py-0.5"
+                  >
                     {{ countryLabel }}
                   </span>
                 </div>
@@ -136,59 +143,68 @@
           </div>
         </div>
 
-        <div v-if="!logicalEpisodes.length" class="mt-4 text-sm text-zinc-400">
+        <!-- No episodes -->
+        <div v-if="!episodesForSelectedSeason.length" class="mt-4 text-sm text-zinc-400">
           エピソードがまだ登録されていません。
         </div>
 
-        <div v-else class="mt-4 space-y-6">
-          <!-- Danh sách tập theo season (hiện season được chọn, hoặc season nhỏ nhất) -->
-          <div v-for="group in groupedEpisodesForUI" :key="group.season">
-            <h3
-              v-if="seasonNumbers.length > 1"
-              class="mb-2 text-xs font-semibold text-zinc-300 sm:text-sm"
-            >
-              シーズン {{ group.season }}
-            </h3>
+        <!-- Episodes list with lazy loading -->
+        <div v-else class="mt-4 space-y-4">
+          <h3
+            v-if="seasonNumbers.length > 1"
+            class="text-xs font-semibold text-zinc-300 sm:text-sm"
+          >
+            シーズン {{ currentSeasonLabel }}
+          </h3>
 
-            <div class="space-y-2">
-              <NuxtLink
-                v-for="ep in group.episodes"
-                :key="ep.id"
-                :to="episodeLink(ep)"
-                class="flex gap-3 rounded-lg bg-zinc-900/60 p-3 text-xs text-zinc-200 ring-1 ring-zinc-800 hover:bg-zinc-800"
+          <div class="space-y-2">
+            <NuxtLink
+              v-for="ep in visibleEpisodes"
+              :key="ep.id"
+              :to="episodeLink(ep)"
+              class="flex gap-3 rounded-lg bg-zinc-900/60 p-3 text-xs text-zinc-200 ring-1 ring-zinc-800 hover:bg-zinc-800"
+            >
+              <div
+                class="h-20 w-32 shrink-0 overflow-hidden rounded-md bg-zinc-800"
               >
-                <div
-                  class="h-20 w-32 shrink-0 overflow-hidden rounded-md bg-zinc-800"
-                >
-                  <img
-                    :src="ep.thumbnail_url || posterUrl"
-                    :alt="ep.title || `第${ep.episode_number}話`"
-                    class="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <div class="flex min-w-0 flex-col gap-1">
-                  <div class="flex items-center gap-2">
-                    <p class="truncate text-xs font-semibold text-zinc-50 sm:text-sm">
-                      第{{ ep.episode_number }}話
-                      <span v-if="ep.title"> {{ ep.title }}</span>
-                    </p>
-                    <span
-                      v-if="ep.duration_minutes"
-                      class="rounded bg-black/30 px-1.5 py-0.5 text-[10px] text-zinc-300"
-                    >
-                      {{ ep.duration_minutes }}分
-                    </span>
-                  </div>
+                <img
+                  :src="ep.thumbnail_url || posterUrl"
+                  :alt="ep.title || `第${ep.episode_number}話`"
+                  class="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+              <div class="flex min-w-0 flex-col gap-1">
+                <div class="flex items-center gap-2">
                   <p
-                    v-if="ep.synopsis"
-                    class="line-clamp-2 text-[11px] text-zinc-400"
+                    class="truncate text-xs font-semibold text-zinc-50 sm:text-sm"
                   >
-                    {{ ep.synopsis }}
+                    第{{ ep.episode_number }}話
+                    <span v-if="ep.title"> {{ ep.title }}</span>
                   </p>
+                  <span
+                    v-if="ep.duration_minutes"
+                    class="rounded bg-black/30 px-1.5 py-0.5 text-[10px] text-zinc-300"
+                  >
+                    {{ ep.duration_minutes }}分
+                  </span>
                 </div>
-              </NuxtLink>
-            </div>
+                <!-- Nếu sau này có description per-episode thì hiển thị ở đây -->
+              </div>
+            </NuxtLink>
+          </div>
+
+          <div
+            v-if="canLoadMore"
+            class="mt-3 flex justify-center"
+          >
+            <button
+              type="button"
+              class="inline-flex items-center rounded-full bg-zinc-800 px-4 py-1.5 text-[11px] text-zinc-100 ring-1 ring-zinc-600 hover:bg-zinc-700 sm:text-xs"
+              @click="currentPage++"
+            >
+              さらに表示
+            </button>
           </div>
         </div>
       </section>
@@ -197,7 +213,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useSupabaseClient, useSeoMeta, useHead } from '#imports'
 import { useMyList } from '~/composables/useMyList'
 
@@ -220,7 +236,6 @@ type EpisodeRow = {
   season_number: number | null
   episode_number: number
   title: string | null
-  synopsis: string | null
   video_path: string | null
   thumbnail_url: string | null
   duration_minutes: number | null
@@ -244,6 +259,10 @@ const collections = ref<EpisodeCollectionRow[]>([])
 const episodes = ref<EpisodeRow[]>([])
 
 const selectedSeason = ref<number | null>(null)
+
+// lazy load state
+const EPISODES_PER_PAGE = 24
+const currentPage = ref(1)
 
 // My List cho series
 const { isInMyList, toggleMyList } = useMyList()
@@ -327,25 +346,31 @@ const seasonNumbers = computed<number[]>(() => {
   return Array.from(set).sort((a, b) => a - b)
 })
 
-const groupedEpisodesForUI = computed(() => {
-  const result: { season: number; episodes: EpisodeRow[] }[] = []
-  if (!logicalEpisodes.value.length) return result
-
+// Episodes for current season (full list)
+const episodesForSelectedSeason = computed<EpisodeRow[]>(() => {
+  if (!logicalEpisodes.value.length) return []
   const seasonToShow =
     selectedSeason.value ?? (seasonNumbers.value[0] ?? 1)
-
-  const eps = logicalEpisodes.value.filter(
+  return logicalEpisodes.value.filter(
     (ep) => (ep.season_number ?? 1) === seasonToShow,
   )
+})
 
-  if (!eps.length) return result
+// Episodes actually visible (lazy load)
+const visibleEpisodes = computed<EpisodeRow[]>(() => {
+  const all = episodesForSelectedSeason.value
+  return all.slice(0, currentPage.value * EPISODES_PER_PAGE)
+})
 
-  result.push({
-    season: seasonToShow,
-    episodes: eps,
-  })
+const canLoadMore = computed(
+  () => visibleEpisodes.value.length < episodesForSelectedSeason.value.length,
+)
 
-  return result
+const currentSeasonLabel = computed(() => {
+  return (
+    selectedSeason.value ??
+    (seasonNumbers.value.length ? seasonNumbers.value[0] : 1)
+  )
 })
 
 const firstEpisodeNumber = computed(() => {
@@ -362,6 +387,11 @@ const episodeLink = (ep: EpisodeRow) => {
   const slug = series.value?.slug || slugParam.value
   return `/series/${slug}/episode/${ep.episode_number}`
 }
+
+// Khi đổi season -> reset về page 1
+watch(selectedSeason, () => {
+  currentPage.value = 1
+})
 
 // Load data
 const loadData = async () => {
@@ -396,7 +426,7 @@ const loadData = async () => {
 
     series.value = seriesData as SeriesRow
 
-    // Collections (để biết default collection)
+    // Collections
     const { data: colData } = await supabase
       .from('episode_collections')
       .select('id, series_id, name, is_default')
@@ -405,14 +435,20 @@ const loadData = async () => {
     collections.value = (colData ?? []) as EpisodeCollectionRow[]
 
     // Episodes
-    const { data: epData } = await supabase
+    const { data: epData, error: epError } = await supabase
       .from('episodes')
       .select(
-        'id, series_id, collection_id, season_number, episode_number, title, synopsis, video_path, thumbnail_url, duration_minutes',
+        'id, series_id, collection_id, season_number, episode_number, title, video_path, thumbnail_url, duration_minutes',
       )
       .eq('series_id', series.value.id)
       .order('season_number', { ascending: true })
       .order('episode_number', { ascending: true })
+
+    console.log('EPISODES DEBUG', {
+      seriesId: series.value.id,
+      epData,
+      epError,
+    })
 
     episodes.value = (epData ?? []) as EpisodeRow[]
 
@@ -426,6 +462,9 @@ const loadData = async () => {
     if (seasons.length) {
       selectedSeason.value = seasons[0]
     }
+
+    // Reset pagination
+    currentPage.value = 1
   } finally {
     loading.value = false
   }

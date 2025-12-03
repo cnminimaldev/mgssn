@@ -32,7 +32,7 @@
       <section class="px-4 pt-6 sm:px-8">
         <div class="mx-auto max-w-5xl">
           <NuxtLink
-            :to="`/series/${series?.slug || slugParam}`"
+            :to="`/series/${series.slug}`"
             class="text-[11px] text-zinc-400 hover:text-zinc-200 sm:text-xs"
           >
             ← シリーズ詳細へ戻る
@@ -41,7 +41,7 @@
           <h1
             class="mt-2 text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl"
           >
-            {{ series?.title }}
+            {{ series.title }}
           </h1>
 
           <p class="mt-1 text-xs text-zinc-400 sm:text-sm">
@@ -65,9 +65,10 @@
       <!-- Main layout -->
       <section
         class="mx-auto mt-4 flex max-w-5xl flex-col gap-6 px-4 pb-10 sm:flex-row sm:px-8"
+        data-player-root
       >
         <!-- Player / details -->
-        <div class="sm:w-2/3" data-player-root>
+        <div class="sm:w-2/3">
           <!-- Collection selector -->
           <div
             v-if="collectionOptions.length"
@@ -129,11 +130,8 @@
 
           <!-- Description -->
           <div class="mt-4 space-y-2 text-xs text-zinc-300 sm:text-sm">
-            <p v-if="activeEpisode.synopsis">
-              {{ activeEpisode.synopsis }}
-            </p>
-            <p v-else-if="series?.description">
-              {{ series?.description }}
+            <p v-if="series.description">
+              {{ series.description }}
             </p>
           </div>
         </div>
@@ -195,9 +193,11 @@ import {
   ref,
   nextTick,
   onMounted,
+  watch,
 } from 'vue'
 import {
   useRoute,
+  useRouter,
   useSupabaseClient,
   useSeoMeta,
   useHead,
@@ -235,7 +235,6 @@ type EpisodeRow = {
   season_number: number | null
   episode_number: number
   title: string | null
-  synopsis: string | null
   video_path: string | null
   thumbnail_url: string | null
   duration_minutes: number | null
@@ -248,6 +247,7 @@ type ProviderRow = {
 }
 
 const route = useRoute()
+const router = useRouter()
 const supabase = useSupabaseClient<any>()
 
 const loading = ref(true)
@@ -260,6 +260,7 @@ const providers = ref<ProviderRow[]>([])
 
 const selectedCollectionId = ref<number | null>(null)
 const selectedSeason = ref<number | null>(null)
+const isInitializing = ref(true)
 
 // continue watching (per episode)
 const { setProgress, clearProgressForMovie, getEntry } = useContinueWatching()
@@ -280,6 +281,13 @@ const episodeNumberParam = computed(() => {
   return Number.isFinite(raw) ? raw : NaN
 })
 
+const collectionFromQuery = computed<number | null>(() => {
+  const raw = route.query.collection
+  if (!raw) return null
+  const n = Number(raw)
+  return Number.isFinite(n) ? n : null
+})
+
 // seasons based on logical episodes (dedup by season+episode no)
 const uniqueEpisodesByKey = computed<EpisodeRow[]>(() => {
   const map = new Map<string, EpisodeRow>()
@@ -287,7 +295,7 @@ const uniqueEpisodesByKey = computed<EpisodeRow[]>(() => {
     const season = ep.season_number ?? 1
     const key = `${season}-${ep.episode_number}`
     if (!map.has(key)) {
-      map.set(key, ep)
+      map.set(key, { ...ep, season_number: season })
     }
   }
   return Array.from(map.values()).sort((a, b) => {
@@ -449,10 +457,26 @@ const handlePlayerEnded = () => {
   clearProgressForMovie(ep.id)
 }
 
-// Episode links
+// Episode links — giữ collection hiện tại trong query nếu có
 const episodeLink = (ep: EpisodeRow) => {
   const slug = series.value?.slug || slugParam.value
-  return `/series/${slug}/episode/${ep.episode_number}`
+  const path = `/series/${slug}/episode/${ep.episode_number}`
+
+  if (selectedCollectionId.value != null) {
+    return {
+      path,
+      query: {
+        ...route.query,
+        collection: selectedCollectionId.value,
+      },
+    }
+  }
+
+  const { collection, ...restQuery } = route.query
+  return {
+    path,
+    query: restQuery,
+  }
 }
 
 // Load data
@@ -506,23 +530,6 @@ const loadData = async () => {
 
     collections.value = (colData ?? []) as EpisodeCollectionRow[]
 
-    // Episodes
-    const { data: epData } = await supabase
-      .from('episodes')
-      .select(
-        'id, series_id, collection_id, season_number, episode_number, title, synopsis, video_path, thumbnail_url, duration_minutes',
-      )
-      .eq('series_id', series.value.id)
-      .order('season_number', { ascending: true })
-      .order('episode_number', { ascending: true })
-
-    episodes.value = (epData ?? []) as EpisodeRow[]
-
-    if (!episodes.value.length) {
-      errorMessage.value = 'エピソードがまだ登録されていません。'
-      return
-    }
-
     // Providers
     const { data: provData } = await supabase
       .from('collection_providers')
@@ -531,6 +538,29 @@ const loadData = async () => {
 
     providers.value = (provData ?? []) as ProviderRow[]
 
+    // Episodes
+    const { data: epData, error: epError } = await supabase
+      .from('episodes')
+      .select(
+        'id, series_id, collection_id, season_number, episode_number, title, video_path, thumbnail_url, duration_minutes',
+      )
+      .eq('series_id', series.value.id)
+      .order('season_number', { ascending: true })
+      .order('episode_number', { ascending: true })
+
+    console.log('EPISODES PAGE DEBUG', {
+      seriesId: series.value.id,
+      epData,
+      epError,
+    })
+
+    episodes.value = (epData ?? []) as EpisodeRow[]
+
+    if (!episodes.value.length) {
+      errorMessage.value = 'エピソードがまだ登録されていません。'
+      return
+    }
+
     // determine default season & collection based on requested episode
     const variants = variantsForCurrentEpisode.value
     if (!variants.length) {
@@ -538,9 +568,20 @@ const loadData = async () => {
       return
     }
 
-    // Find default collection for this episode
+    // 1) Ưu tiên collection đến từ query nếu có và hợp lệ
     let defaultCollectionId: number | null = null
-    if (collections.value.length) {
+    const requestedCollectionId = collectionFromQuery.value
+    if (requestedCollectionId != null) {
+      const hasVariant = variants.some(
+        (ep) => ep.collection_id === requestedCollectionId,
+      )
+      if (hasVariant) {
+        defaultCollectionId = requestedCollectionId
+      }
+    }
+
+    // 2) Nếu không dùng được collection từ query, dùng default series-level
+    if (defaultCollectionId == null && collections.value.length) {
       const defaultCol =
         collections.value.find((c) => c.is_default) ?? collections.value[0]
       if (defaultCol) {
@@ -551,6 +592,7 @@ const loadData = async () => {
       }
     }
 
+    // 3) Nếu vẫn chưa có, lấy collection đầu tiên có episode
     if (defaultCollectionId == null) {
       const firstWithCollection = variants.find(
         (ep) => ep.collection_id != null,
@@ -564,7 +606,7 @@ const loadData = async () => {
 
     // Default season (from one of variants)
     const baseEp = variants[0]
-    const season = baseEp!.season_number ?? 1
+    const season = baseEp.season_number ?? 1
     selectedSeason.value = season
   } finally {
     loading.value = false
@@ -572,6 +614,31 @@ const loadData = async () => {
 }
 
 await loadData()
+isInitializing.value = false
+
+// Sync selectedCollectionId -> URL query (để khi chuyển tập nhớ server hiện tại)
+watch(
+  selectedCollectionId,
+  (val) => {
+    if (isInitializing.value) return
+
+    const slug = slugParam.value
+    const epNum = episodeNumberParam.value
+    if (!slug || !Number.isFinite(epNum)) return
+
+    const query: Record<string, any> = { ...route.query }
+    if (val != null) {
+      query.collection = String(val)
+    } else {
+      delete query.collection
+    }
+
+    router.replace({
+      path: `/series/${slug}/episode/${epNum}`,
+      query,
+    })
+  },
+)
 
 // SEO meta
 const seoTitle = computed(() => {
@@ -584,9 +651,9 @@ const seoTitle = computed(() => {
     : `${series.value.title} 第${ep.episode_number}話 | MyStream`
 })
 
+// Không dùng synopsis nữa, chỉ dùng series.description
 const seoDescription = computed(
   () =>
-    activeEpisode.value?.synopsis ??
     series.value?.description ??
     '映画やドラマをオンラインで楽しめるMyStream。',
 )
