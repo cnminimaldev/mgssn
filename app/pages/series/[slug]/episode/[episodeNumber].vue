@@ -201,6 +201,7 @@ import {
   useSupabaseClient,
   useSeoMeta,
   useHead,
+  navigateTo,
 } from '#imports'
 import StreamingPlayer from '~/components/StreamingPlayer.vue'
 import { useContinueWatching } from '~/composables/useContinueWatching'
@@ -226,6 +227,7 @@ type EpisodeCollectionRow = {
   subtitle_language: string | null
   provider_id: number | null
   is_default: boolean | null
+  series_id?: number
 }
 
 type EpisodeRow = {
@@ -294,7 +296,7 @@ const uniqueEpisodesByKey = computed<EpisodeRow[]>(() => {
   for (const ep of episodes.value) {
     const season = ep.season_number ?? 1
     const key = `${season}-${ep.episode_number}`
-    if (!map.has(key)) {
+    if (!map.get(key)) {
       map.set(key, { ...ep, season_number: season })
     }
   }
@@ -344,7 +346,6 @@ const activeEpisode = computed<EpisodeRow | null>(() => {
     if (found) return found
   }
 
-  // fallback: first variant
   return variants[0] ?? null
 })
 
@@ -365,7 +366,6 @@ const collectionOptions = computed(() => {
       set.add(ep.collection_id)
     }
   }
-
   if (!set.size) return []
 
   return collections.value
@@ -422,7 +422,6 @@ const playerKey = computed(() => {
   return ep ? `ep-${ep.id}` : playerSrc.value
 })
 
-// Continue watching per-episode
 const episodeStartTime = computed(() => {
   const ep = activeEpisode.value
   if (!ep) return 0
@@ -457,7 +456,6 @@ const handlePlayerEnded = () => {
   clearProgressForMovie(ep.id)
 }
 
-// Episode links — giữ collection hiện tại trong query nếu có
 const episodeLink = (ep: EpisodeRow) => {
   const slug = series.value?.slug || slugParam.value
   const path = `/series/${slug}/episode/${ep.episode_number}`
@@ -497,8 +495,11 @@ const loadData = async () => {
       return
     }
 
-    // Series
-    const { data: seriesData, error: seriesError } = await supabase
+    // Series: thử slug hiện tại
+    const {
+      data: seriesData,
+      error: seriesError,
+    } = await supabase
       .from('series')
       .select(
         'id, slug, title, original_title, title_kana, origin_country, description, poster_url, banner_url',
@@ -506,12 +507,32 @@ const loadData = async () => {
       .eq('slug', slug)
       .single()
 
-    if (seriesError) {
-      errorMessage.value = seriesError.message
-      return
-    }
+    if (seriesError || !seriesData) {
+      // Không thấy → thử bảng alias
+      const { data: aliasRows, error: aliasError } = await supabase
+        .from('series_slug_history')
+        .select('series_id')
+        .eq('slug', slug)
+        .limit(1)
 
-    if (!seriesData) {
+      if (!aliasError && aliasRows && aliasRows.length > 0) {
+        const aliasSeriesId = aliasRows[0].series_id as number
+
+        const { data: canonicalSeries } = await supabase
+          .from('series')
+          .select('slug')
+          .eq('id', aliasSeriesId)
+          .single()
+
+        if (canonicalSeries?.slug) {
+          await navigateTo(
+            `/series/${canonicalSeries.slug}/episode/${epNum}`,
+            { redirectCode: 301 },
+          )
+          return
+        }
+      }
+
       errorMessage.value = 'シリーズが見つかりませんでした。'
       return
     }
@@ -522,7 +543,7 @@ const loadData = async () => {
     const { data: colData } = await supabase
       .from('episode_collections')
       .select(
-        'id, name, type, audio_language, subtitle_language, provider_id, is_default',
+        'id, name, type, audio_language, subtitle_language, provider_id, is_default, series_id',
       )
       .eq('series_id', series.value.id)
       .order('sort_order', { ascending: true })
@@ -561,14 +582,13 @@ const loadData = async () => {
       return
     }
 
-    // determine default season & collection based on requested episode
     const variants = variantsForCurrentEpisode.value
     if (!variants.length) {
       errorMessage.value = '指定されたエピソードが存在しません。'
       return
     }
 
-    // 1) Ưu tiên collection đến từ query nếu có và hợp lệ
+    // 1) Ưu tiên collection từ query
     let defaultCollectionId: number | null = null
     const requestedCollectionId = collectionFromQuery.value
     if (requestedCollectionId != null) {
@@ -580,7 +600,7 @@ const loadData = async () => {
       }
     }
 
-    // 2) Nếu không dùng được collection từ query, dùng default series-level
+    // 2) Nếu không dùng được, ưu tiên collection default
     if (defaultCollectionId == null && collections.value.length) {
       const defaultCol =
         collections.value.find((c) => c.is_default) ?? collections.value[0]
@@ -604,7 +624,7 @@ const loadData = async () => {
 
     selectedCollectionId.value = defaultCollectionId
 
-    // Default season (from one of variants)
+    // Default season theo episode đang xem
     const baseEp = variants[0]
     const season = baseEp.season_number ?? 1
     selectedSeason.value = season
@@ -616,7 +636,7 @@ const loadData = async () => {
 await loadData()
 isInitializing.value = false
 
-// Sync selectedCollectionId -> URL query (để khi chuyển tập nhớ server hiện tại)
+// Sync selectedCollectionId -> URL query
 watch(
   selectedCollectionId,
   (val) => {
@@ -651,7 +671,6 @@ const seoTitle = computed(() => {
     : `${series.value.title} 第${ep.episode_number}話 | MyStream`
 })
 
-// Không dùng synopsis nữa, chỉ dùng series.description
 const seoDescription = computed(
   () =>
     series.value?.description ??
@@ -678,7 +697,6 @@ useHead({
   title: seoTitle.value,
 })
 
-// auto scroll tới player khi load
 onMounted(async () => {
   await nextTick()
   const el = document.querySelector(

@@ -144,7 +144,10 @@
         </div>
 
         <!-- No episodes -->
-        <div v-if="!episodesForSelectedSeason.length" class="mt-4 text-sm text-zinc-400">
+        <div
+          v-if="!episodesForSelectedSeason.length"
+          class="mt-4 text-sm text-zinc-400"
+        >
           エピソードがまだ登録されていません。
         </div>
 
@@ -189,15 +192,11 @@
                     {{ ep.duration_minutes }}分
                   </span>
                 </div>
-                <!-- Nếu sau này có description per-episode thì hiển thị ở đây -->
               </div>
             </NuxtLink>
           </div>
 
-          <div
-            v-if="canLoadMore"
-            class="mt-3 flex justify-center"
-          >
+          <div v-if="canLoadMore" class="mt-3 flex justify-center">
             <button
               type="button"
               class="inline-flex items-center rounded-full bg-zinc-800 px-4 py-1.5 text-[11px] text-zinc-100 ring-1 ring-zinc-600 hover:bg-zinc-700 sm:text-xs"
@@ -214,7 +213,13 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute, useSupabaseClient, useSeoMeta, useHead } from '#imports'
+import {
+  useRoute,
+  useSupabaseClient,
+  useSeoMeta,
+  useHead,
+  navigateTo,
+} from '#imports'
 import { useMyList } from '~/composables/useMyList'
 
 type SeriesRow = {
@@ -314,7 +319,6 @@ const logicalEpisodes = computed<EpisodeRow[]>(() => {
     const key = `${season}-${ep.episode_number}`
     const existing = map.get(key)
 
-    // Ưu tiên episode thuộc collection default nếu có
     const col = ep.collection_id
       ? collections.value.find((c) => c.id === ep.collection_id)
       : null
@@ -346,7 +350,6 @@ const seasonNumbers = computed<number[]>(() => {
   return Array.from(set).sort((a, b) => a - b)
 })
 
-// Episodes for current season (full list)
 const episodesForSelectedSeason = computed<EpisodeRow[]>(() => {
   if (!logicalEpisodes.value.length) return []
   const seasonToShow =
@@ -356,7 +359,6 @@ const episodesForSelectedSeason = computed<EpisodeRow[]>(() => {
   )
 })
 
-// Episodes actually visible (lazy load)
 const visibleEpisodes = computed<EpisodeRow[]>(() => {
   const all = episodesForSelectedSeason.value
   return all.slice(0, currentPage.value * EPISODES_PER_PAGE)
@@ -388,12 +390,11 @@ const episodeLink = (ep: EpisodeRow) => {
   return `/series/${slug}/episode/${ep.episode_number}`
 }
 
-// Khi đổi season -> reset về page 1
 watch(selectedSeason, () => {
   currentPage.value = 1
 })
 
-// Load data
+// Load data + xử lý slug history
 const loadData = async () => {
   loading.value = true
   errorMessage.value = ''
@@ -405,8 +406,11 @@ const loadData = async () => {
       return
     }
 
-    // Series
-    const { data: seriesData, error: seriesError } = await supabase
+    // 1) Thử tìm trực tiếp trong series
+    const {
+      data: seriesData,
+      error: seriesError,
+    } = await supabase
       .from('series')
       .select(
         'id, slug, title, original_title, title_kana, origin_country, description, poster_url, banner_url',
@@ -414,12 +418,31 @@ const loadData = async () => {
       .eq('slug', slug)
       .single()
 
-    if (seriesError) {
-      errorMessage.value = seriesError.message
-      return
-    }
+    if (seriesError || !seriesData) {
+      // 2) Không thấy → thử tìm alias
+      const { data: aliasRows, error: aliasError } = await supabase
+        .from('series_slug_history')
+        .select('series_id')
+        .eq('slug', slug)
+        .limit(1)
 
-    if (!seriesData) {
+      if (!aliasError && aliasRows && aliasRows.length > 0) {
+        const aliasSeriesId = aliasRows[0].series_id as number
+
+        const { data: canonicalSeries } = await supabase
+          .from('series')
+          .select('slug')
+          .eq('id', aliasSeriesId)
+          .single()
+
+        if (canonicalSeries?.slug) {
+          await navigateTo(`/series/${canonicalSeries.slug}`, {
+            redirectCode: 301,
+          })
+          return
+        }
+      }
+
       errorMessage.value = 'シリーズが見つかりませんでした。'
       return
     }
@@ -457,13 +480,10 @@ const loadData = async () => {
       return
     }
 
-    // Default season: season nhỏ nhất
     const seasons = seasonNumbers.value
     if (seasons.length) {
       selectedSeason.value = seasons[0]
     }
-
-    // Reset pagination
     currentPage.value = 1
   } finally {
     loading.value = false
