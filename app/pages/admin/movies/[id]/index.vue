@@ -8,31 +8,36 @@
             作品情報やジャンル、製作国などを編集します。
           </p>
         </div>
-        <NuxtLink
-          to="/admin"
-          class="text-sm text-zinc-400 hover:text-zinc-200"
-        >
-          管理トップへ戻る
-        </NuxtLink>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300"
+            @click="showSmartPaste = true"
+          >
+            <span>⚡ スマートペースト</span>
+          </button>
+
+          <NuxtLink to="/admin" class="text-sm text-zinc-400 hover:text-zinc-200">
+            管理トップへ戻る
+          </NuxtLink>
+        </div>
       </div>
+
+      <SmartPasteModal
+        :show="showSmartPaste"
+        @close="showSmartPaste = false"
+        @apply="onSmartPaste"
+      />
 
       <div v-if="loading" class="py-10 text-center text-sm text-zinc-400">
         読み込み中…
       </div>
 
-      <div
-        v-else-if="loadError"
-        class="py-10 text-center text-sm text-red-400"
-      >
+      <div v-else-if="loadError" class="py-10 text-center text-sm text-red-400">
         {{ loadError }}
       </div>
 
-      <form
-        v-else
-        class="space-y-4"
-        @submit.prevent="handleSubmit"
-      >
-        <!-- Title -->
+      <form v-else class="space-y-4" @submit.prevent="handleSubmit">
         <div>
           <label class="mb-1 block text-sm">タイトル（日本向け）</label>
           <input
@@ -43,7 +48,6 @@
           />
         </div>
 
-        <!-- Original Title -->
         <div>
           <label class="mb-1 block text-sm">原題</label>
           <input
@@ -54,7 +58,6 @@
           />
         </div>
 
-        <!-- Title Kana -->
         <div>
           <label class="mb-1 block text-sm">タイトル（かな）</label>
           <input
@@ -65,7 +68,6 @@
           />
         </div>
 
-        <!-- Slug -->
         <div>
           <label class="mb-1 block text-sm">Slug</label>
           <input
@@ -77,7 +79,6 @@
           />
         </div>
 
-        <!-- Description -->
         <div>
           <label class="mb-1 block text-sm">説明</label>
           <textarea
@@ -87,7 +88,6 @@
           />
         </div>
 
-        <!-- Year + Duration + Release date -->
         <div class="grid grid-cols-3 gap-4">
           <div>
             <label class="mb-1 block text-sm">年</label>
@@ -118,32 +118,24 @@
           </div>
         </div>
 
-        <!-- Origin Country -->
         <div>
           <label class="mb-1 block text-sm">製作国</label>
-
           <div v-if="countryOptions.length">
             <select
               v-model="form.origin_country"
               class="w-40 rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm text-zinc-50 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
               <option value="">選択してください</option>
-              <option
-                v-for="c in countryOptions"
-                :key="c.code"
-                :value="c.code"
-              >
+              <option v-for="c in countryOptions" :key="c.code" :value="c.code">
                 {{ c.name_ja }} ({{ c.code }})
               </option>
             </select>
           </div>
-
           <p class="mt-1 text-xs text-zinc-500">
             ISO 2文字コード（例: JP / US / KR）。国・地域は「国・地域管理」から追加してください。
           </p>
         </div>
 
-        <!-- Genres (multi-select) -->
         <div>
           <div class="mb-1 flex items-center justify-between">
             <label class="block text-sm">ジャンル（複数選択可）</label>
@@ -156,11 +148,7 @@
               クリア
             </button>
           </div>
-
-          <div
-            v-if="genreOptions.length"
-            class="flex flex-wrap gap-2"
-          >
+          <div v-if="genreOptions.length" class="flex flex-wrap gap-2">
             <button
               v-for="g in genreOptions"
               :key="g.id"
@@ -176,13 +164,11 @@
               {{ g.name_ja || g.name || g.slug }}
             </button>
           </div>
-
           <p v-else class="mt-1 text-xs text-zinc-500">
-            ジャンルがまだ登録されていません。Supabase の「genres」テーブルに追加してください。
+            ジャンルがまだ登録されていません。
           </p>
         </div>
 
-        <!-- Director -->
         <div>
           <label class="mb-1 block text-sm">監督</label>
           <input
@@ -192,7 +178,6 @@
           />
         </div>
 
-        <!-- Main Cast -->
         <div>
           <label class="mb-1 block text-sm">主演</label>
           <input
@@ -202,7 +187,6 @@
           />
         </div>
 
-        <!-- Video Path -->
         <div>
           <label class="mb-1 block text-sm">動画パス（HLS .m3u8）</label>
           <input
@@ -212,26 +196,21 @@
           />
         </div>
 
-        <!-- Poster / Banner -->
-        <div>
-          <label class="mb-1 block text-sm">ポスターURL</label>
-          <input
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <FormImageUpload
+            label="ポスター画像"
             v-model="form.poster_url"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
+            folder="movies"
+            ratio="poster"
           />
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">バナーURL</label>
-          <input
+          <FormImageUpload
+            label="バナー画像"
             v-model="form.banner_url"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
+            folder="movies"
+            ratio="banner"
           />
         </div>
 
-        <!-- Featured -->
         <div>
           <label class="inline-flex items-center gap-2 text-sm">
             <input
@@ -243,7 +222,6 @@
           </label>
         </div>
 
-        <!-- Messages -->
         <div v-if="errorMessage" class="text-sm text-red-400">
           {{ errorMessage }}
         </div>
@@ -266,6 +244,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from 'vue'
 import { useRoute, useRouter, useSupabaseClient, useAsyncData } from '#imports'
+import SmartPasteModal from '~/components/SmartPasteModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -292,9 +271,7 @@ const loading = ref(true)
 const loadError = ref('')
 
 // --- genres ---
-const {
-  data: genresData,
-} = await useAsyncData<GenreRow[]>(
+const { data: genresData } = await useAsyncData<GenreRow[]>(
   'admin-genres-edit',
   async () => {
     const { data, error } = await supabase
@@ -304,7 +281,7 @@ const {
 
     if (error) throw error
     return data ?? []
-  },
+  }
 )
 
 const genreOptions = computed<GenreRow[]>(() => genresData.value ?? [])
@@ -320,9 +297,7 @@ const toggleGenre = (id: number) => {
 }
 
 // --- countries ---
-const {
-  data: countriesData,
-} = await useAsyncData<CountryRow[]>(
+const { data: countriesData } = await useAsyncData<CountryRow[]>(
   'admin-countries-edit',
   async () => {
     const { data, error } = await supabase
@@ -334,7 +309,7 @@ const {
 
     if (error) throw error
     return data ?? []
-  },
+  }
 )
 
 const countryOptions = computed<CountryRow[]>(() => countriesData.value ?? [])
@@ -361,6 +336,26 @@ const form = reactive({
 const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+
+// --- Smart Paste Logic ---
+const showSmartPaste = ref(false)
+
+const onSmartPaste = (data: any) => {
+  if (data.title) form.title = data.title
+  if (data.original_title) form.original_title = data.original_title
+  if (data.title_kana) form.title_kana = data.title_kana
+  if (data.slug) form.slug = data.slug
+  if (data.description) form.description = data.description
+  if (data.year) form.year = data.year
+  if (data.duration_minutes) form.duration_minutes = data.duration_minutes
+  if (data.release_date) form.release_date = data.release_date
+  if (data.origin_country) {
+    const exists = countryOptions.value.some(c => c.code === data.origin_country)
+    if (exists) form.origin_country = data.origin_country
+  }
+  if (data.director) form.director = data.director
+  if (data.main_cast) form.main_cast = data.main_cast
+}
 
 // load movie detail
 const loadMovie = async () => {
@@ -442,8 +437,7 @@ const handleSubmit = async () => {
       return
     }
 
-    // 2) update movie_genres: xoá hết + insert lại
-    // xoá
+    // 2) update movie_genres
     const { error: deleteError } = await supabase
       .from('movie_genres')
       .delete()
@@ -455,7 +449,6 @@ const handleSubmit = async () => {
       return
     }
 
-    // insert mới nếu có genre
     if (selectedGenreIds.value.length > 0) {
       const mgPayload = selectedGenreIds.value.map((gid) => ({
         movie_id: movieId.value,
@@ -482,6 +475,5 @@ const handleSubmit = async () => {
   }
 }
 
-// load first time
 await loadMovie()
 </script>

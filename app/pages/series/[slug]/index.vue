@@ -1,6 +1,5 @@
 <template>
   <div class="min-h-[calc(100vh-4rem)] bg-black text-white">
-    <!-- Loading -->
     <div
       v-if="loading"
       class="flex h-full items-center justify-center py-20 text-zinc-300"
@@ -8,7 +7,6 @@
       Loading...
     </div>
 
-    <!-- Error -->
     <div
       v-else-if="errorMessage || !series"
       class="flex h-full items-center justify-center py-20 text-zinc-200"
@@ -26,9 +24,7 @@
       </div>
     </div>
 
-    <!-- Content -->
     <div v-else class="pb-10">
-      <!-- Hero -->
       <section class="relative">
         <div class="relative h-[260px] w-full overflow-hidden sm:h-[360px]">
           <div
@@ -42,7 +38,6 @@
             class="relative mx-auto flex h-full max-w-5xl items-end px-4 pb-6 sm:px-8 sm:pb-10"
           >
             <div class="flex gap-4 sm:gap-6">
-              <!-- Poster -->
               <div
                 class="hidden w-[140px] shrink-0 overflow-hidden rounded-md border border-white/10 bg-zinc-900/80 shadow-lg sm:block"
               >
@@ -54,7 +49,6 @@
                 />
               </div>
 
-              <!-- Text -->
               <div class="flex flex-col gap-2">
                 <div
                   class="inline-flex items-center gap-2 text-[11px] text-zinc-300 sm:text-xs"
@@ -89,6 +83,15 @@
                   {{ series.description }}
                 </p>
 
+                <div class="mt-2 space-y-0.5">
+                  <p v-if="series.director" class="text-xs text-zinc-400">
+                    <span class="opacity-70">監督：</span>{{ series.director }}
+                  </p>
+                  <p v-if="series.main_cast" class="text-xs text-zinc-400">
+                    <span class="opacity-70">出演：</span>{{ series.main_cast }}
+                  </p>
+                </div>
+
                 <div class="mt-3 flex flex-wrap items-center gap-3 text-xs">
                   <NuxtLink
                     v-if="firstEpisodeNumber"
@@ -113,7 +116,6 @@
         </div>
       </section>
 
-      <!-- Episodes by season -->
       <section class="mx-auto mt-6 max-w-5xl px-4 sm:mt-8 sm:px-8">
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-sm font-semibold text-zinc-50 sm:text-base">
@@ -143,7 +145,6 @@
           </div>
         </div>
 
-        <!-- No episodes -->
         <div
           v-if="!episodesForSelectedSeason.length"
           class="mt-4 text-sm text-zinc-400"
@@ -151,7 +152,6 @@
           エピソードがまだ登録されていません。
         </div>
 
-        <!-- Episodes list with lazy loading -->
         <div v-else class="mt-4 space-y-4">
           <h3
             v-if="seasonNumbers.length > 1"
@@ -160,39 +160,15 @@
             シーズン {{ currentSeasonLabel }}
           </h3>
 
-          <div class="space-y-2">
+          <div class="flex flex-wrap gap-2">
             <NuxtLink
               v-for="ep in visibleEpisodes"
               :key="ep.id"
               :to="episodeLink(ep)"
-              class="flex gap-3 rounded-lg bg-zinc-900/60 p-3 text-xs text-zinc-200 ring-1 ring-zinc-800 hover:bg-zinc-800"
+              class="inline-block max-w-xs truncate rounded-lg bg-zinc-900/60 px-3 py-2 text-xs text-zinc-200 ring-1 ring-zinc-800 transition hover:bg-zinc-800 hover:ring-zinc-600 hover:text-white"
+              :title="ep.title || `第${ep.episode_number}話`"
             >
-              <div
-                class="h-20 w-32 shrink-0 overflow-hidden rounded-md bg-zinc-800"
-              >
-                <img
-                  :src="ep.thumbnail_url || posterUrl"
-                  :alt="ep.title || `第${ep.episode_number}話`"
-                  class="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <div class="flex min-w-0 flex-col gap-1">
-                <div class="flex items-center gap-2">
-                  <p
-                    class="truncate text-xs font-semibold text-zinc-50 sm:text-sm"
-                  >
-                    第{{ ep.episode_number }}話
-                    <span v-if="ep.title"> {{ ep.title }}</span>
-                  </p>
-                  <span
-                    v-if="ep.duration_minutes"
-                    class="rounded bg-black/30 px-1.5 py-0.5 text-[10px] text-zinc-300"
-                  >
-                    {{ ep.duration_minutes }}分
-                  </span>
-                </div>
-              </div>
+              {{ ep.title || `第${ep.episode_number}話` }}
             </NuxtLink>
           </div>
 
@@ -219,8 +195,11 @@ import {
   useSeoMeta,
   useHead,
   navigateTo,
+  useNuxtApp,
+  useRequestURL,
 } from '#imports'
 import { useMyList } from '~/composables/useMyList'
+// Auto-import getResizedUrl from utils
 
 type SeriesRow = {
   id: number
@@ -228,10 +207,13 @@ type SeriesRow = {
   title: string
   original_title?: string | null
   title_kana?: string | null
+  year?: number | null // SỬA: Thêm trường year vào đây
   origin_country?: string | null
   description?: string | null
   poster_url?: string | null
   banner_url?: string | null
+  director?: string | null
+  main_cast?: string | null
 }
 
 type EpisodeRow = {
@@ -265,31 +247,32 @@ const episodes = ref<EpisodeRow[]>([])
 
 const selectedSeason = ref<number | null>(null)
 
-// lazy load state
-const EPISODES_PER_PAGE = 24
+const EPISODES_PER_PAGE = 50
 const currentPage = ref(1)
 
-// My List cho series
 const { isInMyList, toggleMyList } = useMyList()
 const inMyList = computed(() =>
-  series.value ? isInMyList(series.value.id) : false,
+  series.value ? isInMyList(series.value.id, 'series') : false,
 )
 const handleToggleMyList = () => {
   if (!series.value) return
-  toggleMyList(series.value.id)
+  toggleMyList(series.value.id, 'series')
 }
 
 const slugParam = computed(() => String(route.params.slug || ''))
 
-// Hero visuals
 const posterUrl = computed(
-  () => series.value?.poster_url || '/images/fallback-poster.webp',
+  () =>
+    getResizedUrl(series.value?.poster_url, 450, 675, 'contain') ||
+    '/images/fallback-poster.webp',
 )
 
 const heroBackgroundStyle = computed(() => {
-  const bg = series.value?.banner_url || series.value?.poster_url
-  if (!bg) return ''
-  return `background-image: url('${bg}')`
+  const bgRaw = series.value?.banner_url || series.value?.poster_url
+  if (!bgRaw) return ''
+
+  const bgOptimized = getResizedUrl(bgRaw, 1920, 1080, 'cover')
+  return `background-image: url('${bgOptimized}')`
 })
 
 const countryLabel = computed(() => {
@@ -310,15 +293,12 @@ const countryLabel = computed(() => {
   return map[code] || code
 })
 
-// Chọn 1 bản đại diện cho mỗi (season, episode_number)
 const logicalEpisodes = computed<EpisodeRow[]>(() => {
   const map = new Map<string, EpisodeRow>()
-
   for (const ep of episodes.value) {
     const season = ep.season_number ?? 1
     const key = `${season}-${ep.episode_number}`
     const existing = map.get(key)
-
     const col = ep.collection_id
       ? collections.value.find((c) => c.id === ep.collection_id)
       : null
@@ -365,7 +345,8 @@ const visibleEpisodes = computed<EpisodeRow[]>(() => {
 })
 
 const canLoadMore = computed(
-  () => visibleEpisodes.value.length < episodesForSelectedSeason.value.length,
+  () =>
+    visibleEpisodes.value.length < episodesForSelectedSeason.value.length,
 )
 
 const currentSeasonLabel = computed(() => {
@@ -377,7 +358,8 @@ const currentSeasonLabel = computed(() => {
 
 const firstEpisodeNumber = computed(() => {
   if (!logicalEpisodes.value.length) return null
-  return logicalEpisodes.value[0].episode_number
+  // SỬA: Dùng optional chaining để tránh lỗi object is possibly undefined
+  return logicalEpisodes.value[0]?.episode_number
 })
 
 const firstEpisodeLink = computed(() => {
@@ -394,8 +376,8 @@ watch(selectedSeason, () => {
   currentPage.value = 1
 })
 
-// Load data + xử lý slug history
 const loadData = async () => {
+  const nuxtApp = useNuxtApp()
   loading.value = true
   errorMessage.value = ''
 
@@ -406,20 +388,18 @@ const loadData = async () => {
       return
     }
 
-    // 1) Thử tìm trực tiếp trong series
     const {
       data: seriesData,
       error: seriesError,
     } = await supabase
       .from('series')
       .select(
-        'id, slug, title, original_title, title_kana, origin_country, description, poster_url, banner_url',
+        'id, slug, title, original_title, title_kana, year, origin_country, description, poster_url, banner_url, director, main_cast',
       )
       .eq('slug', slug)
       .single()
 
     if (seriesError || !seriesData) {
-      // 2) Không thấy → thử tìm alias
       const { data: aliasRows, error: aliasError } = await supabase
         .from('series_slug_history')
         .select('series_id')
@@ -427,19 +407,25 @@ const loadData = async () => {
         .limit(1)
 
       if (!aliasError && aliasRows && aliasRows.length > 0) {
-        const aliasSeriesId = aliasRows[0].series_id as number
+        // SỬA: Thêm optional chaining ?. và as number
+        const aliasSeriesId = aliasRows[0]?.series_id as number
 
-        const { data: canonicalSeries } = await supabase
-          .from('series')
-          .select('slug')
-          .eq('id', aliasSeriesId)
-          .single()
+        if (aliasSeriesId) {
+          const { data: canonicalSeries } = await supabase
+            .from('series')
+            .select('slug')
+            .eq('id', aliasSeriesId)
+            .single()
 
-        if (canonicalSeries?.slug) {
-          await navigateTo(`/series/${canonicalSeries.slug}`, {
-            redirectCode: 301,
-          })
-          return
+          if (canonicalSeries?.slug) {
+            await nuxtApp.runWithContext(() =>
+              navigateTo(`/series/${canonicalSeries.slug}`, {
+                redirectCode: 301,
+                external: true,
+              }),
+            )
+            return
+          }
         }
       }
 
@@ -449,7 +435,6 @@ const loadData = async () => {
 
     series.value = seriesData as SeriesRow
 
-    // Collections
     const { data: colData } = await supabase
       .from('episode_collections')
       .select('id, series_id, name, is_default')
@@ -457,7 +442,6 @@ const loadData = async () => {
 
     collections.value = (colData ?? []) as EpisodeCollectionRow[]
 
-    // Episodes
     const { data: epData, error: epError } = await supabase
       .from('episodes')
       .select(
@@ -466,12 +450,6 @@ const loadData = async () => {
       .eq('series_id', series.value.id)
       .order('season_number', { ascending: true })
       .order('episode_number', { ascending: true })
-
-    console.log('EPISODES DEBUG', {
-      seriesId: series.value.id,
-      epData,
-      epError,
-    })
 
     episodes.value = (epData ?? []) as EpisodeRow[]
 
@@ -482,7 +460,7 @@ const loadData = async () => {
 
     const seasons = seasonNumbers.value
     if (seasons.length) {
-      selectedSeason.value = seasons[0]
+      selectedSeason.value = seasons[0] ?? null
     }
     currentPage.value = 1
   } finally {
@@ -492,10 +470,19 @@ const loadData = async () => {
 
 await loadData()
 
-// SEO
+// --- SEO CONFIGURATION ---
+const url = useRequestURL()
+
+const canonicalUrl = computed(() => {
+  return `${url.origin}/series/${slugParam.value}`
+})
+
 const seoTitle = computed(() =>
-  series.value ? `${series.value.title} | MyStream` : 'シリーズ | MyStream',
+  series.value
+    ? `${series.value.title} 無料動画 | MugenTV.com`
+    : 'シリーズ 無料動画 | MugenTV.com',
 )
+
 const seoDescription = computed(
   () =>
     series.value?.description ??
@@ -508,16 +495,58 @@ const seoImage = computed(
     '/images/banner.jpg',
 )
 
+useHead({
+  link: [
+    {
+      rel: 'canonical',
+      href: canonicalUrl,
+    },
+  ],
+  title: seoTitle,
+  script: [
+    {
+      type: 'application/ld+json',
+      // SỬA: Thêm year vào type SeriesRow nên không còn báo lỗi
+      innerHTML: computed(() =>
+        JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'TVSeries',
+          name: series.value?.title,
+          alternateName: series.value?.original_title,
+          description: series.value?.description,
+          image: posterUrl.value,
+          startDate: series.value?.year?.toString(),
+          countryOfOrigin: {
+            '@type': 'Country',
+            name: series.value?.origin_country,
+          },
+          director: series.value?.director
+            ? {
+                '@type': 'Person',
+                name: series.value.director,
+              }
+            : undefined,
+          actor: series.value?.main_cast
+            ? series.value.main_cast.split(',').map((name) => ({
+                '@type': 'Person',
+                name: name.trim(),
+              }))
+            : undefined,
+          numberOfSeasons: seasonNumbers.value.length,
+          numberOfEpisodes: episodes.value.length,
+        }),
+      ),
+    },
+  ],
+})
+
 useSeoMeta({
   title: seoTitle,
   ogTitle: seoTitle,
   description: seoDescription,
   ogDescription: seoDescription,
   ogImage: seoImage,
+  ogUrl: canonicalUrl,
   twitterCard: 'summary_large_image',
-})
-
-useHead({
-  title: seoTitle.value,
 })
 </script>

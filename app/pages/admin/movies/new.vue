@@ -3,13 +3,29 @@
     <div class="mx-auto max-w-2xl">
       <div class="mb-6 flex items-center justify-between">
         <h1 class="text-2xl font-semibold">新しい映画を追加</h1>
-        <NuxtLink to="/admin" class="text-sm text-zinc-400 hover:text-zinc-200">
-          戻る
-        </NuxtLink>
+        
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300"
+            @click="showSmartPaste = true"
+          >
+            <span>⚡ スマートペースト</span>
+          </button>
+
+          <NuxtLink to="/admin" class="text-sm text-zinc-400 hover:text-zinc-200">
+            戻る
+          </NuxtLink>
+        </div>
       </div>
 
+      <SmartPasteModal
+        :show="showSmartPaste"
+        @close="showSmartPaste = false"
+        @apply="onSmartPaste"
+      />
+
       <form class="space-y-4" @submit.prevent="handleSubmit">
-        <!-- Title -->
         <div>
           <label class="mb-1 block text-sm">タイトル（日本向け）</label>
           <input
@@ -20,7 +36,6 @@
           />
         </div>
 
-        <!-- Original Title -->
         <div>
           <label class="mb-1 block text-sm">原題</label>
           <input
@@ -29,12 +44,8 @@
             class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
             placeholder="例: Frozen"
           />
-          <p class="mt-1 text-xs text-zinc-500">
-            日本でのタイトルとは別に、オリジナルの英語名や韓国語名などを入力します。
-          </p>
         </div>
 
-        <!-- Title Kana -->
         <div>
           <label class="mb-1 block text-sm">タイトル（かな）</label>
           <input
@@ -43,12 +54,8 @@
             class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
             placeholder="例: あなとゆきのじょおう"
           />
-          <p class="mt-1 text-xs text-zinc-500">
-            検索用。かな・カタカナからの検索に使われます。
-          </p>
         </div>
 
-        <!-- Slug -->
         <div>
           <label class="mb-1 block text-sm">Slug</label>
           <input
@@ -60,7 +67,6 @@
           />
         </div>
 
-        <!-- Description -->
         <div>
           <label class="mb-1 block text-sm">説明</label>
           <textarea
@@ -70,7 +76,6 @@
           />
         </div>
 
-        <!-- Year + Duration + Release date -->
         <div class="grid grid-cols-3 gap-4">
           <div>
             <label class="mb-1 block text-sm">年</label>
@@ -101,10 +106,8 @@
           </div>
         </div>
 
-        <!-- Origin Country -->
         <div>
           <label class="mb-1 block text-sm">製作国</label>
-
           <div v-if="countryOptions.length">
             <select
               v-model="form.origin_country"
@@ -116,14 +119,11 @@
               </option>
             </select>
           </div>
-
           <p class="mt-1 text-xs text-zinc-500">
-            ISO 2文字コード（例: JP / US /
-            KR）。国・地域は「国・地域管理」から追加してください。
+            ISO 2文字コード（例: JP / US / KR）。国・地域は「国・地域管理」から追加してください。
           </p>
         </div>
 
-        <!-- Genres (multi-select) -->
         <div>
           <div class="mb-1 flex items-center justify-between">
             <label class="block text-sm">ジャンル（複数選択可）</label>
@@ -136,7 +136,6 @@
               クリア
             </button>
           </div>
-
           <div v-if="genreOptions.length" class="flex flex-wrap gap-2">
             <button
               v-for="g in genreOptions"
@@ -153,14 +152,11 @@
               {{ g.name_ja || g.name || g.slug }}
             </button>
           </div>
-
           <p v-else class="mt-1 text-xs text-zinc-500">
-            ジャンルがまだ登録されていません。Supabase
-            の「genres」テーブルに追加してください。
+            ジャンルがまだ登録されていません。
           </p>
         </div>
 
-        <!-- Director -->
         <div>
           <label class="mb-1 block text-sm">監督</label>
           <input
@@ -171,7 +167,6 @@
           />
         </div>
 
-        <!-- Main Cast -->
         <div>
           <label class="mb-1 block text-sm">主演</label>
           <input
@@ -185,7 +180,6 @@
           </p>
         </div>
 
-        <!-- Video Path -->
         <div>
           <label class="mb-1 block text-sm">動画パス（HLS .m3u8）</label>
           <input
@@ -196,26 +190,21 @@
           />
         </div>
 
-        <!-- Poster / Banner -->
-        <div>
-          <label class="mb-1 block text-sm">ポスターURL</label>
-          <input
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <FormImageUpload
+            label="ポスター画像"
             v-model="form.poster_url"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
+            folder="movies"
+            ratio="poster"
           />
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">バナーURL</label>
-          <input
+          <FormImageUpload
+            label="バナー画像"
             v-model="form.banner_url"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
+            folder="movies"
+            ratio="banner"
           />
         </div>
 
-        <!-- Featured -->
         <div>
           <label class="inline-flex items-center gap-2 text-sm">
             <input
@@ -227,7 +216,6 @@
           </label>
         </div>
 
-        <!-- Messages -->
         <div v-if="errorMessage" class="text-sm text-red-400">
           {{ errorMessage }}
         </div>
@@ -240,7 +228,7 @@
           :disabled="submitting"
           class="mt-2 inline-flex items-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-black hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {{ submitting ? "保存中…" : "保存する" }}
+          {{ submitting ? '保存中…' : '保存する' }}
         </button>
       </form>
     </div>
@@ -248,97 +236,119 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed } from "vue";
-import { useRouter, useSupabaseClient, useAsyncData } from "#imports";
+import { reactive, ref, computed } from 'vue'
+import { useRouter, useSupabaseClient, useAsyncData } from '#imports'
+import SmartPasteModal from '~/components/SmartPasteModal.vue'
 
-const router = useRouter();
-const supabase = useSupabaseClient<any>();
+const router = useRouter()
+const supabase = useSupabaseClient<any>()
 
-// --- genres list ---
+// --- Genres ---
 type GenreRow = {
-  id: number;
-  slug: string;
-  name: string | null;
-  name_ja: string | null;
-};
+  id: number
+  slug: string
+  name: string | null
+  name_ja: string | null
+}
 
 type CountryRow = {
-  code: string;
-  name: string;
-  name_ja: string;
-  sort_order: number | null;
-  is_active: boolean | null;
-};
+  code: string
+  name: string
+  name_ja: string
+  sort_order: number | null
+  is_active: boolean | null
+}
 
 const { data: genresData } = await useAsyncData<GenreRow[]>(
-  "admin-genres",
+  'admin-genres',
   async () => {
     const { data, error } = await supabase
-      .from("genres")
-      .select("id, slug, name, name_ja")
-      .order("name_ja", { ascending: true });
+      .from('genres')
+      .select('id, slug, name, name_ja')
+      .order('name_ja', { ascending: true })
 
-    if (error) throw error;
-    return data ?? [];
+    if (error) throw error
+    return data ?? []
   }
-);
+)
 
 const { data: countriesData } = await useAsyncData<CountryRow[]>(
-  "admin-countries",
+  'admin-countries',
   async () => {
     const { data, error } = await supabase
-      .from("countries")
-      .select("code, name, name_ja, sort_order, is_active")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .order("name_ja", { ascending: true });
+      .from('countries')
+      .select('code, name, name_ja, sort_order, is_active')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('name_ja', { ascending: true })
 
-    if (error) throw error;
-    return data ?? [];
+    if (error) throw error
+    return data ?? []
   }
-);
+)
 
-const countryOptions = computed<CountryRow[]>(() => countriesData.value ?? []);
-
-const genreOptions = computed<GenreRow[]>(() => genresData.value ?? []);
-const selectedGenreIds = ref<number[]>([]);
+const countryOptions = computed<CountryRow[]>(() => countriesData.value ?? [])
+const genreOptions = computed<GenreRow[]>(() => genresData.value ?? [])
+const selectedGenreIds = ref<number[]>([])
 
 const toggleGenre = (id: number) => {
-  const idx = selectedGenreIds.value.indexOf(id);
+  const idx = selectedGenreIds.value.indexOf(id)
   if (idx === -1) {
-    selectedGenreIds.value.push(id);
+    selectedGenreIds.value.push(id)
   } else {
-    selectedGenreIds.value.splice(idx, 1);
+    selectedGenreIds.value.splice(idx, 1)
   }
-};
+}
 
-// --- form state ---
+// --- Form State ---
 const form = reactive({
-  title: "",
-  original_title: "",
-  title_kana: "",
-  slug: "",
-  description: "",
+  title: '',
+  original_title: '',
+  title_kana: '',
+  slug: '',
+  description: '',
   year: undefined as number | undefined,
   duration_minutes: undefined as number | undefined,
-  release_date: "" as string, // 'YYYY-MM-DD'
-  origin_country: "",
-  director: "",
-  main_cast: "",
-  video_path: "",
-  poster_url: "",
-  banner_url: "",
+  release_date: '' as string, // 'YYYY-MM-DD'
+  origin_country: '',
+  director: '',
+  main_cast: '',
+  video_path: '',
+  poster_url: '',
+  banner_url: '',
   is_featured: false,
-});
+})
 
-const submitting = ref(false);
-const errorMessage = ref("");
-const successMessage = ref("");
+const submitting = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
 
+// --- Smart Paste Logic ---
+const showSmartPaste = ref(false)
+
+const onSmartPaste = (data: any) => {
+  if (data.title) form.title = data.title
+  if (data.original_title) form.original_title = data.original_title
+  if (data.title_kana) form.title_kana = data.title_kana
+  if (data.slug) form.slug = data.slug
+  if (data.description) form.description = data.description
+  if (data.year) form.year = data.year
+  if (data.duration_minutes) form.duration_minutes = data.duration_minutes
+  if (data.release_date) form.release_date = data.release_date
+  if (data.origin_country) {
+    // Kiểm tra xem country code có trong danh sách active không
+    const exists = countryOptions.value.some(c => c.code === data.origin_country)
+    if (exists) form.origin_country = data.origin_country
+  }
+  if (data.director) form.director = data.director
+  if (data.main_cast) form.main_cast = data.main_cast
+}
+
+// --- Submit ---
 const handleSubmit = async () => {
-  errorMessage.value = "";
-  successMessage.value = "";
-  submitting.value = true;
+  errorMessage.value = ''
+  successMessage.value = ''
+  submitting.value = true
 
   try {
     const payload = {
@@ -357,48 +367,47 @@ const handleSubmit = async () => {
       poster_url: form.poster_url || null,
       banner_url: form.banner_url || null,
       is_featured: form.is_featured,
-    };
-
-    // 1) insert movie + lấy id
-    const { data: inserted, error } = await supabase
-      .from("movies")
-      .insert(payload)
-      .select("id")
-      .single();
-
-    if (error) {
-      errorMessage.value = error.message;
-      return;
     }
 
-    const movieId = inserted?.id as number | undefined;
+    // 1) insert movie
+    const { data: inserted, error } = await supabase
+      .from('movies')
+      .insert(payload)
+      .select('id')
+      .single()
+
+    if (error) {
+      errorMessage.value = error.message
+      return
+    }
+
+    const movieId = inserted?.id as number | undefined
     if (movieId && selectedGenreIds.value.length > 0) {
-      // 2) insert vào movie_genres
+      // 2) insert genres
       const mgPayload = selectedGenreIds.value.map((gid) => ({
         movie_id: movieId,
         genre_id: gid,
-      }));
+      }))
 
       const { error: mgError } = await supabase
-        .from("movie_genres")
-        .insert(mgPayload);
+        .from('movie_genres')
+        .insert(mgPayload)
 
       if (mgError) {
-        // Không block việc tạo phim, nhưng báo lỗi cho admin
-        console.error(mgError);
+        console.error(mgError)
         errorMessage.value =
-          "映画は作成されましたが、ジャンルの紐付けに失敗しました: " +
-          mgError.message;
-        return;
+          '映画は作成されましたが、ジャンルの紐付けに失敗しました: ' +
+          mgError.message
+        return
       }
     }
 
-    successMessage.value = "映画を作成しました。";
+    successMessage.value = '映画を作成しました。'
     setTimeout(() => {
-      router.push("/admin");
-    }, 700);
+      router.push('/admin')
+    }, 700)
   } finally {
-    submitting.value = false;
+    submitting.value = false
   }
-};
+}
 </script>

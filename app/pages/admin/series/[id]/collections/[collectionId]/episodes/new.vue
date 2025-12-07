@@ -41,12 +41,12 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-sm">タイトル</label>
+          <label class="mb-1 block text-sm">タイトル (任意)</label>
           <input
             v-model="form.title"
             type="text"
             class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            required
+            placeholder="未入力の場合は「第X話」と表示されます"
           />
         </div>
 
@@ -201,7 +201,7 @@ const handleSubmit = async () => {
       collection_id: collectionId.value,
       episode_number: form.episode_number,
       season_number: form.season_number ?? null,
-      title: form.title,
+      title: form.title ? form.title : null,
       title_kana: form.title_kana || null,
       description: form.description || null,
       duration_minutes: form.duration_minutes ?? null,

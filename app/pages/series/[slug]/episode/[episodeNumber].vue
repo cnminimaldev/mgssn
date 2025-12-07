@@ -1,6 +1,5 @@
 <template>
   <div class="min-h-[calc(100vh-4rem)] bg-black text-white">
-    <!-- Loading -->
     <div
       v-if="loading"
       class="flex h-full items-center justify-center py-20 text-zinc-300"
@@ -8,14 +7,13 @@
       Loading...
     </div>
 
-    <!-- Error / Not found -->
     <div
       v-else-if="errorMessage || !series || !activeEpisode"
       class="flex h-full items-center justify-center py-20 text-zinc-200"
     >
       <div class="text-center">
         <p class="text-sm">
-          {{ errorMessage || 'エピソードが見つかりませんでした。' }}
+          {{ errorMessage || "エピソードが見つかりませんでした。" }}
         </p>
         <NuxtLink
           to="/"
@@ -26,53 +24,50 @@
       </div>
     </div>
 
-    <!-- Content -->
     <div v-else>
-      <!-- Header -->
-      <section class="px-4 pt-6 sm:px-8">
-        <div class="mx-auto max-w-5xl">
-          <NuxtLink
-            :to="`/series/${series.slug}`"
-            class="text-[11px] text-zinc-400 hover:text-zinc-200 sm:text-xs"
-          >
-            ← シリーズ詳細へ戻る
-          </NuxtLink>
+      <nav aria-label="Breadcrumb" class="border-b border-white/5 bg-zinc-900/30 px-4 py-2 sm:px-8">
+        <ol class="mx-auto flex max-w-7xl flex-wrap items-center gap-2 text-[10px] text-zinc-400 sm:text-xs">
+          <li>
+            <NuxtLink to="/" class="hover:text-white hover:underline">ホーム</NuxtLink>
+          </li>
+          <li><span class="text-zinc-600">/</span></li>
+          <li>
+            <NuxtLink to="/search?type=series" class="hover:text-white hover:underline">シリーズ</NuxtLink>
+          </li>
+          <li><span class="text-zinc-600">/</span></li>
+          <li>
+            <NuxtLink :to="`/series/${series.slug}`" class="hover:text-white hover:underline max-w-[150px] truncate sm:max-w-xs">
+              {{ series.title }}
+            </NuxtLink>
+          </li>
+          <li><span class="text-zinc-600">/</span></li>
+          <li class="text-zinc-200" aria-current="page">
+            第{{ currentEpisodeNumber }}話
+          </li>
+        </ol>
+      </nav>
 
-          <h1
-            class="mt-2 text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl"
-          >
+      <section class="px-4 pt-6 sm:px-8">
+        <div class="mx-auto max-w-7xl">
+          <h1 class="text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">
             {{ series.title }}
           </h1>
-
           <p class="mt-1 text-xs text-zinc-400 sm:text-sm">
-            第{{ currentEpisodeNumber }}話
-            <span v-if="activeEpisode.title">：{{ activeEpisode.title }}</span>
+            <span v-if="activeEpisode.title">{{ activeEpisode.title }}</span>
+            <span v-else>第{{ currentEpisodeNumber }}話</span>
           </p>
-
-          <div class="mt-3 flex flex-wrap items-center gap-3 text-xs">
-            <button
-              type="button"
-              class="inline-flex items-center gap-1 rounded-full bg-zinc-900/60 px-3 py-1 text-[11px] text-zinc-100 ring-1 ring-zinc-700 hover:bg-zinc-800 sm:text-xs"
-              @click="handleToggleMyList"
-            >
-              <span v-if="inMyList">✔ マイリストに追加済み</span>
-              <span v-else>＋ マイリストに追加</span>
-            </button>
-          </div>
         </div>
       </section>
 
-      <!-- Main layout -->
       <section
-        class="mx-auto mt-4 flex max-w-5xl flex-col gap-6 px-4 pb-10 sm:flex-row sm:px-8"
+        class="mx-auto mt-4 flex max-w-7xl flex-col gap-6 px-4 pb-10 lg:flex-row lg:px-8"
         data-player-root
       >
-        <!-- Player / details -->
-        <div class="sm:w-2/3">
-          <!-- Collection selector -->
+        <div class="flex flex-col gap-4 lg:w-2/3">
+          
           <div
             v-if="collectionOptions.length"
-            class="mb-3 flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-300"
+            class="mb-2 flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-300"
           >
             <div class="flex flex-wrap items-center gap-2">
               <span class="text-[11px] text-zinc-400">バージョン</span>
@@ -93,12 +88,9 @@
                 </button>
               </div>
             </div>
-            <div
-              v-if="activeCollectionInfo"
-              class="text-[11px] text-zinc-400"
-            >
+            <div v-if="activeCollectionInfo" class="text-[11px] text-zinc-400">
               <span v-if="activeCollectionInfo.providerName">
-                Provider: {{ activeCollectionInfo.providerName }}
+                Source: {{ activeCollectionInfo.providerName }}
               </span>
               <span v-if="activeCollectionInfo.languages">
                 ・{{ activeCollectionInfo.languages }}
@@ -106,9 +98,8 @@
             </div>
           </div>
 
-          <!-- Player -->
           <div
-            class="overflow-hidden rounded-2xl border border-white/10 bg-black/60"
+            class="overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-2xl"
           >
             <StreamingPlayer
               v-if="playerSrc"
@@ -128,57 +119,166 @@
             </div>
           </div>
 
-          <!-- Description -->
-          <div class="mt-4 space-y-2 text-xs text-zinc-300 sm:text-sm">
-            <p v-if="series.description">
-              {{ series.description }}
-            </p>
+          <div class="flex items-center justify-between border-b border-white/5 pb-4">
+             <div class="flex gap-3">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-4 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 hover:text-white transition"
+                  @click="handleToggleMyList"
+                >
+                  <span v-if="inMyList" class="text-emerald-400">✔</span>
+                  <span v-else>+</span>
+                  <span>マイリスト</span>
+                </button>
+                <button class="inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-4 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 transition">
+                   <span>↗</span> 共有
+                </button>
+             </div>
           </div>
-        </div>
 
-        <!-- Episodes list -->
-        <aside
-          class="max-h-[480px] overflow-y-auto rounded-2xl bg-zinc-900/70 p-4 text-xs text-zinc-100 sm:w-1/3"
-        >
-          <div
-            v-if="seasons.length > 1"
-            class="mb-3 flex flex-wrap items-center gap-2"
-          >
-            <span class="text-[11px] text-zinc-400">シーズン</span>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="s in seasons"
-                :key="s"
-                type="button"
-                class="rounded-full px-3 py-1 text-[11px] ring-1 transition"
-                :class="
-                  s === selectedSeason
-                    ? 'bg-zinc-100 text-black ring-zinc-200'
-                    : 'bg-zinc-900 text-zinc-200 ring-zinc-700 hover:bg-zinc-800'
-                "
-                @click="selectedSeason = s"
-              >
-                シーズン {{ s }}
-              </button>
+          <div class="block lg:hidden">
+             <div class="rounded-xl bg-zinc-900/50 p-4 ring-1 ring-white/5">
+                <div class="mb-3 flex items-center justify-between">
+                   <span class="text-sm font-semibold text-white">エピソード</span>
+                   <span class="text-[10px] text-zinc-400">全{{ episodesForSeason.length }}話</span>
+                </div>
+                
+                <div v-if="seasons.length > 1" class="mb-3 flex overflow-x-auto pb-2 gap-2 no-scrollbar">
+                  <button
+                    v-for="s in seasons"
+                    :key="s"
+                    type="button"
+                    class="whitespace-nowrap rounded-full px-3 py-1 text-[11px] ring-1 transition"
+                    :class="s === selectedSeason ? 'bg-zinc-100 text-black ring-zinc-200' : 'bg-zinc-800 text-zinc-400 ring-zinc-700'"
+                    @click="selectedSeason = s"
+                  >
+                    シーズン {{ s }}
+                  </button>
+                </div>
+
+                <div class="flex flex-wrap gap-2 p-2 max-h-60 overflow-y-auto custom-scrollbar border border-white/5 rounded-lg bg-black/20">
+                  <NuxtLink
+                    v-for="ep in episodesForSeason"
+                    :key="ep.id"
+                    :to="episodeLink(ep)"
+                    :id="ep.episode_number === currentEpisodeNumber ? 'active-ep-mobile' : undefined"
+                    class="flex h-10 min-w-[3rem] items-center justify-center rounded-lg px-3 text-xs font-medium transition ring-1"
+                    :class="
+                      ep.episode_number === currentEpisodeNumber
+                        ? 'bg-emerald-600 text-white ring-emerald-400 font-bold'
+                        : 'bg-zinc-800 text-zinc-300 ring-zinc-700 hover:bg-zinc-700 hover:text-white hover:ring-zinc-500'
+                    "
+                  >
+                    {{ ep.episode_number }}
+                  </NuxtLink>
+                </div>
+             </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <h3 class="mb-1 text-sm font-semibold text-white">あらすじ</h3>
+              <p class="text-xs leading-relaxed text-zinc-400 sm:text-sm">
+                {{ series.description || 'あらすじはまだ登録されていません。' }}
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-y-3 gap-x-8 text-xs sm:grid-cols-2">
+               <div v-if="genres.length">
+                  <span class="text-zinc-500 block mb-1">ジャンル</span>
+                  <div class="flex flex-wrap gap-2">
+                    <NuxtLink 
+                      v-for="g in genres" 
+                      :key="g.slug"
+                      :to="`/search?genres=${g.slug}`"
+                      class="text-emerald-400 hover:underline hover:text-emerald-300"
+                    >
+                      {{ g.label }}
+                    </NuxtLink>
+                  </div>
+               </div>
+
+               <div v-if="series.main_cast">
+                  <span class="text-zinc-500 block mb-1">キャスト</span>
+                  <div class="flex flex-wrap gap-1 text-zinc-300">
+                    <template v-for="(actor, idx) in castList" :key="idx">
+                      <NuxtLink :to="`/search?q=${actor}`" class="hover:text-white hover:underline">{{ actor }}</NuxtLink>
+                      <span v-if="idx < castList.length - 1" class="text-zinc-600">,</span>
+                    </template>
+                  </div>
+               </div>
+
+               <div v-if="series.director">
+                  <span class="text-zinc-500 block mb-1">監督</span>
+                  <NuxtLink :to="`/search?q=${series.director}`" class="text-zinc-300 hover:text-white hover:underline">
+                    {{ series.director }}
+                  </NuxtLink>
+               </div>
+
+               <div>
+                 <span class="text-zinc-500 block mb-1">情報</span>
+                 <div class="flex flex-wrap gap-3 text-zinc-300">
+                    <span v-if="series.year">
+                      <NuxtLink :to="`/search?year=${series.year}`" class="hover:text-white hover:underline">{{ series.year }}年</NuxtLink>
+                    </span>
+                    <span v-if="countryLabel">
+                      <NuxtLink :to="`/search?countries=${series.origin_country}`" class="hover:text-white hover:underline">{{ countryLabel }}</NuxtLink>
+                    </span>
+                 </div>
+               </div>
             </div>
           </div>
 
-          <div>
-            <p class="mb-2 text-[11px] text-zinc-400">エピソード</p>
-            <div class="flex flex-wrap gap-2">
-              <NuxtLink
-                v-for="ep in episodesForSeason"
-                :key="ep.id"
-                :to="episodeLink(ep)"
-                class="min-w-[3rem] rounded-full px-3 py-1 text-center text-[11px] transition sm:text-xs"
-                :class="
-                  ep.episode_number === currentEpisodeNumber
-                    ? 'bg-emerald-500 text-emerald-950 font-semibold'
-                    : 'bg-white/5 text-zinc-100 hover:bg-white/10'
-                "
-              >
-                {{ ep.title || `第${ep.episode_number}話` }}
-              </NuxtLink>
+        </div>
+
+        <aside class="hidden w-full lg:block lg:w-1/3">
+          <div class="sticky top-20 rounded-2xl bg-zinc-900/50 p-4 ring-1 ring-white/5">
+            <div
+              v-if="seasons.length > 1"
+              class="mb-4 flex flex-wrap items-center gap-2"
+            >
+              <span class="text-[11px] text-zinc-400">シーズン</span>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="s in seasons"
+                  :key="s"
+                  type="button"
+                  class="rounded-full px-3 py-1 text-[11px] ring-1 transition"
+                  :class="
+                    s === selectedSeason
+                      ? 'bg-zinc-100 text-black ring-zinc-200'
+                      : 'bg-zinc-800 text-zinc-400 ring-zinc-700 hover:bg-zinc-700'
+                  "
+                  @click="selectedSeason = s"
+                >
+                  {{ s }}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p class="mb-3 text-xs font-medium text-zinc-400">
+                 エピソード (全{{ episodesForSeason.length }}話)
+              </p>
+              <div class="max-h-[calc(100vh-200px)] overflow-y-auto p-2 custom-scrollbar border border-white/5 rounded-lg bg-black/20">
+                <div class="flex flex-wrap gap-2 pb-2">
+                  <NuxtLink
+                    v-for="ep in episodesForSeason"
+                    :key="ep.id"
+                    :to="episodeLink(ep)"
+                    :id="ep.episode_number === currentEpisodeNumber ? 'active-ep-desktop' : undefined"
+                    class="flex h-10 min-w-[3rem] items-center justify-center rounded-lg px-3 text-xs font-medium transition ring-1"
+                    :class="
+                      ep.episode_number === currentEpisodeNumber
+                        ? 'bg-emerald-600 text-white ring-emerald-400 font-bold'
+                        : 'bg-zinc-800 text-zinc-300 ring-zinc-700 hover:bg-zinc-700 hover:text-white hover:ring-zinc-500'
+                    "
+                    :title="ep.title || `第${ep.episode_number}話`"
+                  >
+                    {{ ep.episode_number }}
+                  </NuxtLink>
+                </div>
+              </div>
             </div>
           </div>
         </aside>
@@ -188,13 +288,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  ref,
-  nextTick,
-  onMounted,
-  watch,
-} from 'vue'
+import { computed, ref, nextTick, onMounted, watch } from "vue";
 import {
   useRoute,
   useRouter,
@@ -202,487 +296,501 @@ import {
   useSeoMeta,
   useHead,
   navigateTo,
-} from '#imports'
-import StreamingPlayer from '~/components/StreamingPlayer.vue'
-import { useContinueWatching } from '~/composables/useContinueWatching'
-import { useMyList } from '~/composables/useMyList'
+  useNuxtApp,
+  useRequestURL,
+} from "#imports";
+import StreamingPlayer from "~/components/StreamingPlayer.vue";
+import { useContinueWatching } from "~/composables/useContinueWatching";
+import { useMyList } from "~/composables/useMyList";
 
 type SeriesRow = {
-  id: number
-  slug: string
-  title: string
-  original_title?: string | null
-  title_kana?: string | null
-  origin_country?: string | null
-  description?: string | null
-  poster_url?: string | null
-  banner_url?: string | null
-}
+  id: number;
+  slug: string;
+  title: string;
+  original_title?: string | null;
+  title_kana?: string | null;
+  origin_country?: string | null;
+  description?: string | null;
+  poster_url?: string | null;
+  banner_url?: string | null;
+  year?: number | null;
+  director?: string | null;
+  main_cast?: string | null;
+  series_genres?: {
+    genre: {
+      slug: string;
+      name: string | null;
+      name_ja: string | null;
+    } | null;
+  }[];
+};
 
 type EpisodeCollectionRow = {
-  id: number
-  name: string
-  type: string | null
-  audio_language: string | null
-  subtitle_language: string | null
-  provider_id: number | null
-  is_default: boolean | null
-  series_id?: number
-}
+  id: number;
+  name: string;
+  type: string | null;
+  audio_language: string | null;
+  subtitle_language: string | null;
+  provider_id: number | null;
+  is_default: boolean | null;
+  series_id?: number;
+};
 
 type EpisodeRow = {
-  id: number
-  series_id: number
-  collection_id: number | null
-  season_number: number | null
-  episode_number: number
-  title: string | null
-  video_path: string | null
-  thumbnail_url: string | null
-  duration_minutes: number | null
-}
+  id: number;
+  series_id: number;
+  collection_id: number | null;
+  season_number: number | null;
+  episode_number: number;
+  title: string | null;
+  video_path: string | null;
+  thumbnail_url: string | null;
+  duration_minutes: number | null;
+};
 
 type ProviderRow = {
-  id: number
-  name: string
-  website_url: string | null
-}
+  id: number;
+  name: string;
+  website_url: string | null;
+};
 
-const route = useRoute()
-const router = useRouter()
-const supabase = useSupabaseClient<any>()
+const route = useRoute();
+const router = useRouter();
+const supabase = useSupabaseClient<any>();
 
-const loading = ref(true)
-const errorMessage = ref('')
+const loading = ref(true);
+const errorMessage = ref("");
 
-const series = ref<SeriesRow | null>(null)
-const collections = ref<EpisodeCollectionRow[]>([])
-const episodes = ref<EpisodeRow[]>([])
-const providers = ref<ProviderRow[]>([])
+const series = ref<SeriesRow | null>(null);
+const collections = ref<EpisodeCollectionRow[]>([]);
+const episodes = ref<EpisodeRow[]>([]);
+const providers = ref<ProviderRow[]>([]);
 
-const selectedCollectionId = ref<number | null>(null)
-const selectedSeason = ref<number | null>(null)
-const isInitializing = ref(true)
+const selectedCollectionId = ref<number | null>(null);
+const selectedSeason = ref<number | null>(null);
+const isInitializing = ref(true);
 
-// continue watching (per episode)
-const { setProgress, clearProgressForMovie, getEntry } = useContinueWatching()
-
-// My List (series-level)
-const { isInMyList, toggleMyList } = useMyList()
+const { setProgress, clearProgressForMovie, getEntry } = useContinueWatching();
+const { isInMyList, toggleMyList } = useMyList();
 const inMyList = computed(() =>
-  series.value ? isInMyList(series.value.id) : false,
-)
+  series.value ? isInMyList(series.value.id, 'series') : false
+);
 const handleToggleMyList = () => {
-  if (!series.value) return
-  toggleMyList(series.value.id)
-}
+  if (!series.value) return;
+  toggleMyList(series.value.id, 'series');
+};
 
-const slugParam = computed(() => String(route.params.slug || ''))
+const slugParam = computed(() => String(route.params.slug || ""));
 const episodeNumberParam = computed(() => {
-  const raw = Number(route.params.episodeNumber)
-  return Number.isFinite(raw) ? raw : NaN
-})
+  const raw = Number(route.params.episodeNumber);
+  return Number.isFinite(raw) ? raw : NaN;
+});
 
+// Helper Computed
+const countryLabel = computed(() => {
+  const code = series.value?.origin_country;
+  if (!code) return "";
+  const map: Record<string, string> = {
+    JP: "日本", US: "アメリカ", KR: "韓国", CN: "中国", TW: "台湾", 
+    HK: "香港", GB: "イギリス", FR: "フランス", DE: "ドイツ", VN: "ベトナム",
+  };
+  return map[code] || code;
+});
+
+const genres = computed(() => {
+  if (!series.value?.series_genres) return [];
+  return series.value.series_genres
+    .map(sg => sg.genre)
+    .filter(g => g !== null)
+    .map(g => ({
+      slug: g!.slug,
+      label: g!.name_ja || g!.name || g!.slug
+    }));
+});
+
+const castList = computed(() => {
+  if (!series.value?.main_cast) return [];
+  return series.value.main_cast.split(',').map(c => c.trim());
+});
+
+// ... Logic Episodes & Collections ...
 const collectionFromQuery = computed<number | null>(() => {
-  const raw = route.query.collection
-  if (!raw) return null
-  const n = Number(raw)
-  return Number.isFinite(n) ? n : null
-})
+  const raw = route.query.collection;
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+});
 
-// seasons based on logical episodes (dedup by season+episode no)
 const uniqueEpisodesByKey = computed<EpisodeRow[]>(() => {
-  const map = new Map<string, EpisodeRow>()
+  const map = new Map<string, EpisodeRow>();
   for (const ep of episodes.value) {
-    const season = ep.season_number ?? 1
-    const key = `${season}-${ep.episode_number}`
+    const season = ep.season_number ?? 1;
+    const key = `${season}-${ep.episode_number}`;
     if (!map.get(key)) {
-      map.set(key, { ...ep, season_number: season })
+      map.set(key, { ...ep, season_number: season });
     }
   }
   return Array.from(map.values()).sort((a, b) => {
-    const sa = a.season_number ?? 1
-    const sb = b.season_number ?? 1
-    if (sa !== sb) return sa - sb
-    return a.episode_number - b.episode_number
-  })
-})
+    const sa = a.season_number ?? 1;
+    const sb = b.season_number ?? 1;
+    if (sa !== sb) return sa - sb;
+    return a.episode_number - b.episode_number;
+  });
+});
 
 const seasons = computed<number[]>(() => {
-  const set = new Set<number>()
+  const set = new Set<number>();
   for (const ep of uniqueEpisodesByKey.value) {
-    set.add(ep.season_number ?? 1)
+    set.add(ep.season_number ?? 1);
   }
-  return Array.from(set).sort((a, b) => a - b)
-})
+  return Array.from(set).sort((a, b) => a - b);
+});
 
 const episodesForSeason = computed<EpisodeRow[]>(() => {
-  if (!uniqueEpisodesByKey.value.length) return []
+  if (!uniqueEpisodesByKey.value.length) return [];
   const s =
-    selectedSeason.value ??
-    (seasons.value.length ? seasons.value[0] : null)
-  if (s == null) return []
+    selectedSeason.value ?? (seasons.value.length ? seasons.value[0] : null);
+  if (s == null) return [];
   return uniqueEpisodesByKey.value.filter(
-    (ep) => (ep.season_number ?? 1) === s,
-  )
-})
+    (ep) => (ep.season_number ?? 1) === s
+  );
+});
 
-// variants for current episode number (same logical ep, different collections)
 const variantsForCurrentEpisode = computed<EpisodeRow[]>(() => {
-  const num = episodeNumberParam.value
-  if (!Number.isFinite(num)) return []
-  return episodes.value.filter((ep) => ep.episode_number === num)
-})
+  const num = episodeNumberParam.value;
+  if (!Number.isFinite(num)) return [];
+  return episodes.value.filter((ep) => ep.episode_number === num);
+});
 
-// active episode based on selected collection (or default)
 const activeEpisode = computed<EpisodeRow | null>(() => {
-  const variants = variantsForCurrentEpisode.value
-  if (!variants.length) return null
+  const variants = variantsForCurrentEpisode.value;
+  if (!variants.length) return null;
 
   if (selectedCollectionId.value != null) {
     const found = variants.find(
-      (ep) => ep.collection_id === selectedCollectionId.value,
-    )
-    if (found) return found
+      (ep) => ep.collection_id === selectedCollectionId.value
+    );
+    if (found) return found;
   }
-
-  return variants[0] ?? null
-})
+  return variants[0] ?? null;
+});
 
 const currentEpisodeNumber = computed(() => {
-  const ep = activeEpisode.value
-  if (ep) return ep.episode_number
-  const n = episodeNumberParam.value
-  return Number.isFinite(n) ? n : 0
-})
+  const ep = activeEpisode.value;
+  if (ep) return ep.episode_number;
+  const n = episodeNumberParam.value;
+  return Number.isFinite(n) ? n : 0;
+});
 
 const collectionOptions = computed(() => {
-  const variants = variantsForCurrentEpisode.value
-  if (!variants.length) return []
-
-  const set = new Set<number>()
+  const variants = variantsForCurrentEpisode.value;
+  if (!variants.length) return [];
+  const set = new Set<number>();
   for (const ep of variants) {
-    if (ep.collection_id != null) {
-      set.add(ep.collection_id)
-    }
+    if (ep.collection_id != null) set.add(ep.collection_id);
   }
-  if (!set.size) return []
-
+  if (!set.size) return [];
   return collections.value
     .filter((c) => set.has(c.id))
     .map((c) => {
       const provider = c.provider_id
         ? providers.value.find((p) => p.id === c.provider_id)
-        : null
-      const langs: string[] = []
-      if (c.audio_language) langs.push(`音声:${c.audio_language}`)
-      if (c.subtitle_language) langs.push(`字幕:${c.subtitle_language}`)
-      const meta = [...langs, provider?.name].filter(Boolean).join(' / ')
+        : null;
+      const langs: string[] = [];
+      if (c.audio_language) langs.push(`音声:${c.audio_language}`);
+      if (c.subtitle_language) langs.push(`字幕:${c.subtitle_language}`);
+      const meta = [...langs, provider?.name].filter(Boolean).join(" / ");
       return {
         id: c.id,
         label: meta ? `${c.name}（${meta}）` : c.name,
-      }
-    })
-})
+      };
+    });
+});
 
 const activeCollectionInfo = computed(() => {
-  if (selectedCollectionId.value == null) return null
-  const c = collections.value.find((cc) => cc.id === selectedCollectionId.value)
-  if (!c) return null
+  if (selectedCollectionId.value == null) return null;
+  const c = collections.value.find(
+    (cc) => cc.id === selectedCollectionId.value
+  );
+  if (!c) return null;
   const provider = c.provider_id
     ? providers.value.find((p) => p.id === c.provider_id)
-    : null
-  const langs: string[] = []
-  if (c.audio_language) langs.push(`音声:${c.audio_language}`)
-  if (c.subtitle_language) langs.push(`字幕:${c.subtitle_language}`)
+    : null;
+  const langs: string[] = [];
+  if (c.audio_language) langs.push(`音声:${c.audio_language}`);
+  if (c.subtitle_language) langs.push(`字幕:${c.subtitle_language}`);
   return {
-    providerName: provider?.name || '',
-    languages: langs.join(' / '),
-  }
-})
+    providerName: provider?.name || "",
+    languages: langs.join(" / "),
+  };
+});
 
-const playerSrc = computed(() => activeEpisode.value?.video_path || '')
+const playerSrc = computed(() => activeEpisode.value?.video_path || "");
 const playerPoster = computed(
-  () =>
-    activeEpisode.value?.thumbnail_url ||
-    series.value?.poster_url ||
-    '/images/fallback-poster.webp',
-)
+  () => activeEpisode.value?.thumbnail_url || series.value?.poster_url || "/images/fallback-poster.webp"
+);
+
+// SỬA: Logic hiển thị tiêu đề player cho series
 const playerTitle = computed(() => {
-  if (!series.value || !activeEpisode.value) return ''
-  const base = series.value.title
-  const ep = activeEpisode.value
-  return ep.title
-    ? `${base} 第${ep.episode_number}話 ${ep.title}`
-    : `${base} 第${ep.episode_number}話`
-})
+  if (!series.value || !activeEpisode.value) return "";
+  const base = series.value.title;
+  const ep = activeEpisode.value;
+  // <Tên phim> <Tên tập (nếu có) HOẶC 第X話>
+  const suffix = ep.title ? ep.title : `第${ep.episode_number}話`;
+  return `${base} ${suffix}`;
+});
 
 const playerKey = computed(() => {
-  const ep = activeEpisode.value
-  return ep ? `ep-${ep.id}` : playerSrc.value
-})
+  const ep = activeEpisode.value;
+  return ep ? `ep-${ep.id}` : playerSrc.value;
+});
 
 const episodeStartTime = computed(() => {
-  const ep = activeEpisode.value
-  if (!ep) return 0
-  const entry = getEntry(ep.id)
-  if (!entry) return 0
-  if (!entry.duration || entry.duration < 60) return 0
+  const ep = activeEpisode.value;
+  if (!ep) return 0;
+  const entry = getEntry(ep.id);
+  if (!entry) return 0;
+  if (!entry.duration || entry.duration < 60) return 0;
   if (entry.currentTime < 10 || entry.duration - entry.currentTime < 10) {
-    return 0
+    return 0;
   }
-  return entry.currentTime
-})
+  return entry.currentTime;
+});
 
-const lastSavedAt = ref(0)
-
-const handlePlayerTimeUpdate = (payload: {
-  currentTime: number
-  duration: number
-}) => {
-  const ep = activeEpisode.value
-  if (!ep) return
-
-  const now = performance.now()
-  if (now - lastSavedAt.value < 2000) return
-  lastSavedAt.value = now
-
-  setProgress(ep.id, payload.currentTime, payload.duration)
-}
+const lastSavedAt = ref(0);
+const handlePlayerTimeUpdate = (payload: { currentTime: number; duration: number }) => {
+  const ep = activeEpisode.value;
+  if (!ep) return;
+  const now = performance.now();
+  if (now - lastSavedAt.value < 2000) return;
+  lastSavedAt.value = now;
+  setProgress(ep.id, payload.currentTime, payload.duration);
+};
 
 const handlePlayerEnded = () => {
-  const ep = activeEpisode.value
-  if (!ep) return
-  clearProgressForMovie(ep.id)
-}
+  const ep = activeEpisode.value;
+  if (!ep) return;
+  clearProgressForMovie(ep.id);
+};
 
 const episodeLink = (ep: EpisodeRow) => {
-  const slug = series.value?.slug || slugParam.value
-  const path = `/series/${slug}/episode/${ep.episode_number}`
-
+  const slug = series.value?.slug || slugParam.value;
+  const path = `/series/${slug}/episode/${ep.episode_number}`;
   if (selectedCollectionId.value != null) {
-    return {
-      path,
-      query: {
-        ...route.query,
-        collection: selectedCollectionId.value,
-      },
-    }
+    return { path, query: { ...route.query, collection: selectedCollectionId.value } };
   }
-
-  const { collection, ...restQuery } = route.query
-  return {
-    path,
-    query: restQuery,
-  }
-}
+  const { collection, ...restQuery } = route.query;
+  return { path, query: restQuery };
+};
 
 // Load data
 const loadData = async () => {
-  loading.value = true
-  errorMessage.value = ''
+  const nuxtApp = useNuxtApp();
+  loading.value = true;
+  errorMessage.value = "";
 
   try {
-    const slug = slugParam.value
+    const slug = slugParam.value;
     if (!slug) {
-      errorMessage.value = 'Invalid slug'
-      return
+      errorMessage.value = "Invalid slug";
+      return;
     }
 
-    const epNum = episodeNumberParam.value
+    const epNum = episodeNumberParam.value;
     if (!Number.isFinite(epNum) || epNum <= 0) {
-      errorMessage.value = 'Invalid episode number'
-      return
+      errorMessage.value = "Invalid episode number";
+      return;
     }
 
-    // Series: thử slug hiện tại
-    const {
-      data: seriesData,
-      error: seriesError,
-    } = await supabase
-      .from('series')
+    const { data: seriesData, error: seriesError } = await supabase
+      .from("series")
       .select(
-        'id, slug, title, original_title, title_kana, origin_country, description, poster_url, banner_url',
+        "id, slug, title, original_title, title_kana, origin_country, description, poster_url, banner_url, year, director, main_cast, series_genres(genre:genres(slug, name, name_ja))"
       )
-      .eq('slug', slug)
-      .single()
+      .eq("slug", slug)
+      .single();
 
     if (seriesError || !seriesData) {
-      // Không thấy → thử bảng alias
-      const { data: aliasRows, error: aliasError } = await supabase
-        .from('series_slug_history')
-        .select('series_id')
-        .eq('slug', slug)
-        .limit(1)
+      const { data: aliasRows } = await supabase
+        .from("series_slug_history")
+        .select("series_id")
+        .eq("slug", slug)
+        .limit(1);
 
-      if (!aliasError && aliasRows && aliasRows.length > 0) {
-        const aliasSeriesId = aliasRows[0].series_id as number
-
-        const { data: canonicalSeries } = await supabase
-          .from('series')
-          .select('slug')
-          .eq('id', aliasSeriesId)
-          .single()
-
-        if (canonicalSeries?.slug) {
-          await navigateTo(
-            `/series/${canonicalSeries.slug}/episode/${epNum}`,
-            { redirectCode: 301 },
-          )
-          return
+      if (aliasRows && aliasRows.length > 0) {
+        const aliasSeriesId = aliasRows[0]?.series_id as number;
+        if (aliasSeriesId) {
+          const { data: canonicalSeries } = await supabase
+            .from("series")
+            .select("slug")
+            .eq("id", aliasSeriesId)
+            .single();
+          if (canonicalSeries?.slug) {
+            await nuxtApp.runWithContext(() =>
+              navigateTo(`/series/${canonicalSeries.slug}/episode/${epNum}`, {
+                redirectCode: 301,
+                external: true,
+              })
+            );
+            return;
+          }
         }
       }
-
-      errorMessage.value = 'シリーズが見つかりませんでした。'
-      return
+      errorMessage.value = "シリーズが見つかりませんでした。";
+      return;
     }
 
-    series.value = seriesData as SeriesRow
+    series.value = seriesData as unknown as SeriesRow;
 
-    // Collections
     const { data: colData } = await supabase
-      .from('episode_collections')
+      .from("episode_collections")
       .select(
-        'id, name, type, audio_language, subtitle_language, provider_id, is_default, series_id',
+        "id, name, type, audio_language, subtitle_language, provider_id, is_default, series_id"
       )
-      .eq('series_id', series.value.id)
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true })
+      .eq("series_id", series.value.id)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    collections.value = (colData ?? []) as EpisodeCollectionRow[];
 
-    collections.value = (colData ?? []) as EpisodeCollectionRow[]
-
-    // Providers
     const { data: provData } = await supabase
-      .from('collection_providers')
-      .select('id, name, website_url')
-      .order('name', { ascending: true })
+      .from("collection_providers")
+      .select("id, name, website_url")
+      .order("name", { ascending: true });
+    providers.value = (provData ?? []) as ProviderRow[];
 
-    providers.value = (provData ?? []) as ProviderRow[]
-
-    // Episodes
-    const { data: epData, error: epError } = await supabase
-      .from('episodes')
+    const { data: epData } = await supabase
+      .from("episodes")
       .select(
-        'id, series_id, collection_id, season_number, episode_number, title, video_path, thumbnail_url, duration_minutes',
+        "id, series_id, collection_id, season_number, episode_number, title, video_path, thumbnail_url, duration_minutes"
       )
-      .eq('series_id', series.value.id)
-      .order('season_number', { ascending: true })
-      .order('episode_number', { ascending: true })
-
-    console.log('EPISODES PAGE DEBUG', {
-      seriesId: series.value.id,
-      epData,
-      epError,
-    })
-
-    episodes.value = (epData ?? []) as EpisodeRow[]
+      .eq("series_id", series.value.id)
+      .order("season_number", { ascending: true })
+      .order("episode_number", { ascending: true });
+    episodes.value = (epData ?? []) as EpisodeRow[];
 
     if (!episodes.value.length) {
-      errorMessage.value = 'エピソードがまだ登録されていません。'
-      return
+      errorMessage.value = "エピソードがまだ登録されていません。";
+      return;
     }
-
-    const variants = variantsForCurrentEpisode.value
+    const variants = variantsForCurrentEpisode.value;
     if (!variants.length) {
-      errorMessage.value = '指定されたエピソードが存在しません。'
-      return
+      errorMessage.value = "指定されたエピソードが存在しません。";
+      return;
     }
-
-    // 1) Ưu tiên collection từ query
-    let defaultCollectionId: number | null = null
-    const requestedCollectionId = collectionFromQuery.value
-    if (requestedCollectionId != null) {
-      const hasVariant = variants.some(
-        (ep) => ep.collection_id === requestedCollectionId,
-      )
-      if (hasVariant) {
-        defaultCollectionId = requestedCollectionId
-      }
+    let defaultCollectionId: number | null = null;
+    const requestedCollectionId = collectionFromQuery.value;
+    if (requestedCollectionId != null && variants.some((ep) => ep.collection_id === requestedCollectionId)) {
+      defaultCollectionId = requestedCollectionId;
     }
-
-    // 2) Nếu không dùng được, ưu tiên collection default
     if (defaultCollectionId == null && collections.value.length) {
-      const defaultCol =
-        collections.value.find((c) => c.is_default) ?? collections.value[0]
-      if (defaultCol) {
-        const hasVariant = variants.some(
-          (ep) => ep.collection_id === defaultCol.id,
-        )
-        defaultCollectionId = hasVariant ? defaultCol.id : null
+      const defaultCol = collections.value.find((c) => c.is_default) ?? collections.value[0];
+      if (defaultCol && variants.some((ep) => ep.collection_id === defaultCol.id)) {
+        defaultCollectionId = defaultCol.id;
       }
     }
-
-    // 3) Nếu vẫn chưa có, lấy collection đầu tiên có episode
     if (defaultCollectionId == null) {
-      const firstWithCollection = variants.find(
-        (ep) => ep.collection_id != null,
-      )
-      defaultCollectionId = firstWithCollection
-        ? firstWithCollection.collection_id
-        : null
+      const firstWithCollection = variants.find((ep) => ep.collection_id != null);
+      defaultCollectionId = firstWithCollection ? firstWithCollection.collection_id : null;
     }
+    selectedCollectionId.value = defaultCollectionId;
+    const baseEp = variants[0];
+    const season = baseEp?.season_number ?? 1;
+    selectedSeason.value = season;
 
-    selectedCollectionId.value = defaultCollectionId
-
-    // Default season theo episode đang xem
-    const baseEp = variants[0]
-    const season = baseEp.season_number ?? 1
-    selectedSeason.value = season
   } finally {
-    loading.value = false
+    loading.value = false;
   }
+};
+
+await loadData();
+isInitializing.value = false;
+
+// Scroll to active episode
+const scrollToActiveEpisode = async () => {
+  await nextTick();
+  const mobileBtn = document.getElementById('active-ep-mobile');
+  if (mobileBtn) mobileBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  const desktopBtn = document.getElementById('active-ep-desktop');
+  if (desktopBtn) desktopBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-await loadData()
-isInitializing.value = false
+watch(currentEpisodeNumber, () => {
+  scrollToActiveEpisode();
+}, { immediate: true });
 
-// Sync selectedCollectionId -> URL query
-watch(
-  selectedCollectionId,
-  (val) => {
-    if (isInitializing.value) return
+watch(selectedCollectionId, (val) => {
+  if (isInitializing.value) return;
+  const slug = slugParam.value;
+  const epNum = episodeNumberParam.value;
+  if (!slug || !Number.isFinite(epNum)) return;
+  const query: Record<string, any> = { ...route.query };
+  if (val != null) query.collection = String(val);
+  else delete query.collection;
+  router.replace({ path: `/series/${slug}/episode/${epNum}`, query });
+});
 
-    const slug = slugParam.value
-    const epNum = episodeNumberParam.value
-    if (!slug || !Number.isFinite(epNum)) return
+// SEO
+const url = useRequestURL();
+const canonicalUrl = computed(() => {
+  return `${url.origin}/series/${slugParam.value}/episode/${currentEpisodeNumber.value}`;
+});
 
-    const query: Record<string, any> = { ...route.query }
-    if (val != null) {
-      query.collection = String(val)
-    } else {
-      delete query.collection
-    }
-
-    router.replace({
-      path: `/series/${slug}/episode/${epNum}`,
-      query,
-    })
-  },
-)
-
-// SEO meta
 const seoTitle = computed(() => {
   if (!series.value || !activeEpisode.value) {
-    return 'エピソード - MyStream'
+    return "エピソード 無料動画 | MugenTV.com";
   }
-  const ep = activeEpisode.value
-  return ep.title
-    ? `${series.value.title} 第${ep.episode_number}話 ${ep.title} | MyStream`
-    : `${series.value.title} 第${ep.episode_number}話 | MyStream`
-})
+  const ep = activeEpisode.value;
+  const epLabel = ep.title ? ep.title : `第${ep.episode_number}話`;
+  return `${series.value.title} ${epLabel} 無料動画 | MugenTV.com`;
+});
 
 const seoDescription = computed(
-  () =>
-    series.value?.description ??
-    '映画やドラマをオンラインで楽しめるMyStream。',
-)
+  () => series.value?.description ?? "映画やドラマをオンラインで楽しめるMyStream。"
+);
 
 const seoImage = computed(
-  () =>
-    series.value?.banner_url ||
-    series.value?.poster_url ||
-    '/images/banner.jpg',
-)
+  () => series.value?.banner_url || series.value?.poster_url || "/images/banner.jpg"
+);
+
+useHead({
+  link: [{ rel: "canonical", href: canonicalUrl }],
+  title: seoTitle,
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: computed(() => JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": url.origin
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Series",
+            "item": `${url.origin}/search?type=series`
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": series.value?.title,
+            "item": `${url.origin}/series/${slugParam.value}`
+          },
+          {
+            "@type": "ListItem",
+            "position": 4,
+            "name": `Episode ${currentEpisodeNumber.value}`,
+            "item": canonicalUrl.value
+          }
+        ]
+      }))
+    }
+  ]
+});
 
 useSeoMeta({
   title: seoTitle,
@@ -690,19 +798,39 @@ useSeoMeta({
   description: seoDescription,
   ogDescription: seoDescription,
   ogImage: seoImage,
-  twitterCard: 'summary_large_image',
-})
-
-useHead({
-  title: seoTitle.value,
-})
+  ogUrl: canonicalUrl,
+  twitterCard: "summary_large_image",
+});
 
 onMounted(async () => {
-  await nextTick()
-  const el = document.querySelector(
-    '[data-player-root]',
-  ) as HTMLElement | null
-  if (!el) return
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-})
+  await nextTick();
+  const el = document.querySelector("[data-player-root]") as HTMLElement | null;
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  scrollToActiveEpisode();
+});
 </script>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>

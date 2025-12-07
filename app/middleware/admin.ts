@@ -1,16 +1,23 @@
-// middleware/admin.ts
-import { useAuth } from '~/composables/useAuth'
+export default defineNuxtRouteMiddleware((to) => {
+  // Sử dụng useSupabaseUser trực tiếp để tránh gọi useRoute() trong useAuth
+  const user = useSupabaseUser()
+  const config = useRuntimeConfig()
 
-export default defineNuxtRouteMiddleware(() => {
-  const { requireAuth, isAdmin } = useAuth()
-
-  // chưa login → đẩy sang /login
-  if (!requireAuth('/admin')) {
-    return
+  // 1. Chưa login -> Redirect sang Login
+  // Dùng to.fullPath để lấy link hiện tại thay vì useRoute().fullPath
+  if (!user.value) {
+    return navigateTo({
+      path: '/login',
+      query: { redirect: to.fullPath }
+    })
   }
 
-  // không phải admin → cho về trang chủ
-  if (!isAdmin.value) {
+  // 2. Kiểm tra quyền Admin
+  const email = user.value.email
+  const adminEmails = config.public.adminEmails as string[] | undefined
+
+  // Nếu không có email hoặc email không nằm trong danh sách admin
+  if (!email || !adminEmails?.includes(email)) {
     return navigateTo('/')
   }
 })

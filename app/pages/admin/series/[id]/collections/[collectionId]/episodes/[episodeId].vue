@@ -53,12 +53,12 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-sm">タイトル</label>
+          <label class="mb-1 block text-sm">タイトル (任意)</label>
           <input
             v-model="form.title"
             type="text"
             class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            required
+            placeholder="未入力の場合は「第X話」と表示されます"
           />
         </div>
 
@@ -149,7 +149,7 @@ type EpisodeRowFull = {
   collection_id: number
   episode_number: number
   season_number: number | null
-  title: string
+  title: string | null
   title_kana: string | null
   description: string | null
   duration_minutes: number | null
@@ -243,7 +243,7 @@ const loadData = async () => {
 
     form.episode_number = ep.episode_number
     form.season_number = ep.season_number ?? undefined
-    form.title = ep.title
+    form.title = ep.title ?? ''
     form.title_kana = ep.title_kana ?? ''
     form.description = ep.description ?? ''
     form.duration_minutes = ep.duration_minutes ?? undefined
@@ -264,7 +264,7 @@ const handleSubmit = async () => {
     const payload = {
       episode_number: form.episode_number,
       season_number: form.season_number ?? null,
-      title: form.title,
+      title: form.title ? form.title : null,
       title_kana: form.title_kana || null,
       description: form.description || null,
       duration_minutes: form.duration_minutes ?? null,

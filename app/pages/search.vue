@@ -1,7 +1,6 @@
 <template>
   <div class="min-h-[calc(100vh-4rem)] bg-[#05060a] text-white">
     <section class="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:px-6 lg:px-8">
-      <!-- Tiêu đề -->
       <header class="mb-4 sm:mb-6">
         <p
           class="text-[11px] font-semibold tracking-[0.18em] text-zinc-400 sm:text-xs"
@@ -11,20 +10,20 @@
         <h1
           class="mt-1 text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl"
         >
-          検索 & フィルター
+          <span v-if="keyword">「{{ keyword }}」の検索結果</span>
+          <span v-else-if="selectedGenres.length">ジャンルから探す</span>
+          <span v-else>検索 & フィルター</span>
         </h1>
         <p class="mt-1 text-xs text-zinc-400 sm:text-sm">
           タイトル・原題・かな、ジャンル、国・地域、公開年などで絞り込みできます。
         </p>
       </header>
 
-      <!-- Khu vực filter -->
       <div
         class="mb-8 rounded-xl border border-white/5 bg-zinc-950/60 p-4 shadow-xl shadow-black/40 sm:p-5"
       >
-        <!-- Hàng trên: keyword + năm + sort + reset -->
         <div
-          class="flex flex-col gap-3 border-b border-white/5 pb-4 sm:flex-row sm:items-center sm:justify-between"
+          class="flex flex-col gap-3 border-b border-white/5 pb-4 sm:flex-row sm:items-end sm:justify-between"
         >
           <div class="flex flex-1 flex-col gap-2 sm:flex-row">
             <div class="flex-1">
@@ -36,6 +35,7 @@
                 type="text"
                 class="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-50 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 sm:text-sm"
                 placeholder="例: Frozen / アナと雪の女王 / あなとゆきのじょおう"
+                @keydown.enter="handleSearch"
               />
             </div>
 
@@ -72,7 +72,7 @@
             </div>
           </div>
 
-          <div class="flex items-end justify-end gap-2">
+          <div class="flex items-center justify-end gap-2">
             <button
               type="button"
               class="rounded-md border border-zinc-600 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-300 sm:text-sm"
@@ -83,16 +83,14 @@
             <button
               type="button"
               class="rounded-md bg-emerald-500 px-4 py-2 text-xs font-medium text-black hover:bg-emerald-400 sm:text-sm"
-              @click="forceRefresh"
+              @click="handleSearch"
             >
               検索
             </button>
           </div>
         </div>
 
-        <!-- Hàng dưới: genre + country -->
         <div class="mt-4 flex flex-col gap-4 sm:flex-row">
-          <!-- Genre -->
           <div class="flex-1">
             <div class="mb-2 flex items-center justify-between">
               <label class="text-[11px] text-zinc-400 sm:text-xs">
@@ -107,7 +105,6 @@
               </button>
             </div>
             <div class="flex flex-wrap gap-2">
-              <!-- "Tất cả" -->
               <button
                 type="button"
                 class="rounded-full border px-3 py-1 text-[11px] transition sm:text-xs"
@@ -121,7 +118,6 @@
                 すべて
               </button>
 
-              <!-- Genre chips -->
               <button
                 v-for="g in genreOptions"
                 :key="g.slug"
@@ -139,7 +135,6 @@
             </div>
           </div>
 
-          <!-- Country -->
           <div class="flex-1">
             <div class="mb-2 flex items-center justify-between">
               <label class="text-[11px] text-zinc-400 sm:text-xs">
@@ -154,7 +149,6 @@
               </button>
             </div>
             <div class="flex flex-wrap gap-2">
-              <!-- "Tất cả" -->
               <button
                 type="button"
                 class="rounded-full border px-3 py-1 text-[11px] transition sm:text-xs"
@@ -168,7 +162,6 @@
                 すべて
               </button>
 
-              <!-- Country chips -->
               <button
                 v-for="c in countryOptions"
                 :key="c.code"
@@ -188,7 +181,6 @@
         </div>
       </div>
 
-      <!-- Kết quả -->
       <div v-if="pending" class="py-10 text-sm text-zinc-400">検索中…</div>
 
       <div v-else-if="error" class="py-10 text-sm text-red-400">
@@ -206,58 +198,19 @@
           v-if="movies.length"
           class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
         >
-          <NuxtLink
+          <div
             v-for="movie in movies"
             :key="movie.id"
-            :to="`/movie/${movie.id}`"
-            class="group"
+            class="card-wrapper"
           >
-            <div
-              class="aspect-[2/3] overflow-hidden rounded-md bg-zinc-900 transition group-hover:ring-2 group-hover:ring-emerald-500/80"
-            >
-              <img
-                :src="movie.thumbnail"
-                :alt="movie.title"
-                class="h-full w-full object-cover"
-                loading="lazy"
-              />
-            </div>
-            <div class="mt-2 text-xs text-zinc-400">
-              <div class="line-clamp-1 text-sm font-medium text-zinc-50">
-                {{ movie.title }}
-              </div>
-              <div
-                v-if="movie.originalTitle"
-                class="line-clamp-1 text-[11px] text-zinc-300"
-              >
-                {{ movie.originalTitle }}
-              </div>
-              <div class="mt-1 flex items-center gap-2">
-                <span v-if="movie.year" class="text-[11px]">
-                  {{ movie.year }}年
-                </span>
-                <span
-                  v-if="movie.country"
-                  class="rounded bg-white/10 px-1.5 py-0.5 text-[10px]"
-                >
-                  {{ movie.country }}
-                </span>
-                <span
-                  v-if="movie.genre"
-                  class="rounded bg-white/5 px-1.5 py-0.5 text-[10px]"
-                >
-                  {{ movie.genre }}
-                </span>
-              </div>
-            </div>
-          </NuxtLink>
+            <MovieCard :item="movie" />
+          </div>
         </div>
 
         <p v-else class="py-10 text-sm text-zinc-400">
           一致する作品が見つかりませんでした。
         </p>
 
-        <!-- Pagination -->
         <div
           v-if="totalPages > 1"
           class="mt-8 flex items-center justify-center gap-4 text-sm"
@@ -294,11 +247,33 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { useAsyncData } from "#imports";
-import type { Movie } from "~/data/movies";
+import { useAsyncData, useRoute, useSeoMeta, useHead, useRequestURL } from "#imports";
+import MovieCard from '~/components/MovieCard.vue'
+
+// Helper parse query param thành array string
+const getQueryArray = (val: any): string[] => {
+  if (!val) return []
+  if (Array.isArray(val)) return val.map(String)
+  return String(val).split(',').filter(Boolean)
+}
+
+// Type
+type SearchItem = {
+  id: number;
+  type: 'movie' | 'series';
+  slug: string;
+  title: string;
+  originalTitle?: string | null;
+  thumbnail: string;
+  year: number;
+  country: string;
+  genre: string;
+  episodeCount?: number;
+  description?: string;
+};
 
 type MoviesResponse = {
-  items: Movie[];
+  items: SearchItem[];
   total: number;
   page: number;
   pageSize: number;
@@ -310,18 +285,68 @@ type FiltersResponse = {
   years: number[];
 };
 
+const route = useRoute();
+
 // --- state filter ---
-const keyword = ref("");
-const selectedGenres = ref<string[]>([]);
-const selectedCountries = ref<string[]>([]);
-const selectedYear = ref<string>("");
+const keyword = ref(route.query.q?.toString() || "");
+const selectedGenres = ref<string[]>(getQueryArray(route.query.genres));
+const selectedCountries = ref<string[]>(getQueryArray(route.query.countries));
+const selectedYear = ref<string>(route.query.year?.toString() || "");
 
 const sortKey = ref<"recommended" | "year_desc" | "year_asc" | "title_asc">(
-  "recommended"
+  (route.query.sort?.toString() as any) || "recommended"
 );
 
 const page = ref(1);
-const pageSize = ref(24);
+const pageSize = ref(20);
+
+// --- SEO META ---
+// Tính toán Title động dựa trên filter
+const pageTitle = computed(() => {
+  if (keyword.value) {
+    return `「${keyword.value}」の検索結果 - MugenTV`
+  }
+  if (selectedGenres.value.length > 0) {
+    // Tìm tên genre từ danh sách options (nếu có) để hiển thị đẹp hơn
+    // nhưng hiện tại options load bất đồng bộ, nên dùng tạm slug hoặc text chung
+    return `ジャンル: ${selectedGenres.value.join(', ')} - MugenTV`
+  }
+  return '作品を探す - MugenTV'
+})
+
+// Canonical URL: Luôn trỏ về chính nó kèm query quan trọng (để tránh duplicate content do thứ tự param)
+const url = useRequestURL()
+const canonicalUrl = computed(() => {
+  // Tạo URL sạch từ state hiện tại
+  const u = new URL(`${url.origin}/search`)
+  if (keyword.value) u.searchParams.set('q', keyword.value)
+  if (selectedGenres.value.length) u.searchParams.set('genres', selectedGenres.value.join(','))
+  if (selectedCountries.value.length) u.searchParams.set('countries', selectedCountries.value.join(','))
+  if (selectedYear.value) u.searchParams.set('year', selectedYear.value)
+  if (page.value > 1) u.searchParams.set('page', page.value.toString())
+  return u.toString()
+})
+
+// Meta Robots: Noindex nếu là search keywords (tránh spam index), Index nếu là filter danh mục
+const robotsMeta = computed(() => {
+  if (keyword.value) return 'noindex, follow' // Search query -> Noindex
+  return 'index, follow' // Category/Genre filter -> Index
+})
+
+useSeoMeta({
+  title: pageTitle,
+  description: 'MugenTVで映画、ドラマ、アニメを検索。ジャンル、製作国、公開年で絞り込み。',
+  ogTitle: pageTitle,
+  ogDescription: 'MugenTVの検索ページ。お気に入りの作品を見つけよう。',
+  robots: robotsMeta,
+  ogUrl: canonicalUrl
+})
+
+useHead({
+  link: [
+    { rel: 'canonical', href: canonicalUrl }
+  ]
+})
 
 // --- filter options ---
 const { data: filtersData } = await useAsyncData<FiltersResponse>(
@@ -333,7 +358,7 @@ const genreOptions = computed(() => filtersData.value?.genres ?? []);
 const countryOptions = computed(() => filtersData.value?.countries ?? []);
 const yearOptions = computed(() => filtersData.value?.years ?? []);
 
-// --- query params gửi xuống /api/movies ---
+// --- query params ---
 const filters = computed(() => ({
   q: keyword.value || undefined,
   sort: sortKey.value !== "recommended" ? sortKey.value : undefined,
@@ -350,16 +375,40 @@ const filters = computed(() => ({
   year: selectedYear.value || undefined,
 }));
 
-// --- gọi API /api/movies ---
+// --- gọi API ---
 const { data, pending, error, refresh } = await useAsyncData<MoviesResponse>(
   "search-movies",
   () => $fetch("/api/movies", { params: filters.value }),
   {
-    watch: [filters],
+    watch: [page], 
   }
 );
 
-const movies = computed<Movie[]>(() => data.value?.items ?? []);
+// Lắng nghe URL
+watch(
+  () => route.query,
+  (newQuery) => {
+    keyword.value = newQuery.q?.toString() || "";
+    selectedGenres.value = getQueryArray(newQuery.genres);
+    selectedCountries.value = getQueryArray(newQuery.countries);
+    selectedYear.value = newQuery.year?.toString() || "";
+    if (newQuery.sort) sortKey.value = newQuery.sort.toString() as any;
+    
+    page.value = 1;
+    refresh();
+  },
+  { deep: true }
+);
+
+// Auto reset page
+watch(
+  [keyword, sortKey, selectedGenres, selectedCountries, selectedYear],
+  () => {
+    page.value = 1;
+  }
+);
+
+const movies = computed<SearchItem[]>(() => data.value?.items ?? []);
 const total = computed<number>(() => data.value?.total ?? 0);
 
 const totalPages = computed(() => {
@@ -369,13 +418,19 @@ const totalPages = computed(() => {
   return Math.max(1, Math.ceil(t / size));
 });
 
-// Khi keyword / sort / filter đổi, quay về page 1
-watch(
-  [keyword, sortKey, selectedGenres, selectedCountries, selectedYear],
-  () => {
-    page.value = 1;
-  }
-);
+const handleSearch = () => {
+  page.value = 1;
+  refresh();
+};
+
+const resetFilters = () => {
+  keyword.value = "";
+  selectedGenres.value = [];
+  selectedCountries.value = [];
+  selectedYear.value = "";
+  sortKey.value = "recommended";
+  handleSearch();
+};
 
 const toggleGenre = (slug: string) => {
   const index = selectedGenres.value.indexOf(slug);
@@ -395,17 +450,11 @@ const toggleCountry = (c: string) => {
   }
 };
 
-const forceRefresh = () => {
-  page.value = 1;
-  refresh();
-};
-
-const resetFilters = () => {
-  keyword.value = "";
-  selectedGenres.value = [];
-  selectedCountries.value = [];
-  selectedYear.value = "";
-  sortKey.value = "recommended";
-  page.value = 1;
-};
+const forceRefresh = handleSearch;
 </script>
+
+<style scoped>
+.card-wrapper {
+  /* no special style */
+}
+</style>

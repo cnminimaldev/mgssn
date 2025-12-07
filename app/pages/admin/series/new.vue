@@ -2,22 +2,33 @@
   <div class="min-h-screen bg-black text-zinc-50 px-4 py-8">
     <div class="mx-auto max-w-2xl">
       <div class="mb-6 flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold">新しいシリーズを追加</h1>
-          <p class="mt-1 text-xs text-zinc-400">
-            タイトルやジャンル、製作国を設定してシリーズ作品を登録します。
-          </p>
+        <h1 class="text-2xl font-semibold">新しいシリーズを追加</h1>
+        
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300"
+            @click="showSmartPaste = true"
+          >
+            <span>⚡ スマートペースト</span>
+          </button>
+
+          <NuxtLink
+            to="/admin/series"
+            class="text-sm text-zinc-400 hover:text-zinc-200"
+          >
+            戻る
+          </NuxtLink>
         </div>
-        <NuxtLink
-          to="/admin/series"
-          class="text-sm text-zinc-400 hover:text-zinc-200"
-        >
-          シリーズ一覧へ戻る
-        </NuxtLink>
       </div>
 
+      <SmartPasteModal
+        :show="showSmartPaste"
+        @close="showSmartPaste = false"
+        @apply="onSmartPaste"
+      />
+
       <form class="space-y-4" @submit.prevent="handleSubmit">
-        <!-- Title -->
         <div>
           <label class="mb-1 block text-sm">タイトル（日本向け）</label>
           <input
@@ -28,7 +39,6 @@
           />
         </div>
 
-        <!-- Original Title -->
         <div>
           <label class="mb-1 block text-sm">原題</label>
           <input
@@ -39,7 +49,6 @@
           />
         </div>
 
-        <!-- Title Kana -->
         <div>
           <label class="mb-1 block text-sm">タイトル（かな）</label>
           <input
@@ -50,7 +59,6 @@
           />
         </div>
 
-        <!-- Slug -->
         <div>
           <label class="mb-1 block text-sm">Slug</label>
           <input
@@ -62,7 +70,6 @@
           />
         </div>
 
-        <!-- Description -->
         <div>
           <label class="mb-1 block text-sm">説明</label>
           <textarea
@@ -72,7 +79,6 @@
           />
         </div>
 
-        <!-- Year + Release date -->
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="mb-1 block text-sm">開始年</label>
@@ -94,10 +100,8 @@
           </div>
         </div>
 
-        <!-- Origin Country -->
         <div>
           <label class="mb-1 block text-sm">製作国</label>
-
           <div v-if="countryOptions.length">
             <select
               v-model="form.origin_country"
@@ -113,13 +117,11 @@
               </option>
             </select>
           </div>
-
           <p class="mt-1 text-xs text-zinc-500">
             国・地域は「国・地域管理」から追加できます。
           </p>
         </div>
 
-        <!-- Genres (multi-select) -->
         <div>
           <div class="mb-1 flex items-center justify-between">
             <label class="block text-sm">ジャンル（複数選択可）</label>
@@ -132,11 +134,7 @@
               クリア
             </button>
           </div>
-
-          <div
-            v-if="genreOptions.length"
-            class="flex flex-wrap gap-2"
-          >
+          <div v-if="genreOptions.length" class="flex flex-wrap gap-2">
             <button
               v-for="g in genreOptions"
               :key="g.id"
@@ -152,13 +150,11 @@
               {{ g.name_ja || g.name || g.slug }}
             </button>
           </div>
-
           <p v-else class="mt-1 text-xs text-zinc-500">
-            ジャンルがまだ登録されていません。Supabase の「genres」テーブルに追加してください。
+            ジャンルがまだ登録されていません。
           </p>
         </div>
 
-        <!-- Director -->
         <div>
           <label class="mb-1 block text-sm">監督</label>
           <input
@@ -168,7 +164,6 @@
           />
         </div>
 
-        <!-- Main Cast -->
         <div>
           <label class="mb-1 block text-sm">主演</label>
           <input
@@ -178,26 +173,21 @@
           />
         </div>
 
-        <!-- Poster / Banner -->
-        <div>
-          <label class="mb-1 block text-sm">ポスターURL</label>
-          <input
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <FormImageUpload
+            label="ポスター画像"
             v-model="form.poster_url"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
+            folder="series"
+            ratio="poster"
           />
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">バナーURL</label>
-          <input
+          <FormImageUpload
+            label="バナー画像"
             v-model="form.banner_url"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
+            folder="series"
+            ratio="banner"
           />
         </div>
 
-        <!-- Featured -->
         <div>
           <label class="inline-flex items-center gap-2 text-sm">
             <input
@@ -209,7 +199,6 @@
           </label>
         </div>
 
-        <!-- Messages -->
         <div v-if="errorMessage" class="text-sm text-red-400">
           {{ errorMessage }}
         </div>
@@ -232,6 +221,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from 'vue'
 import { useRouter, useSupabaseClient, useAsyncData } from '#imports'
+import SmartPasteModal from '~/components/SmartPasteModal.vue'
 
 type GenreRow = {
   id: number
@@ -316,6 +306,27 @@ const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
+// --- Smart Paste ---
+const showSmartPaste = ref(false)
+
+const onSmartPaste = (data: any) => {
+  if (data.title) form.title = data.title
+  if (data.original_title) form.original_title = data.original_title
+  if (data.title_kana) form.title_kana = data.title_kana
+  if (data.slug) form.slug = data.slug
+  if (data.description) form.description = data.description
+  if (data.year) form.year = data.year
+  // Series không có duration
+  if (data.release_date) form.release_date = data.release_date
+  if (data.origin_country) {
+    const exists = countryOptions.value.some(c => c.code === data.origin_country)
+    if (exists) form.origin_country = data.origin_country
+  }
+  if (data.director) form.director = data.director
+  if (data.main_cast) form.main_cast = data.main_cast
+}
+
+// Submit
 const handleSubmit = async () => {
   submitting.value = true
   errorMessage.value = ''

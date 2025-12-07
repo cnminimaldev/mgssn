@@ -1,6 +1,5 @@
 <template>
   <div class="min-h-[calc(100vh-4rem)] bg-black text-white">
-    <!-- Loading -->
     <div
       v-if="loading"
       class="flex h-full items-center justify-center py-20 text-zinc-300"
@@ -8,7 +7,6 @@
       Loading...
     </div>
 
-    <!-- Error / Not found -->
     <div
       v-else-if="errorMessage || !movie"
       class="flex h-full items-center justify-center py-20 text-zinc-200"
@@ -26,9 +24,7 @@
       </div>
     </div>
 
-    <!-- Content -->
     <div v-else class="pb-10">
-      <!-- Hero -->
       <section class="relative">
         <div class="relative h-[260px] w-full overflow-hidden sm:h-[360px]">
           <div
@@ -39,10 +35,9 @@
             class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/10"
           />
           <div
-            class="relative mx-auto flex h-full max-w-5xl items end px-4 pb-6 sm:px-8 sm:pb-10"
+            class="relative mx-auto flex h-full max-w-5xl items-end px-4 pb-6 sm:px-8 sm:pb-10"
           >
             <div class="flex gap-4 sm:gap-6">
-              <!-- Thumbnail -->
               <div
                 class="hidden w-[140px] shrink-0 overflow-hidden rounded-md border border-white/10 bg-zinc-900/80 shadow-lg sm:block"
               >
@@ -54,7 +49,6 @@
                 />
               </div>
 
-              <!-- Text -->
               <div class="flex flex-col gap-2">
                 <div
                   class="inline-flex items-center gap-2 text-[11px] text-zinc-300 sm:text-xs"
@@ -90,6 +84,15 @@
                   {{ movie.description }}
                 </p>
 
+                <div class="mt-2 space-y-0.5">
+                  <p v-if="movie.director" class="text-xs text-zinc-400">
+                    <span class="opacity-70">監督：</span>{{ movie.director }}
+                  </p>
+                  <p v-if="movie.main_cast" class="text-xs text-zinc-400">
+                    <span class="opacity-70">出演：</span>{{ movie.main_cast }}
+                  </p>
+                </div>
+
                 <div class="mt-3 flex flex-wrap items-center gap-3 text-xs">
                   <button
                     type="button"
@@ -115,12 +118,10 @@
         </div>
       </section>
 
-      <!-- Player + collection/part selectors -->
       <section
         ref="playerSectionRef"
         class="mx-auto mt-6 max-w-5xl px-4 sm:mt-8 sm:px-8"
       >
-        <!-- Collection selector -->
         <div
           v-if="collectionOptions.length"
           class="mb-3 flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-300"
@@ -154,7 +155,6 @@
           </div>
         </div>
 
-        <!-- Part selector -->
         <div
           v-if="partsForActiveCollection.length > 1"
           class="mb-3 flex flex-wrap items-center gap-2 text-xs text-zinc-300"
@@ -179,7 +179,6 @@
           </div>
         </div>
 
-        <!-- Player -->
         <div
           class="overflow-hidden rounded-2xl border border-white/10 bg-black/60"
         >
@@ -203,7 +202,6 @@
         </div>
       </section>
 
-      <!-- Related -->
       <section v-if="relatedMovies.length" class="mt-10 px-4 sm:px-8">
         <MovieRow
           title="あなたにおすすめ"
@@ -217,14 +215,16 @@
 
 <script setup lang="ts">
 import { computed, ref, nextTick, watch } from "vue";
-import { useRoute, useSupabaseClient, useSeoMeta, useHead } from "#imports";
+import { useRoute, useSupabaseClient, useSeoMeta, useHead, navigateTo, useNuxtApp, useRequestURL } from "#imports";
 import StreamingPlayer from "~/components/StreamingPlayer.vue";
 import MovieRow from "~/components/MovieRow.vue";
 import { useMyList } from "~/composables/useMyList";
 import { useContinueWatching } from "~/composables/useContinueWatching";
+// Auto-import getResizedUrl
 
 type DbMovie = {
   id: number;
+  slug: string;
   title: string;
   original_title?: string | null;
   title_kana?: string | null;
@@ -233,6 +233,8 @@ type DbMovie = {
   description?: string | null;
   poster_url?: string | null;
   banner_url?: string | null;
+  director?: string | null;
+  main_cast?: string | null;
 };
 
 type MovieCollectionRow = {
@@ -264,6 +266,7 @@ type ProviderRow = {
 
 type RelatedMovieRow = {
   id: number;
+  slug: string;
   title: string;
   poster_url: string | null;
 };
@@ -283,18 +286,18 @@ const relatedMovies = ref<RelatedMovieRow[]>([]);
 const selectedCollectionId = ref<number | null>(null);
 const selectedPartId = ref<number | null>(null);
 
-// My List
+const routeSlug = computed(() => String(route.params.slug));
+
 const { isInMyList, toggleMyList } = useMyList();
 const inMyList = computed(() =>
-  movie.value ? isInMyList(movie.value.id) : false
+  movie.value ? isInMyList(movie.value.id, 'movie') : false
 );
 
 const handleToggleMyList = () => {
   if (!movie.value) return;
-  toggleMyList(movie.value.id);
+  toggleMyList(movie.value.id, 'movie');
 };
 
-// Continue Watching
 const { setProgress, clearProgressForMovie, getEntry } = useContinueWatching();
 
 const lastSavedAt = ref(0);
@@ -330,7 +333,6 @@ const handlePlayerEnded = () => {
   clearProgressForMovie(mv.id);
 };
 
-// Scroll to player
 const playerSectionRef = ref<HTMLElement | null>(null);
 const scrollToPlayer = async () => {
   await nextTick();
@@ -340,7 +342,6 @@ const scrollToPlayer = async () => {
   });
 };
 
-// Country label mapping
 const countryLabel = computed(() => {
   const code = movie.value?.origin_country;
   if (!code) return "";
@@ -359,18 +360,19 @@ const countryLabel = computed(() => {
   return map[code] || code;
 });
 
-// Hero visuals
-const posterUrl = computed(
-  () => movie.value?.poster_url || "/images/fallback-poster.webp"
-);
-
-const heroBackgroundStyle = computed(() => {
-  const bg = movie.value?.banner_url || movie.value?.poster_url;
-  if (!bg) return "";
-  return `background-image: url('${bg}')`;
+const posterUrl = computed(() => {
+  const raw = movie.value?.poster_url;
+  return getResizedUrl(raw, 450, 675, 'contain') || "/images/fallback-poster.webp";
 });
 
-// Collection options
+const heroBackgroundStyle = computed(() => {
+  const bgRaw = movie.value?.banner_url || movie.value?.poster_url;
+  if (!bgRaw) return "";
+  
+  const bgOptimized = getResizedUrl(bgRaw, 1920, 1080, 'cover');
+  return `background-image: url('${bgOptimized}')`;
+});
+
 const collectionOptions = computed(() =>
   collections.value.map((c) => {
     const provider = c.provider_id
@@ -437,14 +439,24 @@ const playerSrc = computed(() => activePart.value?.video_path || "");
 const playerPoster = computed(
   () => activePart.value?.thumbnail_url || posterUrl.value
 );
+
+// SỬA: Logic hiển thị tiêu đề player cho Movie
 const playerTitle = computed(() => {
   if (!movie.value) return "";
   const base = movie.value.title;
   const part = activePart.value;
   if (!part) return base;
-  if (partsForActiveCollection.value.length <= 1) return base;
-  const partLabel = part.part_number ? `Part ${part.part_number}` : "";
-  return partLabel ? `${base} - ${partLabel}` : base;
+  
+  // Logic: <tiêu đề phim> <tiêu đề phần>
+  // Nếu có title -> hiện title
+  // Nếu không có title -> Nếu có nhiều part -> hiện Part X. Nếu 1 part -> không hiện gì.
+  
+  let label = part.title || "";
+  if (!label && partsForActiveCollection.value.length > 1) {
+     label = `Part ${part.part_number}`;
+  }
+  
+  return label ? `${base} ${label}` : base;
 });
 
 watch(selectedCollectionId, (newVal) => {
@@ -461,113 +473,132 @@ watch(selectedCollectionId, (newVal) => {
   selectedPartId.value = candidate ? candidate.id : null;
 });
 
-// Related row items
 const relatedRowItems = computed(() =>
   relatedMovies.value.map((m) => ({
     id: m.id,
+    slug: m.slug,
     title: m.title,
-    thumbnail: m.poster_url || "/images/fallback-poster.webp",
+    thumbnail: getResizedUrl(m.poster_url, 450, 450, 'contain') || "/images/fallback-poster.webp",
+    type: 'movie' as const
   }))
 );
 
-// Load data
 const loadData = async () => {
+  const nuxtApp = useNuxtApp();
   loading.value = true;
   errorMessage.value = "";
 
   try {
-    const idParam = Number(route.params.id);
-    if (!Number.isFinite(idParam)) {
-      errorMessage.value = "不正なIDです。";
+    const slug = routeSlug.value;
+    if (!slug) {
+      errorMessage.value = "無効なURLです。";
       return;
     }
 
-    // Movie
     const { data: movieData, error: movieError } = await supabase
       .from("movies")
       .select(
-        "id, title, original_title, title_kana, year, origin_country, description, poster_url, banner_url"
+        "id, slug, title, original_title, title_kana, year, origin_country, description, poster_url, banner_url, director, main_cast"
       )
-      .eq("id", idParam)
+      .eq("slug", slug)
       .single();
 
     if (movieError) {
-      errorMessage.value = movieError.message;
+      if (movieError.code !== 'PGRST116') {
+        errorMessage.value = movieError.message
+        return
+      }
+    }
+
+    if (movieData) {
+      movie.value = movieData as DbMovie;
+      const movieId = movie.value.id;
+
+      const { data: colData } = await supabase
+        .from("movie_collections")
+        .select(
+          "id, name, type, audio_language, subtitle_language, provider_id, is_default"
+        )
+        .eq("movie_id", movieId)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      collections.value = (colData ?? []) as MovieCollectionRow[];
+
+      const { data: partData } = await supabase
+        .from("movie_parts")
+        .select(
+          "id, movie_id, collection_id, part_number, title, video_path, thumbnail_url, duration_minutes"
+        )
+        .eq("movie_id", movieId)
+        .order("part_number", { ascending: true });
+
+      parts.value = (partData ?? []) as MoviePartRow[];
+
+      const { data: provData } = await supabase
+        .from("collection_providers")
+        .select("id, name, website_url")
+        .order("name", { ascending: true });
+
+      providers.value = (provData ?? []) as ProviderRow[];
+
+      const { data: relData } = await supabase
+        .from("movies")
+        .select("id, slug, title, poster_url")
+        .neq("id", movieId)
+        .order("id", { ascending: false })
+        .limit(12);
+
+      relatedMovies.value = (relData ?? []) as RelatedMovieRow[];
+
+      if (collections.value.length) {
+        const def =
+          collections.value.find((c) => c.is_default) ??
+          collections.value[0] ??
+          null;
+        selectedCollectionId.value = def ? def.id : null;
+      } else {
+        selectedCollectionId.value = null;
+      }
+
+      if (parts.value.length) {
+        const baseList =
+          selectedCollectionId.value != null
+            ? parts.value.filter(
+                (p) => p.collection_id === selectedCollectionId.value
+              )
+            : parts.value;
+
+        const firstPart = baseList[0] ?? parts.value[0] ?? null;
+        selectedPartId.value = firstPart ? firstPart.id : null;
+      } else {
+        selectedPartId.value = null;
+      }
       return;
     }
 
-    if (!movieData) {
-      errorMessage.value = "作品が見つかりませんでした。";
-      return;
+    const { data: historyData } = await supabase
+      .from("movie_slug_history")
+      .select("movie_id, movies(slug)")
+      .eq("slug", slug)
+      .single();
+
+    if (historyData && historyData.movies) {
+      // @ts-ignore
+      const newSlug = historyData.movies.slug;
+      if (newSlug) {
+        await nuxtApp.runWithContext(() => 
+          navigateTo(`/movie/${newSlug}`, {
+            redirectCode: 301,
+            external: true, 
+          })
+        );
+        return;
+      }
     }
 
-    movie.value = movieData as DbMovie;
+    errorMessage.value = "作品が見つかりませんでした。";
 
-    // Collections
-    const { data: colData } = await supabase
-      .from("movie_collections")
-      .select(
-        "id, name, type, audio_language, subtitle_language, provider_id, is_default"
-      )
-      .eq("movie_id", idParam)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true });
-
-    collections.value = (colData ?? []) as MovieCollectionRow[];
-
-    // Parts
-    const { data: partData } = await supabase
-      .from("movie_parts")
-      .select(
-        "id, movie_id, collection_id, part_number, title, video_path, thumbnail_url, duration_minutes"
-      )
-      .eq("movie_id", idParam)
-      .order("part_number", { ascending: true });
-
-    parts.value = (partData ?? []) as MoviePartRow[];
-
-    // Providers
-    const { data: provData } = await supabase
-      .from("collection_providers")
-      .select("id, name, website_url")
-      .order("name", { ascending: true });
-
-    providers.value = (provData ?? []) as ProviderRow[];
-
-    // Related movies (simple)
-    const { data: relData } = await supabase
-      .from("movies")
-      .select("id, title, poster_url")
-      .neq("id", idParam)
-      .order("id", { ascending: false })
-      .limit(12);
-
-    relatedMovies.value = (relData ?? []) as RelatedMovieRow[];
-
-    // Default collection & part
-    if (collections.value.length) {
-      const def =
-        collections.value.find((c) => c.is_default) ??
-        collections.value[0] ??
-        null;
-      selectedCollectionId.value = def ? def.id : null;
-    } else {
-      selectedCollectionId.value = null;
-    }
-
-    if (parts.value.length) {
-      const baseList =
-        selectedCollectionId.value != null
-          ? parts.value.filter(
-              (p) => p.collection_id === selectedCollectionId.value
-            )
-          : parts.value;
-
-      const firstPart = baseList[0] ?? parts.value[0] ?? null;
-      selectedPartId.value = firstPart ? firstPart.id : null;
-    } else {
-      selectedPartId.value = null;
-    }
   } finally {
     loading.value = false;
   }
@@ -575,10 +606,19 @@ const loadData = async () => {
 
 await loadData();
 
-// SEO
+// --- SEO CONFIGURATION ---
+const url = useRequestURL();
+
+const canonicalUrl = computed(() => {
+  return `${url.origin}/movie/${routeSlug.value}`;
+});
+
 const seoTitle = computed(() =>
-  movie.value ? `${movie.value.title} | MyStream` : "MyStream"
+  movie.value 
+    ? `${movie.value.title} 無料動画 | MugenTV.com` 
+    : "無料動画 | MugenTV.com"
 );
+
 const seoDescription = computed(
   () =>
     movie.value?.description ?? "映画やドラマをオンラインで楽しめるMyStream。"
@@ -588,16 +628,55 @@ const seoImage = computed(
     movie.value?.banner_url || movie.value?.poster_url || "/images/banner.jpg"
 );
 
+useHead({
+  link: [
+    {
+      rel: "canonical",
+      href: canonicalUrl,
+    },
+  ],
+  title: seoTitle,
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: computed(() => JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Movie",
+        "name": movie.value?.title,
+        "alternateName": movie.value?.original_title,
+        "description": movie.value?.description,
+        "image": posterUrl.value,
+        "datePublished": movie.value?.year?.toString(),
+        "countryOfOrigin": {
+          "@type": "Country",
+          "name": movie.value?.origin_country
+        },
+        "director": movie.value?.director ? {
+          "@type": "Person",
+          "name": movie.value.director
+        } : undefined,
+        "actor": movie.value?.main_cast ? movie.value.main_cast.split(',').map(name => ({
+          "@type": "Person",
+          "name": name.trim()
+        })) : undefined,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "JPY",
+          "availability": "https://schema.org/InStock"
+        }
+      }))
+    }
+  ]
+});
+
 useSeoMeta({
   title: seoTitle,
   ogTitle: seoTitle,
   description: seoDescription,
   ogDescription: seoDescription,
   ogImage: seoImage,
+  ogUrl: canonicalUrl,
   twitterCard: "summary_large_image",
-});
-
-useHead({
-  title: seoTitle.value,
 });
 </script>

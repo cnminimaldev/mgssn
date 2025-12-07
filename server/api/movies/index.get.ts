@@ -1,4 +1,3 @@
-// server/api/movies/index.get.ts
 import { serverSupabaseClient } from '#supabase/server'
 import { getQuery, createError } from 'h3'
 
@@ -8,72 +7,29 @@ function toHiragana(input: string) {
   )
 }
 
-type GenreItem = {
+type ApiMediaItem = {
   id: number
+  type: 'movie' | 'series'
   slug: string
-  name: string | null
-  name_ja: string | null
-}
-
-function mapDbMovieToApi(row: any) {
-  if (!row) return null
-
-  const genreItems: GenreItem[] =
-    (row.movie_genres ?? [])
-      .map((mg: any) => {
-        const g = mg.genre
-        if (!g) return null
-        return {
-          id: g.id,
-          slug: g.slug,
-          name: g.name ?? null,
-          name_ja: g.name_ja ?? null,
-        }
-      })
-      .filter(Boolean) ?? []
-
-  const primaryGenre =
-    genreItems.length > 0
-      ? genreItems[0].name_ja || genreItems[0].name || genreItems[0].slug
-      : null
-
-  return {
-    ...row,
-    id: row.id,
-    title: row.title ?? '',
-    originalTitle: row.original_title ?? null,
-    titleKana: row.title_kana ?? null,
-
-    year: row.year ?? 0,
-    country: row.origin_country ?? row.country ?? '日本',
-    description: row.description ?? '',
-
-    thumbnail: row.poster_url ?? '/images/fallback-poster.png',
-    videoUrl: row.video_path ?? '/videos/demo.mp4',
-    genre: primaryGenre ?? 'その他',
-    genres: genreItems.map((g) => ({
-      id: g.id,
-      slug: g.slug,
-      name: g.name,
-      nameJa: g.name_ja,
-    })),
-
-    type: (row.type === 'series' ? 'series' : 'movie') as 'movie' | 'series',
-    slug: row.slug ?? String(row.id),
-
-    releaseDate: row.release_date ?? null,
-    director: row.director ?? null,
-    mainCast: row.main_cast ?? null,
-
-    previousSlugs: row.previousSlugs ?? [],
-    episodes: row.episodes ?? [],
-  }
+  title: string
+  originalTitle: string | null
+  titleKana: string | null
+  year: number
+  country: string
+  description: string
+  thumbnail: string   // 450x450 (contain) từ Banner - Dùng cho Grid/Search
+  posterUrl: string   // 450x450 (contain) từ Poster - Dùng cho My List
+  bannerUrl: string   // 1920x1080 (contain) từ Banner - Dùng cho Hero
+  genre: string
+  episodeCount?: number
+  createdAt: string
 }
 
 export default defineEventHandler(async (event) => {
   const client = await serverSupabaseClient(event)
   const query = getQuery(event)
 
+  // --- 1. Params ---
   const searchRaw = typeof query.q === 'string' ? query.q.trim() : ''
   const search = searchRaw || ''
 
@@ -92,13 +48,7 @@ export default defineEventHandler(async (event) => {
   const yearNum = yearParam ? Number(yearParam) : NaN
 
   const sortParam = typeof query.sort === 'string' ? query.sort : 'recommended'
-  const sortKey =
-    sortParam === 'year_desc' ||
-    sortParam === 'year_asc' ||
-    sortParam === 'title_asc'
-      ? sortParam
-      : 'recommended'
-
+  
   const pageParam = typeof query.page === 'string' ? Number(query.page) : 1
   const pageSizeParam =
     typeof query.pageSize === 'string' ? Number(query.pageSize) : 24
@@ -109,128 +59,173 @@ export default defineEventHandler(async (event) => {
       ? pageSizeParam
       : 24
 
-  const from = (page - 1) * pageSize
-  const to = from + pageSize - 1
-
-  let genreMovieIds: number[] | null = null
+  // --- 2. Genre Filter ---
+  let validMovieIds: number[] | null = null
+  let validSeriesIds: number[] | null = null
 
   if (genreSlugs.length > 0) {
-    const { data: genreRows, error: genreError } = await client
+    const { data: genreRows } = await client
       .from('genres')
       .select('id, slug')
       .in('slug', genreSlugs)
 
-    if (genreError) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: genreError.message,
-      })
-    }
-
-    const genreIds =
-      (genreRows ?? [])
-        .map((g: any) => g.id as number | null)
-        .filter((id): id is number => id != null) ?? []
+    // Cast any[] để tránh lỗi typescript 'never'
+    const genreIds = ((genreRows as any[]) ?? []).map((g) => g.id)
 
     if (genreIds.length === 0) {
-      return {
-        items: [],
-        total: 0,
-        page,
-        pageSize,
-      }
+      return { items: [], total: 0, page, pageSize }
     }
 
-    const { data: mgRows, error: mgError } = await client
+    const { data: mGenres } = await client
       .from('movie_genres')
       .select('movie_id')
       .in('genre_id', genreIds)
+    
+    validMovieIds = Array.from(new Set(((mGenres as any[]) ?? []).map((x) => x.movie_id)))
 
-    if (mgError) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: mgError.message,
-      })
-    }
+    const { data: sGenres } = await client
+      .from('series_genres')
+      .select('series_id')
+      .in('genre_id', genreIds)
 
-    const idSet = new Set<number>()
-    for (const row of mgRows ?? []) {
-      const id = (row as any).movie_id as number | null
-      if (id != null) idSet.add(id)
-    }
+    validSeriesIds = Array.from(new Set(((sGenres as any[]) ?? []).map((x) => x.series_id)))
 
-    genreMovieIds = Array.from(idSet)
-
-    if (genreMovieIds.length === 0) {
-      return {
-        items: [],
-        total: 0,
-        page,
-        pageSize,
-      }
+    if (validMovieIds.length === 0 && validSeriesIds.length === 0) {
+      return { items: [], total: 0, page, pageSize }
     }
   }
 
-  let builder = client
+  // --- 3. Movies Query ---
+  let movieBuilder = client
     .from('movies')
-    .select('*, movie_genres(genre:genres(id, slug, name, name_ja))', {
-      count: 'exact',
-    })
+    .select('*, movie_genres(genre:genres(name, name_ja, slug))')
 
-  if (genreMovieIds && genreMovieIds.length > 0) {
-    builder = builder.in('id', genreMovieIds)
+  if (validMovieIds !== null) {
+    movieBuilder = movieBuilder.in('id', validMovieIds)
   }
-
   if (search) {
-    const kanaSearch = toHiragana(search)
-    builder = builder.or(
-      [
-        `title.ilike.%${search}%`,
-        `title_kana.ilike.%${kanaSearch}%`,
-        `original_title.ilike.%${search}%`,
-      ].join(','),
+    const kana = toHiragana(search)
+    movieBuilder = movieBuilder.or(
+      `title.ilike.%${search}%,title_kana.ilike.%${kana}%,original_title.ilike.%${search}%`
     )
   }
-
   if (countries.length > 0) {
-    builder = builder.in('origin_country', countries)
+    movieBuilder = movieBuilder.in('origin_country', countries)
   }
-
   if (!Number.isNaN(yearNum)) {
-    builder = builder.eq('year', yearNum)
+    movieBuilder = movieBuilder.eq('year', yearNum)
   }
 
-  switch (sortKey) {
-    case 'year_desc':
-      builder = builder.order('year', { ascending: false })
-      break
-    case 'year_asc':
-      builder = builder.order('year', { ascending: true })
-      break
-    case 'title_asc':
-      builder = builder.order('title', { ascending: true })
-      break
-    case 'recommended':
-    default:
-      builder = builder.order('created_at', { ascending: false })
-      break
+  // --- 4. Series Query ---
+  let seriesBuilder = client
+    .from('series')
+    .select('*, series_genres(genre:genres(name, name_ja, slug)), episodes(id)')
+
+  if (validSeriesIds !== null) {
+    seriesBuilder = seriesBuilder.in('id', validSeriesIds)
+  }
+  if (search) {
+    const kana = toHiragana(search)
+    seriesBuilder = seriesBuilder.or(
+      `title.ilike.%${search}%,title_kana.ilike.%${kana}%,original_title.ilike.%${search}%`
+    )
+  }
+  if (countries.length > 0) {
+    seriesBuilder = seriesBuilder.in('origin_country', countries)
+  }
+  if (!Number.isNaN(yearNum)) {
+    seriesBuilder = seriesBuilder.eq('year', yearNum)
   }
 
-  const { data, count, error } = await builder.range(from, to)
+  const [movieRes, seriesRes] = await Promise.all([
+    movieBuilder,
+    seriesBuilder
+  ])
 
-  if (error) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: error.message,
-    })
-  }
+  if (movieRes.error) throw createError({ statusCode: 500, statusMessage: movieRes.error.message })
+  if (seriesRes.error) throw createError({ statusCode: 500, statusMessage: seriesRes.error.message })
 
-  const rows = data ?? []
-  const items = rows.map((row) => mapDbMovieToApi(row))
+  // --- 5. Mapping ---
+  const moviesMapped: ApiMediaItem[] = (movieRes.data ?? []).map((row: any) => {
+    const g = row.movie_genres?.[0]?.genre
+    const genreLabel = g ? (g.name_ja || g.name || g.slug) : 'その他'
+
+    // Logic Resize ảnh:
+    // Thumbnail (List): Banner 450x450 contain
+    const thumbnail = getResizedUrl(row.banner_url || row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
+    
+    // PosterUrl (MyList): Poster 450x450 contain
+    const posterUrl = getResizedUrl(row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
+
+    // BannerUrl (Hero): Banner 1920x1080 contain
+    const bannerUrl = getResizedUrl(row.banner_url, 1920, 1080, 'contain') || ''
+
+    return {
+      id: row.id,
+      type: 'movie',
+      slug: row.slug ?? String(row.id),
+      title: row.title,
+      originalTitle: row.original_title,
+      titleKana: row.title_kana,
+      year: row.year,
+      country: row.origin_country,
+      description: row.description,
+      thumbnail,
+      posterUrl,
+      bannerUrl,
+      genre: genreLabel,
+      createdAt: row.created_at
+    }
+  })
+
+  const seriesMapped: ApiMediaItem[] = (seriesRes.data ?? []).map((row: any) => {
+    const g = row.series_genres?.[0]?.genre
+    const genreLabel = g ? (g.name_ja || g.name || g.slug) : 'その他'
+    const epCount = Array.isArray(row.episodes) ? row.episodes.length : 0
+
+    // Logic Resize ảnh tương tự
+    const thumbnail = getResizedUrl(row.banner_url || row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
+    const posterUrl = getResizedUrl(row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
+    const bannerUrl = getResizedUrl(row.banner_url, 1920, 1080, 'contain') || ''
+
+    return {
+      id: row.id,
+      type: 'series',
+      slug: row.slug ?? String(row.id),
+      title: row.title,
+      originalTitle: row.original_title,
+      titleKana: row.title_kana,
+      year: row.year,
+      country: row.origin_country,
+      description: row.description,
+      thumbnail,
+      posterUrl,
+      bannerUrl,
+      genre: genreLabel,
+      episodeCount: epCount,
+      createdAt: row.created_at
+    }
+  })
+
+  // --- 6. Merge & Sort ---
+  let combined = [...moviesMapped, ...seriesMapped]
+
+  combined.sort((a, b) => {
+    if (sortParam === 'year_desc') return b.year - a.year
+    if (sortParam === 'year_asc') return a.year - b.year
+    if (sortParam === 'title_asc') return a.title.localeCompare(b.title, 'ja')
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
+
+  // --- 7. Pagination ---
+  const total = combined.length
+  const from = (page - 1) * pageSize
+  const to = from + pageSize
+  const pagedItems = combined.slice(from, to)
 
   return {
-    items,
-    total: count ?? items.length,
+    items: pagedItems,
+    total,
     page,
     pageSize,
   }

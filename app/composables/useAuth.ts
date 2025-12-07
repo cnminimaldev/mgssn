@@ -1,6 +1,6 @@
-// composables/useAuth.ts
+// app/composables/useAuth.ts
 import { computed } from 'vue'
-import { useRouter, useRoute, useSupabaseClient, useSupabaseUser } from '#imports'
+import { useRouter, useRoute, useSupabaseClient, useSupabaseUser, useRuntimeConfig } from '#imports'
 
 export interface AuthUser {
   id: string
@@ -8,18 +8,6 @@ export interface AuthUser {
   email: string | null
 }
 
-/**
- * useAuth composable
- *
- * Trước đây logic auth được mock bằng localStorage.
- * Phiên bản này dùng Supabase Auth thông qua module @nuxtjs/supabase.
- *
- * - user: thông tin người dùng đã chuẩn hoá (id, name, email)
- * - isLoggedIn: boolean
- * - login: đăng nhập bằng email / password
- * - logout: đăng xuất và đưa về trang chủ
- * - requireAuth: tiện ích để ép người dùng sang /login nếu chưa đăng nhập
- */
 export const useAuth = () => {
   const router = useRouter()
   const route = useRoute()
@@ -27,12 +15,11 @@ export const useAuth = () => {
   const supabaseUser = useSupabaseUser()
   const config = useRuntimeConfig()
 
-  // Chuẩn hoá user từ Supabase user
+  // Chuẩn hoá user
   const user = computed<AuthUser | null>(() => {
     const raw = supabaseUser.value
     if (!raw) return null
 
-    // cố gắng lấy tên hiển thị từ user_metadata, fallback sang phần trước @ của email
     const meta: any = raw.user_metadata || {}
     const metaName: string | undefined =
       meta.full_name || meta.name || meta.username
@@ -50,37 +37,42 @@ export const useAuth = () => {
 
   const isLoggedIn = computed<boolean>(() => !!supabaseUser.value)
 
-  /**
-   * Đăng nhập bằng email / password.
-   * Nếu Supabase trả lỗi thì throw ra để component tự hiển thị message.
-   */
+  // --- ĐĂNG NHẬP ---
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
-
-    if (error) {
-      // ném lại error để UI (login.vue) xử lý và hiển thị thông báo tiếng Nhật
-      throw error
-    }
+    if (error) throw error
   }
 
-  /**
-   * Đăng xuất rồi quay về trang chủ.
-   */
+  // --- ĐĂNG KÝ (Thêm mới) ---
+  const signup = async (email: string, password: string) => {
+    // Supabase mặc định sẽ gửi email confirm. 
+    // Nếu bạn tắt "Confirm Email" trong Dashboard thì user sẽ login được ngay.
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // Lưu tên mặc định là phần trước @ của email
+        data: {
+          name: email.split('@')[0]
+        }
+      }
+    })
+    
+    if (error) throw error
+    
+    return data
+  }
+
+  // --- ĐĂNG XUẤT ---
   const logout = async () => {
     await supabase.auth.signOut()
     await router.push('/')
   }
 
-  
-
-  /**
-   * Helper: kiểm tra đăng nhập.
-   * - Nếu CHƯA login → chuyển sang /login, kèm query redirect = route hiện tại (hoặc custom).
-   * - Nếu ĐÃ login → trả true.
-   */
+  // --- CHECK AUTH ---
   const requireAuth = (redirectTo?: string) => {
     if (!supabaseUser.value) {
       router.push({
@@ -101,14 +93,13 @@ export const useAuth = () => {
     return !!adminEmails?.includes(email)
   })
 
-  // cuối cùng return thêm isAdmin
   return {
     user,
     isLoggedIn,
     isAdmin,
     login,
+    signup, // Export hàm signup
     logout,
     requireAuth,
   }
-  
 }

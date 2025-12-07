@@ -1,208 +1,256 @@
 <template>
   <div class="min-h-screen bg-black text-zinc-50 px-4 py-8">
-    <div class="mx-auto max-w-5xl">
-      <!-- Header -->
-      <div
-        class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
-      >
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-2xl font-semibold">管理ダッシュボード</h1>
           <p class="mt-1 text-xs text-zinc-400">
-            映画の登録・編集やシリーズ、ジャンル、国・地域の管理を行います。
+            映画の登録・編集や各種マスターデータの管理を行います。
           </p>
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <!-- Nút quản lý series -->
           <NuxtLink
             to="/admin/series"
-            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400"
+            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400 transition"
           >
             シリーズ管理
           </NuxtLink>
 
-          <!-- Nút quản lý quốc gia -->
           <NuxtLink
             to="/admin/countries"
-            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400"
+            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400 transition"
           >
-            国・地域の管理
+            国・地域
           </NuxtLink>
 
-          <!-- Nút quản lý thể loại -->
           <NuxtLink
             to="/admin/genres"
-            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400"
+            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400 transition"
           >
-            ジャンル管理
+            ジャンル
           </NuxtLink>
 
-          <!-- Nút quản lý collection provider -->
           <NuxtLink
             to="/admin/providers"
-            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400"
+            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400 transition"
           >
-            プロバイダー管理
+            プロバイダー
           </NuxtLink>
 
-          <!-- Nút tạo phim mới -->
           <NuxtLink
             to="/admin/movies/new"
-            class="rounded-md bg-emerald-500 px-4 py-2 text-xs font-medium text-black hover:bg-emerald-400"
+            class="rounded-md bg-emerald-500 px-4 py-2 text-xs font-medium text-black hover:bg-emerald-400 transition"
           >
-            新しい映画を追加
+            ＋ 映画を追加
           </NuxtLink>
         </div>
       </div>
 
-      <!-- Danh sách phim -->
-      <div class="rounded-lg border border-white/5 bg-zinc-950/70 p-4">
-        <div
-          class="mb-3 flex items-center justify-between text-xs text-zinc-400"
-        >
-          <span>登録済みの映画</span>
-          <span v-if="movies.length">{{ movies.length }} 件</span>
+      <div class="mb-6 grid gap-4 rounded-lg border border-white/5 bg-zinc-950/70 p-4 md:grid-cols-[1fr,auto]">
+        <div class="relative">
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="w-full rounded-md border border-zinc-700 bg-zinc-900 pl-9 pr-4 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+            placeholder="タイトル、原題、かな..."
+            @keydown.enter="page = 1" 
+          />
+          <span class="absolute left-3 top-2.5 text-zinc-500">🔍</span>
         </div>
 
-        <div v-if="loading" class="py-8 text-center text-sm text-zinc-400">
-          読み込み中…
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-zinc-400">並び替え:</span>
+          <select
+            v-model="sortOrder"
+            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          >
+            <option value="newest">作成日 (新しい順)</option>
+            <option value="oldest">作成日 (古い順)</option>
+            <option value="year_desc">公開年 (新しい順)</option>
+            <option value="title_asc">タイトル (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-white/5 bg-zinc-950/70 overflow-hidden">
+        <div v-if="pending" class="py-12 text-center text-sm text-zinc-400">
+          読み込み中...
         </div>
 
-        <div
-          v-else-if="errorMessage"
-          class="py-8 text-center text-sm text-red-400"
-        >
-          {{ errorMessage }}
+        <div v-else-if="error" class="py-12 text-center text-sm text-red-400">
+          {{ error.message }}
         </div>
 
         <div v-else>
-          <div
-            v-if="!movies.length"
-            class="py-8 text-center text-sm text-zinc-400"
-          >
-            映画がまだ登録されていません。右上の「新しい映画を追加」から登録してください。
+          <div v-if="movies.length === 0" class="py-12 text-center text-sm text-zinc-400">
+            条件に一致する映画が見つかりませんでした。
           </div>
 
-          <ul v-else class="divide-y divide-white/5 text-sm">
-            <li
-              v-for="movie in movies"
-              :key="movie.id"
-              class="flex items-center justify-between gap-3 py-2.5"
-            >
-              <div class="flex flex-1 items-center gap-3">
-                <div class="h-14 w-10 overflow-hidden rounded bg-zinc-900">
-                  <img
-                    v-if="movie.poster_url"
-                    :src="movie.poster_url"
-                    :alt="movie.title"
-                    class="h-full w-full object-cover"
-                  />
-                </div>
-                <div class="min-w-0">
-                  <div class="flex items-center gap-2">
-                    <p class="truncate text-sm font-medium text-zinc-50">
-                      {{ movie.title }}
-                    </p>
-                    <span v-if="movie.year" class="text-[11px] text-zinc-400">
-                      {{ movie.year }}年
-                    </span>
+          <table v-else class="w-full text-left text-sm">
+            <thead class="bg-white/5 text-xs uppercase text-zinc-400">
+              <tr>
+                <th class="px-4 py-3">ポスター</th>
+                <th class="px-4 py-3">タイトル / 原題</th>
+                <th class="px-4 py-3">公開年 / 国</th>
+                <th class="px-4 py-3 text-center">注目</th>
+                <th class="px-4 py-3 text-right">アクション</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              <tr v-for="movie in movies" :key="movie.id" class="group hover:bg-white/5 transition">
+                <td class="px-4 py-3 w-16">
+                  <div class="h-16 w-12 overflow-hidden rounded bg-zinc-800 shrink-0">
+                    <img
+                      v-if="movie.poster_url"
+                      :src="movie.poster_url"
+                      class="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                    <div v-else class="flex h-full w-full items-center justify-center text-[8px] text-zinc-500">
+                      NO IMG
+                    </div>
                   </div>
-                  <div
-                    class="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-zinc-400"
+                </td>
+
+                <td class="px-4 py-3">
+                  <div class="font-medium text-zinc-100 line-clamp-1">{{ movie.title }}</div>
+                  <div class="text-xs text-zinc-500 line-clamp-1">{{ movie.original_title || '-' }}</div>
+                  <div class="mt-1 text-[10px] text-zinc-600 font-mono">{{ movie.slug }}</div>
+                </td>
+
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <div class="text-zinc-300">{{ movie.year }}年</div>
+                  <div class="text-xs text-zinc-500">{{ movie.origin_country }}</div>
+                </td>
+
+                <td class="px-4 py-3 text-center">
+                  <span 
+                    v-if="movie.is_featured" 
+                    class="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20"
                   >
-                    <span v-if="movie.origin_country">
-                      製作国: {{ movie.origin_country }}
-                    </span>
-                    <span
-                      v-if="movie.is_featured"
-                      class="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300"
+                    Featured
+                  </span>
+                  <span v-else class="text-xs text-zinc-600">-</span>
+                </td>
+
+                <td class="px-4 py-3 text-right">
+                  <div class="flex items-center justify-end gap-3">
+                    <NuxtLink
+                      :to="`/movie/${movie.slug}`"
+                      target="_blank"
+                      class="text-zinc-400 hover:text-zinc-100"
+                      title="プレビュー"
                     >
-                      featured
-                    </span>
-                    <span
-                      v-if="movie.slug"
-                      class="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300"
+                      ↗
+                    </NuxtLink>
+                    <NuxtLink
+                      :to="`/admin/movies/${movie.id}/collections`"
+                      class="text-emerald-400 hover:text-emerald-300"
                     >
-                      slug: {{ movie.slug }}
-                    </span>
+                      Collections
+                    </NuxtLink>
+                    <NuxtLink
+                      :to="`/admin/movies/${movie.id}`"
+                      class="rounded bg-zinc-800 px-3 py-1.5 text-xs hover:bg-zinc-700"
+                    >
+                      編集
+                    </NuxtLink>
                   </div>
-                </div>
-              </div>
-
-              <div class="flex flex-col items-end gap-1 text-xs">
-                <!-- Xem trang public -->
-                <NuxtLink
-                  :to="`/movie/${movie.id}`"
-                  class="text-zinc-300 hover:text-zinc-100"
-                  target="_blank"
-                >
-                  公開ページ
-                </NuxtLink>
-
-                <!-- Quản lý collections cho movie -->
-                <NuxtLink
-                  :to="`/admin/movies/${movie.id}/collections`"
-                  class="text-zinc-300 hover:text-zinc-100"
-                >
-                  コレクション
-                </NuxtLink>
-
-                <!-- Sửa phim -->
-                <NuxtLink
-                  :to="`/admin/movies/${movie.id}`"
-                  class="text-emerald-300 hover:text-emerald-200"
-                >
-                  編集
-                </NuxtLink>
-              </div>
-            </li>
-          </ul>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
+
+      <div v-if="totalPages > 1" class="mt-6 flex items-center justify-center gap-4">
+        <button
+          class="rounded border border-zinc-700 px-3 py-1 text-xs hover:bg-zinc-800 disabled:opacity-50"
+          :disabled="page <= 1"
+          @click="page--"
+        >
+          前へ
+        </button>
+        <span class="text-xs text-zinc-400">{{ page }} / {{ totalPages }}</span>
+        <button
+          class="rounded border border-zinc-700 px-3 py-1 text-xs hover:bg-zinc-800 disabled:opacity-50"
+          :disabled="page >= totalPages"
+          @click="page++"
+        >
+          次へ
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { useSupabaseClient } from "#imports";
+import { ref, watch, computed } from 'vue'
+import { useSupabaseClient, useAsyncData } from '#imports'
 
-type AdminMovieRow = {
-  id: number;
-  title: string;
-  slug: string | null;
-  year: number | null;
-  origin_country: string | null;
-  poster_url: string | null;
-  is_featured: boolean | null;
-};
+const supabase = useSupabaseClient<any>()
 
-const supabase = useSupabaseClient<any>();
+// State
+const page = ref(1)
+const pageSize = 20
+const searchQuery = ref('')
+const sortOrder = ref('newest')
 
-const movies = ref<AdminMovieRow[]>([]);
-const loading = ref(true);
-const errorMessage = ref("");
+// Hàm convert Katakana -> Hiragana (để search tiếng Nhật tốt hơn)
+const toHiragana = (input: string) => {
+  return input.replace(/[\u30A1-\u30F6]/g, (ch) =>
+    String.fromCharCode(ch.charCodeAt(0) - 0x60)
+  )
+}
 
-const loadMovies = async () => {
-  loading.value = true;
-  errorMessage.value = "";
+// Fetch Data (Movies List)
+const { data, pending, error, refresh } = await useAsyncData(
+  'admin-movies-list',
+  async () => {
+    let query = supabase
+      .from('movies')
+      .select('id, title, original_title, slug, year, origin_country, poster_url, is_featured, created_at', { count: 'exact' })
 
-  try {
-    const { data, error } = await supabase
-      .from("movies")
-      .select("id, title, slug, year, origin_country, poster_url, is_featured")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      errorMessage.value = error.message;
-      return;
+    // Search nâng cao: title, title_kana, original_title
+    if (searchQuery.value) {
+      const q = searchQuery.value
+      const k = toHiragana(q)
+      query = query.or(`title.ilike.%${q}%,title_kana.ilike.%${k}%,original_title.ilike.%${q}%`)
     }
 
-    movies.value = (data ?? []) as AdminMovieRow[];
-  } finally {
-    loading.value = false;
-  }
-};
+    // Sort
+    if (sortOrder.value === 'newest') query = query.order('created_at', { ascending: false })
+    if (sortOrder.value === 'oldest') query = query.order('created_at', { ascending: true })
+    if (sortOrder.value === 'year_desc') query = query.order('year', { ascending: false })
+    if (sortOrder.value === 'title_asc') query = query.order('title', { ascending: true })
 
-await loadMovies();
+    // Pagination
+    const from = (page.value - 1) * pageSize
+    const to = from + pageSize - 1
+    query = query.range(from, to)
+
+    const { data, count, error } = await query
+    if (error) throw error
+
+    return { movies: data, count }
+  },
+  {
+    watch: [page, sortOrder]
+  }
+)
+
+// Debounce Search
+let timer: any = null
+watch(searchQuery, () => {
+  clearTimeout(timer)
+  timer = setTimeout(() => {
+    page.value = 1
+    refresh()
+  }, 500)
+})
+
+const movies = computed(() => data.value?.movies ?? [])
+const totalCount = computed(() => data.value?.count ?? 0)
+const totalPages = computed(() => Math.ceil(totalCount.value / pageSize))
 </script>
