@@ -1,4 +1,3 @@
-// server/api/movies/filters.get.ts
 import { serverSupabaseClient } from '#supabase/server'
 import { createError } from 'h3'
 
@@ -40,8 +39,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // SỬA: Ép kiểu 'as unknown' trước khi ép sang 'GenreRow[]'
   const genres =
-    (genreRows as GenreRow[] | null | undefined)?.map((g) => ({
+    (genreRows as unknown as GenreRow[] | null | undefined)?.map((g) => ({
       slug: g.slug,
       label: g.name_ja || g.name || g.slug,
     })) ?? []
@@ -61,8 +61,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // SỬA: Ép kiểu 'as unknown' cho countryRows tương tự
   const countries =
-    (countryRows as CountryRow[] | null | undefined)?.map((c) => ({
+    (countryRows as unknown as CountryRow[] | null | undefined)?.map((c) => ({
       code: c.code,
       label: c.name_ja || c.name || c.code,
     })) ?? []
@@ -80,7 +81,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const yearSet = new Set<number>()
-  for (const row of (movieRows ?? []) as MovieRow[]) {
+  // SỬA: Ép kiểu 'as unknown' cho movieRows
+  for (const row of ((movieRows as unknown as MovieRow[]) ?? [])) {
     if (typeof row.year === 'number') {
       yearSet.add(row.year)
     }

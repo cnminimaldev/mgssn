@@ -17,9 +17,9 @@ type ApiMediaItem = {
   year: number
   country: string
   description: string
-  thumbnail: string   // 450x450 (contain) từ Banner - Dùng cho Grid/Search
-  posterUrl: string   // 450x450 (contain) từ Poster - Dùng cho My List
-  bannerUrl: string   // 1920x1080 (contain) từ Banner - Dùng cho Hero
+  thumbnail: string
+  posterUrl: string
+  bannerUrl: string
   genre: string
   episodeCount?: number
   createdAt: string
@@ -38,8 +38,7 @@ export default defineEventHandler(async (event) => {
     ? genresParam.split(',').map((x) => x.trim()).filter(Boolean)
     : []
 
-  const countriesParam =
-    typeof query.countries === 'string' ? query.countries : ''
+  const countriesParam = typeof query.countries === 'string' ? query.countries : ''
   const countries = countriesParam
     ? countriesParam.split(',').map((x) => x.trim()).filter(Boolean)
     : []
@@ -50,182 +49,101 @@ export default defineEventHandler(async (event) => {
   const sortParam = typeof query.sort === 'string' ? query.sort : 'recommended'
   
   const pageParam = typeof query.page === 'string' ? Number(query.page) : 1
-  const pageSizeParam =
-    typeof query.pageSize === 'string' ? Number(query.pageSize) : 24
+  const pageSizeParam = typeof query.pageSize === 'string' ? Number(query.pageSize) : 24
 
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1
-  const pageSize =
-    Number.isFinite(pageSizeParam) && pageSizeParam > 0 && pageSizeParam <= 100
-      ? pageSizeParam
-      : 24
+  const pageSize = Number.isFinite(pageSizeParam) && pageSizeParam > 0 && pageSizeParam <= 100 ? pageSizeParam : 24
 
-  // --- 2. Genre Filter ---
-  let validMovieIds: number[] | null = null
-  let validSeriesIds: number[] | null = null
+  // --- 2. Build Query trên View "all_contents" ---
+  // count: 'exact' để lấy tổng số bản ghi phục vụ phân trang
+  let dbQuery = client
+    .from('all_contents')
+    .select('*', { count: 'exact' })
 
+  // --- 3. Filter ---
+  
+  // Filter theo Genre (Dùng toán tử chứa mảng @> của Postgres)
   if (genreSlugs.length > 0) {
-    const { data: genreRows } = await client
-      .from('genres')
-      .select('id, slug')
-      .in('slug', genreSlugs)
-
-    // Cast any[] để tránh lỗi typescript 'never'
-    const genreIds = ((genreRows as any[]) ?? []).map((g) => g.id)
-
-    if (genreIds.length === 0) {
-      return { items: [], total: 0, page, pageSize }
-    }
-
-    const { data: mGenres } = await client
-      .from('movie_genres')
-      .select('movie_id')
-      .in('genre_id', genreIds)
-    
-    validMovieIds = Array.from(new Set(((mGenres as any[]) ?? []).map((x) => x.movie_id)))
-
-    const { data: sGenres } = await client
-      .from('series_genres')
-      .select('series_id')
-      .in('genre_id', genreIds)
-
-    validSeriesIds = Array.from(new Set(((sGenres as any[]) ?? []).map((x) => x.series_id)))
-
-    if (validMovieIds.length === 0 && validSeriesIds.length === 0) {
-      return { items: [], total: 0, page, pageSize }
-    }
+    // genre_slugs trong View là mảng text[], ta tìm các dòng mà genre_slugs CHỨA một trong các slug này
+    // Toán tử 'cs' (contains) trong Supabase JS tương đương @>
+    // Lưu ý: Logic này là "AND" (phim phải có đủ các genre). 
+    // Nếu muốn "OR" (có 1 trong các genre) thì dùng .overlaps() ('ov')
+    dbQuery = dbQuery.overlaps('genre_slugs', genreSlugs)
   }
 
-  // --- 3. Movies Query ---
-  let movieBuilder = client
-    .from('movies')
-    .select('*, movie_genres(genre:genres(name, name_ja, slug))')
-
-  if (validMovieIds !== null) {
-    movieBuilder = movieBuilder.in('id', validMovieIds)
-  }
+  // Filter theo Search Text
   if (search) {
     const kana = toHiragana(search)
-    movieBuilder = movieBuilder.or(
-      `title.ilike.%${search}%,title_kana.ilike.%${kana}%,original_title.ilike.%${search}%`
+    dbQuery = dbQuery.or(
+      `title.ilike.%${search}%,title_kana.ilike.%${kana}%,original_title.ilike.%${search}%,director.ilike.%${search}%,main_cast.ilike.%${search}%`
     )
   }
+
+  // Filter theo Country
   if (countries.length > 0) {
-    movieBuilder = movieBuilder.in('origin_country', countries)
+    dbQuery = dbQuery.in('origin_country', countries)
   }
+
+  // Filter theo Year
   if (!Number.isNaN(yearNum)) {
-    movieBuilder = movieBuilder.eq('year', yearNum)
+    dbQuery = dbQuery.eq('year', yearNum)
   }
 
-  // --- 4. Series Query ---
-  let seriesBuilder = client
-    .from('series')
-    .select('*, series_genres(genre:genres(name, name_ja, slug)), episodes(id)')
-
-  if (validSeriesIds !== null) {
-    seriesBuilder = seriesBuilder.in('id', validSeriesIds)
-  }
-  if (search) {
-    const kana = toHiragana(search)
-    seriesBuilder = seriesBuilder.or(
-      `title.ilike.%${search}%,title_kana.ilike.%${kana}%,original_title.ilike.%${search}%`
-    )
-  }
-  if (countries.length > 0) {
-    seriesBuilder = seriesBuilder.in('origin_country', countries)
-  }
-  if (!Number.isNaN(yearNum)) {
-    seriesBuilder = seriesBuilder.eq('year', yearNum)
+  // --- 4. Sorting ---
+  if (sortParam === 'year_desc') {
+    dbQuery = dbQuery.order('year', { ascending: false })
+  } else if (sortParam === 'year_asc') {
+    dbQuery = dbQuery.order('year', { ascending: true })
+  } else if (sortParam === 'title_asc') {
+    // Sắp xếp title tiếng Nhật đôi khi cần collation, nhưng cơ bản dùng mặc định
+    dbQuery = dbQuery.order('title', { ascending: true })
+  } else {
+    // Default: recommended (Mới nhất lên đầu)
+    dbQuery = dbQuery.order('created_at', { ascending: false })
   }
 
-  const [movieRes, seriesRes] = await Promise.all([
-    movieBuilder,
-    seriesBuilder
-  ])
-
-  if (movieRes.error) throw createError({ statusCode: 500, statusMessage: movieRes.error.message })
-  if (seriesRes.error) throw createError({ statusCode: 500, statusMessage: seriesRes.error.message })
-
-  // --- 5. Mapping ---
-  const moviesMapped: ApiMediaItem[] = (movieRes.data ?? []).map((row: any) => {
-    const g = row.movie_genres?.[0]?.genre
-    const genreLabel = g ? (g.name_ja || g.name || g.slug) : 'その他'
-
-    // Logic Resize ảnh:
-    // Thumbnail (List): Banner 450x450 contain
-    const thumbnail = getResizedUrl(row.banner_url || row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
-    
-    // PosterUrl (MyList): Poster 450x450 contain
-    const posterUrl = getResizedUrl(row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
-
-    // BannerUrl (Hero): Banner 1920x1080 contain
-    const bannerUrl = getResizedUrl(row.banner_url, 1920, 1080, 'contain') || ''
-
-    return {
-      id: row.id,
-      type: 'movie',
-      slug: row.slug ?? String(row.id),
-      title: row.title,
-      originalTitle: row.original_title,
-      titleKana: row.title_kana,
-      year: row.year,
-      country: row.origin_country,
-      description: row.description,
-      thumbnail,
-      posterUrl,
-      bannerUrl,
-      genre: genreLabel,
-      createdAt: row.created_at
-    }
-  })
-
-  const seriesMapped: ApiMediaItem[] = (seriesRes.data ?? []).map((row: any) => {
-    const g = row.series_genres?.[0]?.genre
-    const genreLabel = g ? (g.name_ja || g.name || g.slug) : 'その他'
-    const epCount = Array.isArray(row.episodes) ? row.episodes.length : 0
-
-    // Logic Resize ảnh tương tự
-    const thumbnail = getResizedUrl(row.banner_url || row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
-    const posterUrl = getResizedUrl(row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
-    const bannerUrl = getResizedUrl(row.banner_url, 1920, 1080, 'contain') || ''
-
-    return {
-      id: row.id,
-      type: 'series',
-      slug: row.slug ?? String(row.id),
-      title: row.title,
-      originalTitle: row.original_title,
-      titleKana: row.title_kana,
-      year: row.year,
-      country: row.origin_country,
-      description: row.description,
-      thumbnail,
-      posterUrl,
-      bannerUrl,
-      genre: genreLabel,
-      episodeCount: epCount,
-      createdAt: row.created_at
-    }
-  })
-
-  // --- 6. Merge & Sort ---
-  let combined = [...moviesMapped, ...seriesMapped]
-
-  combined.sort((a, b) => {
-    if (sortParam === 'year_desc') return b.year - a.year
-    if (sortParam === 'year_asc') return a.year - b.year
-    if (sortParam === 'title_asc') return a.title.localeCompare(b.title, 'ja')
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  })
-
-  // --- 7. Pagination ---
-  const total = combined.length
+  // --- 5. Pagination ---
   const from = (page - 1) * pageSize
-  const to = from + pageSize
-  const pagedItems = combined.slice(from, to)
+  const to = from + pageSize - 1
+  dbQuery = dbQuery.range(from, to)
+
+  // --- 6. Execute ---
+  const { data, error, count } = await dbQuery
+
+  if (error) {
+    throw createError({ statusCode: 500, statusMessage: error.message })
+  }
+
+  // --- 7. Mapping ---
+  // Dữ liệu từ View đã chuẩn hóa, mapping rất nhẹ nhàng
+  const items: ApiMediaItem[] = (data ?? []).map((row: any) => {
+    // Logic Resize ảnh
+    const thumbnail = getResizedUrl(row.banner_url || row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
+    const posterUrl = getResizedUrl(row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
+    const bannerUrl = getResizedUrl(row.banner_url, 1920, 1080, 'contain') || ''
+
+    return {
+      id: row.id,
+      type: row.type, // 'movie' hoặc 'series'
+      slug: row.slug ?? String(row.id),
+      title: row.title,
+      originalTitle: row.original_title,
+      titleKana: row.title_kana,
+      year: row.year,
+      country: row.origin_country,
+      description: row.description,
+      thumbnail,
+      posterUrl,
+      bannerUrl,
+      genre: row.genre_label || 'その他',
+      episodeCount: row.episode_count || 0,
+      createdAt: row.created_at
+    }
+  })
 
   return {
-    items: pagedItems,
-    total,
+    items,
+    total: count ?? 0,
     page,
     pageSize,
   }

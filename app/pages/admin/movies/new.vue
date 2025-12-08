@@ -350,6 +350,8 @@ const handleSubmit = async () => {
   successMessage.value = ''
   submitting.value = true
 
+  let createdMovieId: number | null = null // Biến lưu ID phim vừa tạo
+
   try {
     const payload = {
       title: form.title,

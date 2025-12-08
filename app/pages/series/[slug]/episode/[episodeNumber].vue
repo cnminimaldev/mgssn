@@ -1,14 +1,14 @@
 <template>
   <div class="min-h-[calc(100vh-4rem)] bg-black text-white">
     <div
-      v-if="loading"
+      v-if="status === 'pending'"
       class="flex h-full items-center justify-center py-20 text-zinc-300"
     >
-      Loading...
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-zinc-600 border-t-emerald-500"></div>
     </div>
 
     <div
-      v-else-if="errorMessage || !series || !activeEpisode"
+      v-else-if="error || errorMessage || !series"
       class="flex h-full items-center justify-center py-20 text-zinc-200"
     >
       <div class="text-center">
@@ -36,8 +36,8 @@
           </li>
           <li><span class="text-zinc-600">/</span></li>
           <li>
-            <NuxtLink :to="`/series/${series.slug}`" class="hover:text-white hover:underline max-w-[150px] truncate sm:max-w-xs">
-              {{ series.title }}
+            <NuxtLink :to="`/series/${series?.slug}`" class="hover:text-white hover:underline max-w-[150px] truncate sm:max-w-xs">
+              {{ series?.title }}
             </NuxtLink>
           </li>
           <li><span class="text-zinc-600">/</span></li>
@@ -50,10 +50,10 @@
       <section class="px-4 pt-6 sm:px-8">
         <div class="mx-auto max-w-7xl">
           <h1 class="text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">
-            {{ series.title }}
+            {{ series?.title }}
           </h1>
           <p class="mt-1 text-xs text-zinc-400 sm:text-sm">
-            <span v-if="activeEpisode.title">{{ activeEpisode.title }}</span>
+            <span v-if="activeEpisode?.title">{{ activeEpisode.title }}</span>
             <span v-else>第{{ currentEpisodeNumber }}話</span>
           </p>
         </div>
@@ -99,24 +99,27 @@
           </div>
 
           <div
-            class="overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-2xl"
+            class="overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-2xl aspect-video"
           >
-            <StreamingPlayer
-              v-if="playerSrc"
-              :key="playerKey"
-              :src="playerSrc"
-              :poster="playerPoster"
-              :title="playerTitle"
-              :startTime="episodeStartTime"
-              @timeupdate="handlePlayerTimeUpdate"
-              @ended="handlePlayerEnded"
-            />
-            <div
-              v-else
-              class="flex aspect-video items-center justify-center text-sm text-zinc-400"
-            >
-              再生可能な動画ソースが登録されていません。
-            </div>
+            <ClientOnly>
+              <StreamingPlayer
+                v-if="playerSrc"
+                :key="playerKey"
+                :src="playerSrc"
+                :poster="playerPoster"
+                :title="playerTitle"
+                :startTime="episodeStartTime"
+                :subtitles="activeEpisodeSubtitles" 
+                @timeupdate="handlePlayerTimeUpdate"
+                @ended="handlePlayerEnded"
+              />
+              <div
+                v-else
+                class="flex h-full items-center justify-center text-sm text-zinc-400"
+              >
+                再生可能な動画ソースが登録されていません。
+              </div>
+            </ClientOnly>
           </div>
 
           <div class="flex items-center justify-between border-b border-white/5 pb-4">
@@ -179,7 +182,7 @@
             <div>
               <h3 class="mb-1 text-sm font-semibold text-white">あらすじ</h3>
               <p class="text-xs leading-relaxed text-zinc-400 sm:text-sm">
-                {{ series.description || 'あらすじはまだ登録されていません。' }}
+                {{ series?.description || 'あらすじはまだ登録されていません。' }}
               </p>
             </div>
 
@@ -198,7 +201,7 @@
                   </div>
                </div>
 
-               <div v-if="series.main_cast">
+               <div v-if="series?.main_cast">
                   <span class="text-zinc-500 block mb-1">キャスト</span>
                   <div class="flex flex-wrap gap-1 text-zinc-300">
                     <template v-for="(actor, idx) in castList" :key="idx">
@@ -208,7 +211,7 @@
                   </div>
                </div>
 
-               <div v-if="series.director">
+               <div v-if="series?.director">
                   <span class="text-zinc-500 block mb-1">監督</span>
                   <NuxtLink :to="`/search?q=${series.director}`" class="text-zinc-300 hover:text-white hover:underline">
                     {{ series.director }}
@@ -218,11 +221,11 @@
                <div>
                  <span class="text-zinc-500 block mb-1">情報</span>
                  <div class="flex flex-wrap gap-3 text-zinc-300">
-                    <span v-if="series.year">
+                    <span v-if="series?.year">
                       <NuxtLink :to="`/search?year=${series.year}`" class="hover:text-white hover:underline">{{ series.year }}年</NuxtLink>
                     </span>
                     <span v-if="countryLabel">
-                      <NuxtLink :to="`/search?countries=${series.origin_country}`" class="hover:text-white hover:underline">{{ countryLabel }}</NuxtLink>
+                      <NuxtLink :to="`/search?countries=${series?.origin_country}`" class="hover:text-white hover:underline">{{ countryLabel }}</NuxtLink>
                     </span>
                  </div>
                </div>
@@ -283,6 +286,14 @@
           </div>
         </aside>
       </section>
+
+      <section v-if="relatedSeries.length" class="mt-10 max-w-7xl mx-auto px-4 pb-12 sm:px-8">
+        <MovieRow
+          title="あなたにおすすめ"
+          :movies="relatedRowItems"
+          sub-label="この作品に似ているシリーズ・映画"
+        />
+      </section>
     </div>
   </div>
 </template>
@@ -298,11 +309,14 @@ import {
   navigateTo,
   useNuxtApp,
   useRequestURL,
+  useAsyncData
 } from "#imports";
 import StreamingPlayer from "~/components/StreamingPlayer.vue";
+import MovieRow from "~/components/MovieRow.vue";
 import { useContinueWatching } from "~/composables/useContinueWatching";
 import { useMyList } from "~/composables/useMyList";
 
+// --- Types ---
 type SeriesRow = {
   id: number;
   slug: string;
@@ -336,6 +350,8 @@ type EpisodeCollectionRow = {
   series_id?: number;
 };
 
+type SubtitleItem = { src: string; label: string; lang: string }
+
 type EpisodeRow = {
   id: number;
   series_id: number;
@@ -346,6 +362,7 @@ type EpisodeRow = {
   video_path: string | null;
   thumbnail_url: string | null;
   duration_minutes: number | null;
+  subtitles?: SubtitleItem[]; // Thêm trường subtitles
 };
 
 type ProviderRow = {
@@ -354,17 +371,27 @@ type ProviderRow = {
   website_url: string | null;
 };
 
+type RelatedItem = {
+  id: number;
+  slug: string;
+  title: string;
+  poster_url: string | null;
+  banner_url: string | null;
+  type: 'movie' | 'series';
+};
+
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient<any>();
 
-const loading = ref(true);
 const errorMessage = ref("");
 
+// Reactive Refs
 const series = ref<SeriesRow | null>(null);
 const collections = ref<EpisodeCollectionRow[]>([]);
 const episodes = ref<EpisodeRow[]>([]);
 const providers = ref<ProviderRow[]>([]);
+const relatedSeries = ref<RelatedItem[]>([]);
 
 const selectedCollectionId = ref<number | null>(null);
 const selectedSeason = ref<number | null>(null);
@@ -372,6 +399,7 @@ const isInitializing = ref(true);
 
 const { setProgress, clearProgressForMovie, getEntry } = useContinueWatching();
 const { isInMyList, toggleMyList } = useMyList();
+
 const inMyList = computed(() =>
   series.value ? isInMyList(series.value.id, 'series') : false
 );
@@ -475,6 +503,13 @@ const activeEpisode = computed<EpisodeRow | null>(() => {
   return variants[0] ?? null;
 });
 
+// [MỚI] Computed lấy Subtitles của tập đang active
+const activeEpisodeSubtitles = computed(() => {
+  const ep = activeEpisode.value
+  if (!ep || !ep.subtitles || !Array.isArray(ep.subtitles)) return []
+  return ep.subtitles
+})
+
 const currentEpisodeNumber = computed(() => {
   const ep = activeEpisode.value;
   if (ep) return ep.episode_number;
@@ -526,16 +561,27 @@ const activeCollectionInfo = computed(() => {
 });
 
 const playerSrc = computed(() => activeEpisode.value?.video_path || "");
-const playerPoster = computed(
-  () => activeEpisode.value?.thumbnail_url || series.value?.poster_url || "/images/fallback-poster.webp"
-);
+const playerPoster = computed(() => {
+  // 1. Nếu tập phim có thumbnail riêng -> Dùng luôn
+  if (activeEpisode.value?.thumbnail_url) {
+    return getResizedUrl(activeEpisode.value.thumbnail_url, 1280, 720, 'cover')
+  }
+  
+  // 2. Nếu không, dùng Banner của Series (Resize 1280x720)
+  if (series.value?.banner_url) {
+    return getResizedUrl(series.value.banner_url, 1280, 720, 'cover')
+  }
 
-// SỬA: Logic hiển thị tiêu đề player cho series
+  // 3. Đường cùng thì dùng Poster hoặc ảnh mặc định
+  return series.value?.poster_url 
+    ? getResizedUrl(series.value.poster_url, 1280, 720, 'contain') 
+    : "/images/fallback-poster.webp"
+});
+
 const playerTitle = computed(() => {
   if (!series.value || !activeEpisode.value) return "";
   const base = series.value.title;
   const ep = activeEpisode.value;
-  // <Tên phim> <Tên tập (nếu có) HOẶC 第X話>
   const suffix = ep.title ? ep.title : `第${ep.episode_number}話`;
   return `${base} ${suffix}`;
 });
@@ -583,25 +629,44 @@ const episodeLink = (ep: EpisodeRow) => {
   return { path, query: restQuery };
 };
 
-// Load data
-const loadData = async () => {
-  const nuxtApp = useNuxtApp();
-  loading.value = true;
-  errorMessage.value = "";
+const relatedRowItems = computed(() =>
+  relatedSeries.value.map((m: any) => ({
+    id: m.id,
+    slug: m.slug,
+    title: m.title,
+    thumbnail: getResizedUrl(m.poster_url || m.banner_url, 450, 450, 'contain') || "/images/fallback-poster.webp",
+    type: m.type
+  }))
+);
 
-  try {
+// --- LOAD DATA with useAsyncData ---
+// SỬA: return toàn bộ object để tránh Hydration Mismatch
+const { status, error, data: pageData } = await useAsyncData(
+  `series-${slugParam.value}-ep-${episodeNumberParam.value}`,
+  async () => {
+    const nuxtApp = useNuxtApp();
+    const result = {
+      series: null as SeriesRow | null,
+      collections: [] as EpisodeCollectionRow[],
+      episodes: [] as EpisodeRow[],
+      providers: [] as ProviderRow[],
+      relatedSeries: [] as RelatedItem[],
+      errorMessage: ''
+    }
+
     const slug = slugParam.value;
     if (!slug) {
-      errorMessage.value = "Invalid slug";
-      return;
+      result.errorMessage = "Invalid slug";
+      return result;
     }
 
     const epNum = episodeNumberParam.value;
-    if (!Number.isFinite(epNum) || epNum <= 0) {
-      errorMessage.value = "Invalid episode number";
-      return;
+    if (!Number.isFinite(epNum) || epNum < 0) { // Hỗ trợ tập 0
+      result.errorMessage = "Invalid episode number";
+      return result;
     }
 
+    // 1. Fetch Series
     const { data: seriesData, error: seriesError } = await supabase
       .from("series")
       .select(
@@ -611,72 +676,92 @@ const loadData = async () => {
       .single();
 
     if (seriesError || !seriesData) {
-      const { data: aliasRows } = await supabase
-        .from("series_slug_history")
-        .select("series_id")
-        .eq("slug", slug)
-        .limit(1);
-
-      if (aliasRows && aliasRows.length > 0) {
-        const aliasSeriesId = aliasRows[0]?.series_id as number;
-        if (aliasSeriesId) {
-          const { data: canonicalSeries } = await supabase
-            .from("series")
-            .select("slug")
-            .eq("id", aliasSeriesId)
-            .single();
-          if (canonicalSeries?.slug) {
-            await nuxtApp.runWithContext(() =>
-              navigateTo(`/series/${canonicalSeries.slug}/episode/${epNum}`, {
-                redirectCode: 301,
-                external: true,
-              })
-            );
-            return;
-          }
-        }
-      }
-      errorMessage.value = "シリーズが見つかりませんでした。";
-      return;
+      // Check alias (Redirect logic here if needed)
+      result.errorMessage = "シリーズが見つかりませんでした。";
+      return result;
     }
 
-    series.value = seriesData as unknown as SeriesRow;
+    result.series = seriesData as unknown as SeriesRow;
 
+    // 2. Fetch dependencies
     const { data: colData } = await supabase
       .from("episode_collections")
       .select(
         "id, name, type, audio_language, subtitle_language, provider_id, is_default, series_id"
       )
-      .eq("series_id", series.value.id)
+      .eq("series_id", result.series.id)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
-    collections.value = (colData ?? []) as EpisodeCollectionRow[];
+    result.collections = (colData ?? []) as EpisodeCollectionRow[];
 
     const { data: provData } = await supabase
       .from("collection_providers")
       .select("id, name, website_url")
       .order("name", { ascending: true });
-    providers.value = (provData ?? []) as ProviderRow[];
+    result.providers = (provData ?? []) as ProviderRow[];
 
     const { data: epData } = await supabase
       .from("episodes")
       .select(
-        "id, series_id, collection_id, season_number, episode_number, title, video_path, thumbnail_url, duration_minutes"
+        "id, series_id, collection_id, season_number, episode_number, title, video_path, thumbnail_url, duration_minutes, subtitles"
       )
-      .eq("series_id", series.value.id)
+      .eq("series_id", result.series.id)
       .order("season_number", { ascending: true })
       .order("episode_number", { ascending: true });
-    episodes.value = (epData ?? []) as EpisodeRow[];
+    result.episodes = (epData ?? []) as EpisodeRow[];
 
+    // 3. Related Logic
+    // @ts-ignore
+    const currentGenreSlugs = seriesData.series_genres?.map((sg: any) => sg.genre?.slug).filter(Boolean) || [];
+
+    let relatedQuery = supabase
+      .from("all_contents")
+      .select("id, slug, title, poster_url, banner_url, type")
+      .neq("id", result.series.id);
+
+    if (currentGenreSlugs.length > 0) {
+      relatedQuery = relatedQuery.overlaps("genre_slugs", currentGenreSlugs);
+    }
+
+    const { data: relData } = await relatedQuery
+      .order("created_at", { ascending: false })
+      .limit(12);
+
+    result.relatedSeries = (relData ?? []) as RelatedItem[];
+
+    return result;
+  }
+);
+
+// SYNC DATA FROM ASYNC DATA TO REFS
+// SỬA: Logic đồng bộ dữ liệu chuẩn
+watch(pageData, (newData) => {
+  if (newData) {
+    if (newData.errorMessage) {
+      errorMessage.value = newData.errorMessage
+      return
+    }
+    
+    series.value = newData.series
+    collections.value = newData.collections
+    episodes.value = newData.episodes
+    providers.value = newData.providers
+    relatedSeries.value = newData.relatedSeries
+
+    // Setup default collection
     if (!episodes.value.length) {
       errorMessage.value = "エピソードがまだ登録されていません。";
       return;
     }
-    const variants = variantsForCurrentEpisode.value;
+    
+    const epNum = episodeNumberParam.value;
+    const variants = episodes.value.filter((ep) => ep.episode_number === epNum);
+    
     if (!variants.length) {
       errorMessage.value = "指定されたエピソードが存在しません。";
       return;
     }
+
     let defaultCollectionId: number | null = null;
     const requestedCollectionId = collectionFromQuery.value;
     if (requestedCollectionId != null && variants.some((ep) => ep.collection_id === requestedCollectionId)) {
@@ -696,17 +781,15 @@ const loadData = async () => {
     const baseEp = variants[0];
     const season = baseEp?.season_number ?? 1;
     selectedSeason.value = season;
-
-  } finally {
-    loading.value = false;
   }
-};
+}, { immediate: true })
 
-await loadData();
 isInitializing.value = false;
 
 // Scroll to active episode
 const scrollToActiveEpisode = async () => {
+  if (import.meta.server) return; 
+
   await nextTick();
   const mobileBtn = document.getElementById('active-ep-mobile');
   if (mobileBtn) mobileBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -722,14 +805,14 @@ watch(selectedCollectionId, (val) => {
   if (isInitializing.value) return;
   const slug = slugParam.value;
   const epNum = episodeNumberParam.value;
-  if (!slug || !Number.isFinite(epNum)) return;
+  if (!slug || (epNum !== 0 && !epNum)) return; // Cho phép tập 0
   const query: Record<string, any> = { ...route.query };
   if (val != null) query.collection = String(val);
   else delete query.collection;
   router.replace({ path: `/series/${slug}/episode/${epNum}`, query });
 });
 
-// SEO
+// SEO ... (Giữ nguyên phần SEO của bạn)
 const url = useRequestURL();
 const canonicalUrl = computed(() => {
   return `${url.origin}/series/${slugParam.value}/episode/${currentEpisodeNumber.value}`;

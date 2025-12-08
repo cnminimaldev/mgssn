@@ -74,7 +74,7 @@ alter table "public"."episode_progress" enable row level security;
     "series_id" bigint not null,
     "episode_number" integer not null,
     "season_number" integer,
-    "title" text not null,
+    "title" text,
     "title_kana" text,
     "description" text,
     "duration_minutes" integer,
@@ -246,8 +246,6 @@ alter table "public"."profiles" enable row level security;
       );
 
 
-alter table "public"."user_movie_list" enable row level security;
-
 
   create table "public"."user_series_list" (
     "user_id" uuid not null,
@@ -255,8 +253,6 @@ alter table "public"."user_movie_list" enable row level security;
     "created_at" timestamp with time zone default now()
       );
 
-
-alter table "public"."user_series_list" enable row level security;
 
 alter sequence "public"."collection_providers_id_seq" owned by "public"."collection_providers"."id";
 
@@ -465,6 +461,26 @@ alter table "public"."user_movie_list" validate constraint "user_movie_list_user
 alter table "public"."user_series_list" add constraint "user_series_list_user_id_fkey" FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE not valid;
 
 alter table "public"."user_series_list" validate constraint "user_series_list_user_id_fkey";
+
+set check_function_bodies = off;
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  insert into public.profiles (id, display_name, avatar_url)
+  values (
+    new.id,
+    new.raw_user_meta_data ->> 'name', -- Lấy tên từ metadata (nếu có)
+    new.raw_user_meta_data ->> 'avatar_url'
+  );
+  return new;
+end;
+$function$
+;
 
 grant delete on table "public"."collection_providers" to "anon";
 
@@ -1540,6 +1556,44 @@ with check ((auth.uid() = user_id));
   to public
 using ((auth.uid() = user_id))
 with check ((auth.uid() = user_id));
+
+
+CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+
+  create policy "insert/update/delete 1ffg0oo_0"
+  on "storage"."objects"
+  as permissive
+  for insert
+  to authenticated
+with check ((auth.role() = 'authenticated'::text));
+
+
+
+  create policy "insert/update/delete 1ffg0oo_1"
+  on "storage"."objects"
+  as permissive
+  for delete
+  to authenticated
+using ((auth.role() = 'authenticated'::text));
+
+
+
+  create policy "insert/update/delete 1ffg0oo_2"
+  on "storage"."objects"
+  as permissive
+  for update
+  to authenticated
+using ((auth.role() = 'authenticated'::text));
+
+
+
+  create policy "select 1ffg0oo_0"
+  on "storage"."objects"
+  as permissive
+  for select
+  to anon, authenticated
+using ((bucket_id = 'images'::text));
 
 
 

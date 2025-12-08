@@ -20,7 +20,6 @@ export const useMyList = () => {
 
   // Hàm tải dữ liệu
   const fetchMyList = async () => {
-    // Dùng getUser để chắc chắn session hợp lệ
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
@@ -31,7 +30,6 @@ export const useMyList = () => {
     try {
       const userId = user.id
 
-      // Chạy song song 2 request để nhanh hơn
       const [resMovie, resSeries] = await Promise.all([
         supabase.from('user_movie_list').select('movie_id').eq('user_id', userId),
         supabase.from('user_series_list').select('series_id').eq('user_id', userId)
@@ -51,10 +49,6 @@ export const useMyList = () => {
       initialized.value = true
     }
   }
-
-  // --- LƯU Ý QUAN TRỌNG ---
-  // Đã XÓA đoạn watch(authUser...) ở đây để tránh duplicate request.
-  // Việc gọi fetchMyList sẽ được thực hiện duy nhất 1 lần ở app.vue
 
   const isInMyList = (id: number, type: 'movie' | 'series') => {
     if (type === 'series') {
@@ -77,6 +71,18 @@ export const useMyList = () => {
 
     const userId = user.id
     const isAdded = isInMyList(id, type)
+    
+    // --- MỚI: Kiểm tra giới hạn 50 items ---
+    if (!isAdded) {
+      const totalItems = movieIds.value.length + seriesIds.value.length
+      if (totalItems >= 50) {
+        // Thông báo bằng tiếng Nhật cho khớp với UI
+        alert('マイリストには最大50件までしか登録できません。') 
+        return
+      }
+    }
+    // ----------------------------------------
+
     const table = type === 'series' ? 'user_series_list' : 'user_movie_list'
     const col = type === 'series' ? 'series_id' : 'movie_id'
 
@@ -104,7 +110,7 @@ export const useMyList = () => {
       }
     } catch (e) {
       console.error('Toggle MyList failed', e)
-      await fetchMyList() // Revert
+      await fetchMyList() // Revert nếu lỗi
     }
   }
 
@@ -112,7 +118,7 @@ export const useMyList = () => {
     movieIds,
     seriesIds,
     fetchMyList,
-    clearMyList, // Export thêm hàm này
+    clearMyList,
     isInMyList,
     toggleMyList,
   }

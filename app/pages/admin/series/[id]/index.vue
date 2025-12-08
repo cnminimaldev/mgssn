@@ -10,6 +10,13 @@
         </div>
         <div class="flex flex-col items-end gap-2">
           <div class="flex items-center gap-3">
+            <NuxtLink
+              :to="`/admin/series/${route.params.id}/episodes/bulk`"
+              class="flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-500"
+            >
+              <span>⚡ Nhập tập hàng loạt</span>
+            </NuxtLink>
+
             <button
               type="button"
               class="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300"
@@ -18,7 +25,10 @@
               <span>⚡ スマートペースト</span>
             </button>
 
-            <NuxtLink to="/admin/series" class="text-sm text-zinc-400 hover:text-zinc-200">
+            <NuxtLink
+              to="/admin/series"
+              class="text-sm text-zinc-400 hover:text-zinc-200"
+            >
               シリーズ一覧へ戻る
             </NuxtLink>
           </div>
@@ -228,7 +238,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
 import { useRoute, useRouter, useSupabaseClient, useAsyncData } from "#imports";
-import SmartPasteModal from '~/components/SmartPasteModal.vue'
+import SmartPasteModal from "~/components/SmartPasteModal.vue";
 
 type GenreRow = {
   id: number;
@@ -319,23 +329,25 @@ const form = reactive({
 });
 
 // --- Smart Paste Logic ---
-const showSmartPaste = ref(false)
+const showSmartPaste = ref(false);
 
 const onSmartPaste = (data: any) => {
-  if (data.title) form.title = data.title
-  if (data.original_title) form.original_title = data.original_title
-  if (data.title_kana) form.title_kana = data.title_kana
-  if (data.slug) form.slug = data.slug
-  if (data.description) form.description = data.description
-  if (data.year) form.year = data.year
-  if (data.release_date) form.release_date = data.release_date
+  if (data.title) form.title = data.title;
+  if (data.original_title) form.original_title = data.original_title;
+  if (data.title_kana) form.title_kana = data.title_kana;
+  if (data.slug) form.slug = data.slug;
+  if (data.description) form.description = data.description;
+  if (data.year) form.year = data.year;
+  if (data.release_date) form.release_date = data.release_date;
   if (data.origin_country) {
-    const exists = countryOptions.value.some(c => c.code === data.origin_country)
-    if (exists) form.origin_country = data.origin_country
+    const exists = countryOptions.value.some(
+      (c) => c.code === data.origin_country
+    );
+    if (exists) form.origin_country = data.origin_country;
   }
-  if (data.director) form.director = data.director
-  if (data.main_cast) form.main_cast = data.main_cast
-}
+  if (data.director) form.director = data.director;
+  if (data.main_cast) form.main_cast = data.main_cast;
+};
 
 // --- Load & Submit ---
 const loadSeries = async () => {
