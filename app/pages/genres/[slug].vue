@@ -68,7 +68,7 @@ const { data: moviesData, pending } = await useFetch('/api/movies', {
 const movies = computed(() => moviesData.value?.items || [])
 
 // 3. SEO Meta & Schema
-const title = computed(() => `${genreLabel.value} 映画・ドラマ 無料視聴 | MugenStream`)
+const title = computed(() => `${genreLabel.value} 映画・ドラマ 無料視聴 | MugenTV`)
 const desc = computed(() => `${genreLabel.value}の最新・人気映画やドラマを無料で視聴。`)
 
 useSeoMeta({

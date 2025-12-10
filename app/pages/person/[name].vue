@@ -62,7 +62,7 @@ const { data: moviesData, pending } = await useFetch('/api/movies', {
 const movies = computed(() => moviesData.value?.items || [])
 
 // SEO Meta & Schema
-const title = computed(() => `${personName.value} 出演・監督作品 (映画・ドラマ) | MugenStream`)
+const title = computed(() => `${personName.value} 出演・監督作品 (映画・ドラマ) | MugenTV`)
 const desc = computed(() => `${personName.value}が出演、監督する映画やドラマの一覧。`)
 
 useSeoMeta({

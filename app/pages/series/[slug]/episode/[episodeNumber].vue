@@ -950,7 +950,7 @@ const seoTitle = computed(() => {
 
 const seoDescription = computed(
   () =>
-    series.value?.description ?? "映画やドラマをオンラインで楽しめるMyStream。"
+    series.value?.description ?? "映画やドラマをオンラインで楽しめるMugenTV。"
 );
 
 const seoImage = computed(

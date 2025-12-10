@@ -28,6 +28,16 @@ create sequence "public"."series_id_seq";
 
 
 
+  create table "public"."content_views" (
+    "id" bigint generated always as identity not null,
+    "content_id" bigint not null,
+    "type" text not null,
+    "user_id" uuid,
+    "created_at" timestamp with time zone default now()
+      );
+
+
+
   create table "public"."countries" (
     "code" text not null,
     "name" text not null,
@@ -197,11 +207,25 @@ alter table "public"."movie_progress" enable row level security;
     "id" uuid not null,
     "display_name" text,
     "avatar_url" text,
-    "created_at" timestamp with time zone default now()
+    "created_at" timestamp with time zone default now(),
+    "role" text default 'user'::text
       );
 
 
 alter table "public"."profiles" enable row level security;
+
+
+  create table "public"."reviews" (
+    "id" bigint generated always as identity not null,
+    "user_id" uuid not null,
+    "content_id" bigint not null,
+    "type" text not null,
+    "rating" integer not null,
+    "comment" text,
+    "created_at" timestamp with time zone default now(),
+    "updated_at" timestamp with time zone default now()
+      );
+
 
 
   create table "public"."series" (
@@ -276,6 +300,12 @@ CREATE UNIQUE INDEX collection_providers_code_key ON public.collection_providers
 
 CREATE UNIQUE INDEX collection_providers_pkey ON public.collection_providers USING btree (id);
 
+CREATE INDEX content_views_content_idx ON public.content_views USING btree (content_id, type);
+
+CREATE INDEX content_views_created_at_idx ON public.content_views USING btree (created_at);
+
+CREATE UNIQUE INDEX content_views_pkey ON public.content_views USING btree (id);
+
 CREATE UNIQUE INDEX countries_pkey ON public.countries USING btree (code);
 
 CREATE UNIQUE INDEX episode_collections_pkey ON public.episode_collections USING btree (id);
@@ -314,6 +344,10 @@ CREATE UNIQUE INDEX movies_slug_key ON public.movies USING btree (slug);
 
 CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id);
 
+CREATE UNIQUE INDEX reviews_pkey ON public.reviews USING btree (id);
+
+CREATE UNIQUE INDEX reviews_user_id_content_id_type_key ON public.reviews USING btree (user_id, content_id, type);
+
 CREATE UNIQUE INDEX series_genres_pkey ON public.series_genres USING btree (series_id, genre_id);
 
 CREATE UNIQUE INDEX series_pkey ON public.series USING btree (id);
@@ -329,6 +363,8 @@ CREATE UNIQUE INDEX user_movie_list_pkey ON public.user_movie_list USING btree (
 CREATE UNIQUE INDEX user_series_list_pkey ON public.user_series_list USING btree (user_id, series_id);
 
 alter table "public"."collection_providers" add constraint "collection_providers_pkey" PRIMARY KEY using index "collection_providers_pkey";
+
+alter table "public"."content_views" add constraint "content_views_pkey" PRIMARY KEY using index "content_views_pkey";
 
 alter table "public"."countries" add constraint "countries_pkey" PRIMARY KEY using index "countries_pkey";
 
@@ -354,6 +390,8 @@ alter table "public"."movies" add constraint "movies_pkey" PRIMARY KEY using ind
 
 alter table "public"."profiles" add constraint "profiles_pkey" PRIMARY KEY using index "profiles_pkey";
 
+alter table "public"."reviews" add constraint "reviews_pkey" PRIMARY KEY using index "reviews_pkey";
+
 alter table "public"."series" add constraint "series_pkey" PRIMARY KEY using index "series_pkey";
 
 alter table "public"."series_genres" add constraint "series_genres_pkey" PRIMARY KEY using index "series_genres_pkey";
@@ -365,6 +403,14 @@ alter table "public"."user_movie_list" add constraint "user_movie_list_pkey" PRI
 alter table "public"."user_series_list" add constraint "user_series_list_pkey" PRIMARY KEY using index "user_series_list_pkey";
 
 alter table "public"."collection_providers" add constraint "collection_providers_code_key" UNIQUE using index "collection_providers_code_key";
+
+alter table "public"."content_views" add constraint "content_views_type_check" CHECK ((type = ANY (ARRAY['movie'::text, 'series'::text]))) not valid;
+
+alter table "public"."content_views" validate constraint "content_views_type_check";
+
+alter table "public"."content_views" add constraint "content_views_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL not valid;
+
+alter table "public"."content_views" validate constraint "content_views_user_id_fkey";
 
 alter table "public"."episode_collections" add constraint "episode_collections_provider_id_fkey" FOREIGN KEY (provider_id) REFERENCES public.collection_providers(id) ON DELETE CASCADE not valid;
 
@@ -431,6 +477,24 @@ alter table "public"."movies" add constraint "movies_slug_key" UNIQUE using inde
 alter table "public"."profiles" add constraint "profiles_id_fkey" FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE not valid;
 
 alter table "public"."profiles" validate constraint "profiles_id_fkey";
+
+alter table "public"."profiles" add constraint "profiles_role_check" CHECK ((role = ANY (ARRAY['user'::text, 'admin'::text]))) not valid;
+
+alter table "public"."profiles" validate constraint "profiles_role_check";
+
+alter table "public"."reviews" add constraint "reviews_rating_check" CHECK (((rating >= 1) AND (rating <= 5))) not valid;
+
+alter table "public"."reviews" validate constraint "reviews_rating_check";
+
+alter table "public"."reviews" add constraint "reviews_type_check" CHECK ((type = ANY (ARRAY['movie'::text, 'series'::text]))) not valid;
+
+alter table "public"."reviews" validate constraint "reviews_type_check";
+
+alter table "public"."reviews" add constraint "reviews_user_id_content_id_type_key" UNIQUE using index "reviews_user_id_content_id_type_key";
+
+alter table "public"."reviews" add constraint "reviews_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE not valid;
+
+alter table "public"."reviews" validate constraint "reviews_user_id_fkey";
 
 alter table "public"."series" add constraint "series_origin_country_fkey" FOREIGN KEY (origin_country) REFERENCES public.countries(code) not valid;
 
@@ -521,6 +585,54 @@ UNION ALL
    FROM public.series s;
 
 
+CREATE OR REPLACE FUNCTION public.get_content_rating(target_id bigint, target_type text)
+ RETURNS TABLE(avg_rating numeric, total_votes bigint)
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    ROUND(AVG(rating)::numeric, 1) as avg_rating,
+    COUNT(*) as total_votes
+  FROM public.reviews
+  WHERE content_id = target_id AND type = target_type;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.get_ranking(period text, limit_count integer DEFAULT 30)
+ RETURNS TABLE(id bigint, type text, title text, slug text, poster_url text, banner_url text, view_count bigint, year integer, origin_country text)
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    ac.id,
+    ac.type,
+    ac.title,
+    ac.slug,
+    ac.poster_url,
+    ac.banner_url,
+    COUNT(v.id) AS view_count,
+    ac.year,
+    ac.origin_country
+  FROM public.all_contents ac
+  JOIN public.content_views v ON v.content_id = ac.id AND v.type = ac.type
+  WHERE
+    CASE
+      WHEN period = 'day' THEN v.created_at > (now() - interval '24 hours')
+      WHEN period = 'week' THEN v.created_at > (now() - interval '7 days')
+      WHEN period = 'month' THEN v.created_at > (now() - interval '30 days')
+      WHEN period = 'year' THEN v.created_at > (now() - interval '1 year')
+      ELSE true -- 'all'
+    END
+  GROUP BY ac.id, ac.type, ac.title, ac.slug, ac.poster_url, ac.banner_url, ac.year, ac.origin_country
+  ORDER BY view_count DESC
+  LIMIT limit_count;
+END;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -536,6 +648,21 @@ begin
   );
   return new;
 end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
 $function$
 ;
 
@@ -594,6 +721,62 @@ grant trigger on table "public"."collection_providers" to "service_role";
 grant truncate on table "public"."collection_providers" to "service_role";
 
 grant update on table "public"."collection_providers" to "service_role";
+
+grant delete on table "public"."content_views" to "anon";
+
+grant insert on table "public"."content_views" to "anon";
+
+grant references on table "public"."content_views" to "anon";
+
+grant select on table "public"."content_views" to "anon";
+
+grant trigger on table "public"."content_views" to "anon";
+
+grant truncate on table "public"."content_views" to "anon";
+
+grant update on table "public"."content_views" to "anon";
+
+grant delete on table "public"."content_views" to "authenticated";
+
+grant insert on table "public"."content_views" to "authenticated";
+
+grant references on table "public"."content_views" to "authenticated";
+
+grant select on table "public"."content_views" to "authenticated";
+
+grant trigger on table "public"."content_views" to "authenticated";
+
+grant truncate on table "public"."content_views" to "authenticated";
+
+grant update on table "public"."content_views" to "authenticated";
+
+grant delete on table "public"."content_views" to "postgres";
+
+grant insert on table "public"."content_views" to "postgres";
+
+grant references on table "public"."content_views" to "postgres";
+
+grant select on table "public"."content_views" to "postgres";
+
+grant trigger on table "public"."content_views" to "postgres";
+
+grant truncate on table "public"."content_views" to "postgres";
+
+grant update on table "public"."content_views" to "postgres";
+
+grant delete on table "public"."content_views" to "service_role";
+
+grant insert on table "public"."content_views" to "service_role";
+
+grant references on table "public"."content_views" to "service_role";
+
+grant select on table "public"."content_views" to "service_role";
+
+grant trigger on table "public"."content_views" to "service_role";
+
+grant truncate on table "public"."content_views" to "service_role";
+
+grant update on table "public"."content_views" to "service_role";
 
 grant delete on table "public"."countries" to "anon";
 
@@ -1267,6 +1450,62 @@ grant truncate on table "public"."profiles" to "service_role";
 
 grant update on table "public"."profiles" to "service_role";
 
+grant delete on table "public"."reviews" to "anon";
+
+grant insert on table "public"."reviews" to "anon";
+
+grant references on table "public"."reviews" to "anon";
+
+grant select on table "public"."reviews" to "anon";
+
+grant trigger on table "public"."reviews" to "anon";
+
+grant truncate on table "public"."reviews" to "anon";
+
+grant update on table "public"."reviews" to "anon";
+
+grant delete on table "public"."reviews" to "authenticated";
+
+grant insert on table "public"."reviews" to "authenticated";
+
+grant references on table "public"."reviews" to "authenticated";
+
+grant select on table "public"."reviews" to "authenticated";
+
+grant trigger on table "public"."reviews" to "authenticated";
+
+grant truncate on table "public"."reviews" to "authenticated";
+
+grant update on table "public"."reviews" to "authenticated";
+
+grant delete on table "public"."reviews" to "postgres";
+
+grant insert on table "public"."reviews" to "postgres";
+
+grant references on table "public"."reviews" to "postgres";
+
+grant select on table "public"."reviews" to "postgres";
+
+grant trigger on table "public"."reviews" to "postgres";
+
+grant truncate on table "public"."reviews" to "postgres";
+
+grant update on table "public"."reviews" to "postgres";
+
+grant delete on table "public"."reviews" to "service_role";
+
+grant insert on table "public"."reviews" to "service_role";
+
+grant references on table "public"."reviews" to "service_role";
+
+grant select on table "public"."reviews" to "service_role";
+
+grant trigger on table "public"."reviews" to "service_role";
+
+grant truncate on table "public"."reviews" to "service_role";
+
+grant update on table "public"."reviews" to "service_role";
+
 grant delete on table "public"."series" to "anon";
 
 grant insert on table "public"."series" to "anon";
@@ -1568,6 +1807,15 @@ with check ((auth.uid() = user_id));
 
 
 
+  create policy "Allow read access"
+  on "public"."profiles"
+  as permissive
+  for select
+  to authenticated
+using (((auth.uid() = id) OR public.is_admin()));
+
+
+
   create policy "Profiles are viewable by owner"
   on "public"."profiles"
   as permissive
@@ -1593,6 +1841,33 @@ with check ((auth.uid() = id));
   to public
 using ((auth.uid() = id))
 with check ((auth.uid() = id));
+
+
+
+  create policy "Reviews are viewable by everyone"
+  on "public"."reviews"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Users can insert their own review"
+  on "public"."reviews"
+  as permissive
+  for insert
+  to public
+with check ((auth.uid() = user_id));
+
+
+
+  create policy "Users can update their own review"
+  on "public"."reviews"
+  as permissive
+  for update
+  to public
+using ((auth.uid() = user_id));
 
 
 

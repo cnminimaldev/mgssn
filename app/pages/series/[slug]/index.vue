@@ -1333,12 +1333,23 @@ useHead({
 });
 
 useSeoMeta({
+  // Cơ bản
   title: seoTitle,
-  ogTitle: seoTitle,
   description: seoDescription,
+
+  // Open Graph (Facebook, Zalo, LINE)
+  ogTitle: seoTitle,
   ogDescription: seoDescription,
   ogImage: seoImage,
   ogUrl: canonicalUrl,
+  ogType: 'video.tv_show', // Quan trọng: Khai báo là TV Show
+  ogSiteName: 'MugenTV',
+  ogLocale: 'ja_JP',
+
+  // Twitter / X Card
   twitterCard: "summary_large_image",
+  twitterTitle: seoTitle,
+  twitterDescription: seoDescription,
+  twitterImage: seoImage,
 });
 </script>
