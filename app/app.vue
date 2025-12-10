@@ -15,7 +15,7 @@
             >
               <span
                 class="absolute inset-0 flex items-center justify-center font-bold text-white text-lg"
-                >無</span
+                >M</span
               >
             </div>
             <span

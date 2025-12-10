@@ -941,11 +941,11 @@ const canonicalUrl = computed(() => {
 
 const seoTitle = computed(() => {
   if (!series.value || !activeEpisode.value) {
-    return "エピソード 無料動画 | MugenTV.com";
+    return "エピソード 無料動画 | MugenTV";
   }
   const ep = activeEpisode.value;
   const epLabel = ep.title ? ep.title : `第${ep.episode_number}話`;
-  return `${series.value.title} ${epLabel} 無料動画 | MugenTV.com`;
+  return `${series.value.title} ${epLabel} 無料動画 | MugenTV`;
 });
 
 const seoDescription = computed(

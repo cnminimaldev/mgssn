@@ -808,8 +808,8 @@ const canonicalUrl = computed(() => {
 
 const seoTitle = computed(() =>
   movie.value
-    ? `${movie.value.title} 無料動画 | MugenTV.com`
-    : "無料動画 | MugenTV.com"
+    ? `${movie.value.title} 無料動画 | MugenTV`
+    : "無料動画 | MugenTV"
 );
 
 const seoDescription = computed(

@@ -11,7 +11,6 @@ export interface AuthUser {
 
 export const useAuth = () => {
   const router = useRouter()
-  // Không gọi useRoute() ở đây
   const supabase = useSupabaseClient<any>()
   const supabaseUser = useSupabaseUser()
   const config = useRuntimeConfig()
@@ -36,21 +35,14 @@ export const useAuth = () => {
     if (!uid) return // Chưa login
 
     try {
-      console.log('🔄 Fetching profile for:', uid) // Log để debug
-
       const { data, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', uid)
         .single()
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('❌ Error fetching profile:', error.message)
-      }
-
       if (data) {
         userProfile.value = data
-        console.log('✅ Role loaded:', data.role)
       }
     } catch (e) {
       console.error('Fetch exception:', e)

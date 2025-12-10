@@ -10,7 +10,7 @@ export interface ContinueItem {
   updatedAt: string; // ISO
 }
 
-const STORAGE_KEY_BASE = "mystream_continue";
+const STORAGE_KEY_BASE = "mugentv_continue";
 
 /**
  * useContinueWatching

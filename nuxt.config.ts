@@ -8,11 +8,23 @@ export default defineNuxtConfig({
     "@nuxtjs/sitemap", // Đảm bảo module này nằm sau cùng hoặc ở vị trí hợp lý
   ],
 
+  sourcemap: {
+    server: false,
+    client: false
+  },
+
+  vite: {
+    esbuild: {
+      // Tự động xóa console và debugger khi build production
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+    },
+  },
+
   // 1. Cấu hình Domain chính thức (Sửa lỗi URL localhost)
   site: {
     // Thay bằng domain thật của bạn (VD: https://mugenstream.com)
     // Khi chạy local dev, nó vẫn có thể hiện localhost, nhưng khi build/deploy nó sẽ dùng link này
-    url: process.env.NUXT_PUBLIC_SITE_URL || 'https://your-production-domain.com',
+    url: process.env.NUXT_PUBLIC_SITE_URL || 'https://mugentv.com',
   },
 
   // 2. Cấu hình Sitemap
@@ -45,7 +57,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://your-production-domain.com',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://mugentv.com',
     }
   },
 
