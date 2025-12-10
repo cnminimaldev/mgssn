@@ -1,6 +1,6 @@
 <template>
   <div>
-    <label class="mb-1 block text-sm font-medium text-zinc-300">
+    <label v-if="label" class="mb-1 block text-sm font-medium text-zinc-300">
       {{ label }}
     </label>
     
@@ -52,7 +52,7 @@ import { ref, computed } from 'vue'
 import { useImageUpload } from '~/composables/useImageUpload'
 
 const props = defineProps<{
-  label: string
+  label?: string // [SỬA] Thêm dấu ? để không bắt buộc
   modelValue: string | null
   folder?: string
   ratio?: 'poster' | 'banner'
@@ -74,9 +74,7 @@ const handleFileChange = async (event: Event) => {
   if (!input.files || input.files.length === 0) return
 
   const file = input.files[0]
-  
-  // FIX: Kiểm tra file tồn tại để TypeScript không báo lỗi
-  if (!file) return
+  if (!file) return // [FIX] Check null
 
   localPreview.value = URL.createObjectURL(file)
 

@@ -1,47 +1,81 @@
-import { serverSupabaseClient } from '#supabase/server'
+import { serverSupabaseServiceRole } from "#supabase/server";
 
 export default defineEventHandler(async (event) => {
-  const client = await serverSupabaseClient(event)
-  const body = await readBody(event)
+  const body = await readBody(event);
+  const { seriesId, collectionId, episodes } = body;
 
-  // Validate
-  if (!body.series_id || !body.episodes || !Array.isArray(body.episodes)) {
-    throw createError({ statusCode: 400, statusMessage: 'Dữ liệu không hợp lệ' })
+  // [FIX] Khởi tạo Service Role Client trước
+  const client = serverSupabaseServiceRole<any>(event);
+
+  // 1. [FIX] Lấy User từ Token trong Header (Thay vì cookie)
+  const authHeader = getHeader(event, "Authorization");
+  const token = authHeader?.replace("Bearer ", "");
+
+  if (!token) {
+    throw createError({
+      statusCode: 401,
+      message: "Missing Authorization Token",
+    });
   }
 
-  // Chuẩn bị data insert
-  const insertPayload = body.episodes.map((ep: any) => {
-    // Logic tạo JSON subtitles
-    let subtitles = []
-    if (ep.subtitle_path && ep.subtitle_path.trim() !== '') {
-      subtitles.push({
-        src: ep.subtitle_path,
-        label: 'Default', // Bạn có thể sửa label này sau ở trang Edit chi tiết
-        lang: 'vi'        // Mặc định là tiếng Việt
-      })
-    }
+  // Xác thực token với Supabase Auth
+  const {
+    data: { user },
+    error: userError,
+  } = await client.auth.getUser(token);
 
-    return {
-      series_id: body.series_id,
-      collection_id: body.collection_id || null,
-      episode_number: ep.episode_number,
-      title: ep.title,
-      video_path: ep.video_path,
-      subtitles: subtitles, // Lưu mảng JSON
-      duration_minutes: 0,
-      season_number: 1
-    }
-  })
+  if (userError || !user) {
+    throw createError({ statusCode: 401, message: "Invalid Token" });
+  }
 
-  // Insert
+  // 2. Check quyền Admin của người thực hiện
+  // Dùng Service Role để đọc bảng profiles (bypass RLS nếu cần)
+  const { data: requesterProfile } = await client
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (requesterProfile?.role !== "admin") {
+    throw createError({
+      statusCode: 403,
+      message: "Forbidden: You are not Admin",
+    });
+  }
+
+  // Validate dữ liệu đầu vào
+  if (
+    !seriesId ||
+    !collectionId ||
+    !Array.isArray(episodes) ||
+    episodes.length === 0
+  ) {
+    throw createError({ statusCode: 400, message: "Invalid data format" });
+  }
+
+  // 3. Chuẩn bị dữ liệu insert
+  const insertData = episodes.map((ep: any) => ({
+    series_id: seriesId,
+    collection_id: collectionId,
+    season_number: ep.season_number || 1,
+    episode_number: ep.episode_number,
+    title: ep.title || `Episode ${ep.episode_number}`,
+    video_path: ep.video_path,
+    thumbnail_url: ep.thumbnail_url || null,
+    duration_minutes: ep.duration_minutes || 0,
+    subtitles: ep.subtitles || [], // JSONB
+    created_at: new Date(),
+  }));
+
+  // 4. Thực thi Insert
   const { data, error } = await client
-    .from('episodes')
-    .insert(insertPayload)
-    .select()
+    .from("episodes")
+    .insert(insertData)
+    .select();
 
   if (error) {
-    throw createError({ statusCode: 500, statusMessage: error.message })
+    throw createError({ statusCode: 500, message: error.message });
   }
 
-  return { success: true, count: data.length }
-})
+  return { success: true, count: data.length };
+});

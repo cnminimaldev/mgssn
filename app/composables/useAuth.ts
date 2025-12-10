@@ -1,21 +1,78 @@
-// app/composables/useAuth.ts
-import { computed } from 'vue'
-import { useRouter, useRoute, useSupabaseClient, useSupabaseUser, useRuntimeConfig } from '#imports'
+import { computed, watch } from 'vue'
+import { useRouter, useRoute, useSupabaseClient, useSupabaseUser, useRuntimeConfig, useState } from '#imports'
 
 export interface AuthUser {
   id: string
   name: string | null
   email: string | null
+  avatar: string | null
+  role: string
 }
 
 export const useAuth = () => {
   const router = useRouter()
-  const route = useRoute()
-  const supabase = useSupabaseClient()
+  // Không gọi useRoute() ở đây
+  const supabase = useSupabaseClient<any>()
   const supabaseUser = useSupabaseUser()
   const config = useRuntimeConfig()
 
-  // Chuẩn hoá user
+  // [STATE] Lưu trữ Profile (Role) - Chia sẻ toàn app
+  const userProfile = useState<{ role: string } | null>('auth-user-profile', () => null)
+
+  const fetchProfile = async () => {
+    // 1. Nếu đã có role rồi thì không cần gọi lại API nữa (Giảm duplicate)
+    if (userProfile.value?.role) {
+      return
+    }
+
+    // 2. Lấy ID an toàn (Double Check)
+    let uid = supabaseUser.value?.id
+    if (!uid) {
+      // Nếu state chưa kịp load, hỏi trực tiếp SDK
+      const { data } = await supabase.auth.getUser()
+      uid = data.user?.id
+    }
+
+    if (!uid) return // Chưa login
+
+    try {
+      console.log('🔄 Fetching profile for:', uid) // Log để debug
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', uid)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Error fetching profile:', error.message)
+      }
+
+      if (data) {
+        userProfile.value = data
+        console.log('✅ Role loaded:', data.role)
+      }
+    } catch (e) {
+      console.error('Fetch exception:', e)
+    }
+  }
+
+  // Tự động fetch khi khởi tạo (nếu đã login mà chưa có profile)
+  if (supabaseUser.value?.id && !userProfile.value) {
+    // Không await ở đây để tránh block UI thread của Vue
+    fetchProfile()
+  }
+
+  // Watcher: Khi user thay đổi (Đăng nhập/Đăng xuất)
+  watch(supabaseUser, (newUser) => {
+    if (newUser) {
+      fetchProfile()
+    } else {
+      userProfile.value = null // Reset khi logout
+    }
+  })
+
+  // Chuẩn hoá user object
   const user = computed<AuthUser | null>(() => {
     const raw = supabaseUser.value
     if (!raw) return null
@@ -32,74 +89,51 @@ export const useAuth = () => {
       id: raw.id,
       email: raw.email ?? null,
       name: derivedName ?? null,
+      avatar: meta.avatar_url ?? null,
+      // Mặc định là 'user' nếu chưa load xong
+      role: userProfile.value?.role || 'user'
     }
   })
 
   const isLoggedIn = computed<boolean>(() => !!supabaseUser.value)
+  
+  // Check Admin: Dựa trên role
+  const isAdmin = computed(() => user.value?.role === 'admin')
 
-  // --- ĐĂNG NHẬP ---
+  // --- ACTIONS ---
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+    // Reset và fetch mới
+    userProfile.value = null
+    await fetchProfile()
   }
 
-  // --- ĐĂNG KÝ (Thêm mới) ---
   const signup = async (email: string, password: string) => {
-    // Supabase mặc định sẽ gửi email confirm. 
-    // Nếu bạn tắt "Confirm Email" trong Dashboard thì user sẽ login được ngay.
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        // Lưu tên mặc định là phần trước @ của email
-        data: {
-          name: email.split('@')[0]
-        }
-      }
+      email, password,
+      options: { data: { name: email.split('@')[0] } }
     })
-    
     if (error) throw error
-    
     return data
   }
 
-  // --- ĐĂNG XUẤT ---
   const logout = async () => {
     await supabase.auth.signOut()
+    userProfile.value = null
     await router.push('/')
   }
 
-  // --- CHECK AUTH ---
-  const requireAuth = (redirectTo?: string) => {
+  const requireAuth = (redirectPath: string) => {
     if (!supabaseUser.value) {
       router.push({
         path: '/login',
-        query: {
-          redirect: redirectTo ?? route.fullPath,
-        },
+        query: { redirect: redirectPath },
       })
       return false
     }
     return true
   }
 
-  const isAdmin = computed(() => {
-    const email = user.value?.email
-    if (!email) return false
-    const adminEmails = config.public.adminEmails as string[] | undefined
-    return !!adminEmails?.includes(email)
-  })
-
-  return {
-    user,
-    isLoggedIn,
-    isAdmin,
-    login,
-    signup, // Export hàm signup
-    logout,
-    requireAuth,
-  }
+  return { user, isLoggedIn, isAdmin, login, signup, logout, requireAuth, fetchProfile }
 }

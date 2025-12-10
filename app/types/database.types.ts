@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -10,7 +9,25 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      [key: string]: any // Cho phép mọi bảng, không kiểm tra kỹ
+      // Khai báo rõ 2 bảng này để select() hoạt động chuẩn
+      movies: {
+        Row: {
+          slug: string
+          updated_at: string | null
+        }
+        Insert: any
+        Update: any
+      }
+      series: {
+        Row: {
+          slug: string
+          updated_at: string | null
+        }
+        Insert: any
+        Update: any
+      }
+      // Fallback cho các bảng khác
+      [key: string]: any 
     }
     Views: {
       [key: string]: any

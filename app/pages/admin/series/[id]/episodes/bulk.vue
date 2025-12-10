@@ -1,340 +1,433 @@
 <template>
-  <div class="min-h-screen bg-black text-zinc-50 px-4 py-8">
-    <div class="mx-auto max-w-7xl">
-      <div class="mb-8 flex items-center justify-between">
+  <div class="min-h-screen bg-[#05060a] text-zinc-300 p-6 sm:p-10">
+    <div class="mx-auto max-w-6xl">
+      <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="text-2xl font-bold text-white">エピソード一括登録 (Bulk Import)</h1>
-          <p class="text-sm text-zinc-400 mt-1">シリーズID: {{ seriesId }}</p>
+          <NuxtLink
+            :to="`/admin/series/${seriesId}/collections`"
+            class="text-xs text-emerald-400 hover:underline mb-2 flex items-center gap-1"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-3 h-3"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+              />
+            </svg>
+            エピソード管理に戻る
+          </NuxtLink>
+          <h1 class="text-2xl font-bold text-white">
+            エピソード一括登録 (Bulk Generator)
+          </h1>
+          <p class="text-xs text-zinc-500 mt-1">
+            パターン入力でリンクを一括生成し、編集して登録します
+          </p>
         </div>
-        <NuxtLink :to="`/admin/series/${seriesId}`" class="text-sm text-zinc-400 hover:text-white transition">
-          &larr; シリーズ詳細へ戻る
-        </NuxtLink>
+
+        <div class="flex gap-3">
+          <button
+            @click="episodes = []"
+            class="px-4 py-2 rounded-lg border border-zinc-700 text-xs font-bold hover:bg-zinc-800 transition"
+          >
+            クリア (Clear All)
+          </button>
+          <button
+            @click="handleImport"
+            :disabled="episodes.length === 0 || !selectedCollectionId || saving"
+            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2 text-sm font-bold text-white hover:bg-emerald-500 transition shadow-lg shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span
+              v-if="saving"
+              class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"
+            ></span>
+            <span>登録する (Save)</span>
+          </button>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        <div class="lg:col-span-1 space-y-6">
-          <div class="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 sticky top-4">
-            <h2 class="font-semibold text-emerald-400 mb-4 border-b border-zinc-800 pb-2">1. リンク生成設定</h2>
-            
-            <div class="space-y-4">
-              <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1.5">コレクション (Collection)</label>
-                <select v-model="selectedCollectionId" class="w-full rounded bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-white">
-                  <option :value="null">-- 指定なし (Default) --</option>
-                  <option v-for="c in collections" :key="c.id" :value="c.id">{{ c.name }}</option>
-                </select>
-                <p class="text-[10px] text-zinc-500 mt-1">シーズンやバージョン（例：TV版、OVA）を選択してください。</p>
-              </div>
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div class="xl:col-span-1 space-y-6">
+          <div class="bg-zinc-900/50 border border-white/5 rounded-xl p-5">
+            <label class="block text-xs font-bold text-zinc-400 mb-2 uppercase"
+              >コレクション (Collection)</label
+            >
+            <select
+              v-model="selectedCollectionId"
+              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+            >
+              <option :value="null" disabled>選択してください</option>
+              <option v-for="c in collections" :key="c.id" :value="c.id">
+                {{ c.name }} ({{ c.type }})
+              </option>
+            </select>
+          </div>
 
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs font-medium text-zinc-400 mb-1.5">開始話数</label>
-                  <input v-model.number="config.start" type="number" min="0" class="w-full rounded bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-center focus:border-emerald-500 outline-none text-white" />
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-zinc-400 mb-1.5">終了話数</label>
-                  <input v-model.number="config.end" type="number" min="0" class="w-full rounded bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-center focus:border-emerald-500 outline-none text-white" />
-                </div>
-              </div>
+          <div class="bg-zinc-900/50 border border-white/5 rounded-xl p-5">
+            <h3
+              class="text-sm font-bold text-white mb-4 flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-4 h-4 text-emerald-400"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
+                />
+              </svg>
+              自動生成 (Generator)
+            </h3>
 
+            <div class="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label class="block text-xs font-medium text-emerald-400 mb-1.5">動画URLパターン (Video M3U8)</label>
-                <textarea 
-                  v-model="config.urlPattern" 
-                  rows="3"
-                  class="w-full rounded bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm font-mono text-emerald-300 focus:border-emerald-500 outline-none placeholder-zinc-700"
-                  placeholder="https://host.com/series/{n}/master.m3u8"
-                ></textarea>
-                <p class="text-[10px] text-zinc-500 mt-1">
-                  <code class="bg-zinc-800 px-1 rounded text-white">{n}</code> が話数に置換されます。
+                <label class="block text-[10px] text-zinc-500 mb-1"
+                  >開始 (Start Ep)</label
+                >
+                <input
+                  v-model.number="gen.start"
+                  type="number"
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-emerald-500 outline-none"
+                />
+              </div>
+              <div>
+                <label class="block text-[10px] text-zinc-500 mb-1"
+                  >終了 (End Ep)</label
+                >
+                <input
+                  v-model.number="gen.end"
+                  type="number"
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-emerald-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-4 mb-6">
+              <div>
+                <label class="block text-[10px] text-zinc-500 mb-1"
+                  >動画リンク (Video URL Pattern)</label
+                >
+                <input
+                  v-model="gen.videoPattern"
+                  type="text"
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-1.5 text-xs text-emerald-400 focus:border-emerald-500 outline-none font-mono"
+                  placeholder="https://host.com/ep{n}.m3u8"
+                />
+                <p class="text-[10px] text-zinc-600 mt-1">
+                  ※ {n} がエピソード番号に置換されます
                 </p>
               </div>
-
               <div>
-                <label class="block text-xs font-medium text-yellow-400 mb-1.5">字幕URLパターン (Subtitle VTT/SRT)</label>
-                <textarea 
-                  v-model="config.subtitlePattern" 
-                  rows="2"
-                  class="w-full rounded bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm font-mono text-yellow-200 focus:border-yellow-500 outline-none placeholder-zinc-700"
-                  placeholder="https://host.com/series/{n}/sub.vtt (任意)"
-                ></textarea>
-              </div>
-
-              <div class="flex flex-col gap-2 pt-2">
-                <button 
-                  @click="generatePreview"
-                  class="w-full rounded-md bg-zinc-100 py-2 text-sm font-bold text-black hover:bg-zinc-300 transition"
+                <label class="block text-[10px] text-zinc-500 mb-1"
+                  >字幕リンク (Sub URL Pattern) - Optional</label
                 >
-                  リスト生成 (Generate)
-                </button>
-                
-                <button 
-                  @click="addManualRow" 
-                  class="w-full rounded-md border border-zinc-700 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center justify-center gap-2"
-                >
-                  <span>+</span> 手動追加 (Manual Add)
-                </button>
+                <input
+                  v-model="gen.subPattern"
+                  type="text"
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-1.5 text-xs text-yellow-400 focus:border-emerald-500 outline-none font-mono"
+                  placeholder="https://host.com/ep{n}.vtt"
+                />
               </div>
             </div>
+
+            <button
+              @click="handleGenerate"
+              class="w-full py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition border border-zinc-700"
+            >
+              リストに追加 (Generate & Append)
+            </button>
           </div>
+
+          <button
+            @click="addManualRow"
+            class="w-full py-3 rounded-xl border border-dashed border-zinc-700 text-zinc-500 hover:border-emerald-500 hover:text-emerald-500 transition text-sm flex items-center justify-center gap-2"
+          >
+            <span>＋</span> 手動で行を追加 (Add Empty Row)
+          </button>
         </div>
 
-        <div class="lg:col-span-2">
-          <div class="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 h-full flex flex-col min-h-[500px]">
-            <div class="flex items-center justify-between mb-4 border-b border-zinc-800 pb-2">
-              <h2 class="font-semibold text-emerald-400">2. プレビュー ({{ previewList.length }} 話)</h2>
-              <div class="flex gap-2">
-                <button 
-                  v-if="previewList.length"
-                  @click="previewList = []"
-                  class="text-xs text-red-400 hover:text-red-300 underline mr-4 transition"
+        <div class="xl:col-span-2 flex flex-col h-[calc(100vh-12rem)]">
+          <div
+            class="bg-zinc-900/50 border border-white/5 rounded-t-xl px-4 py-3 flex justify-between items-center"
+          >
+            <span class="text-xs font-bold text-zinc-400 uppercase"
+              >編集リスト ({{ episodes.length }})</span
+            >
+          </div>
+
+          <div
+            class="flex-1 overflow-y-auto bg-zinc-900/20 border-x border-b border-white/5 rounded-b-xl custom-scrollbar p-2 space-y-2"
+          >
+            <div
+              v-if="episodes.length === 0"
+              class="h-full flex flex-col items-center justify-center text-zinc-600 gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-8 h-8 opacity-50"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                />
+              </svg>
+              <span class="text-sm"
+                >左側のフォームから生成するか、手動で追加してください</span
+              >
+            </div>
+
+            <div
+              v-for="(ep, idx) in episodes"
+              :key="idx"
+              class="group bg-black border border-zinc-800 rounded-lg p-3 hover:border-zinc-600 transition flex gap-3 items-start"
+            >
+              <div class="flex flex-col items-center gap-2 pt-1">
+                <div
+                  class="h-6 w-6 rounded bg-zinc-800 text-zinc-400 flex items-center justify-center text-[10px] font-mono"
                 >
-                  全てクリア
-                </button>
-                <button 
-                  v-if="previewList.length"
-                  @click="submitBulk" 
-                  :disabled="submitting"
-                  class="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-emerald-900/20 transition"
+                  {{ idx + 1 }}
+                </div>
+                <button
+                  @click="removeRow(idx)"
+                  class="text-zinc-600 hover:text-red-500 transition"
+                  title="削除"
                 >
-                  <span v-if="submitting" class="animate-spin">⏳</span>
-                  <span>{{ submitting ? '保存中...' : 'データベースに保存' }}</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="w-4 h-4"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                    />
+                  </svg>
                 </button>
               </div>
-            </div>
 
-            <div v-if="previewList.length === 0" class="flex-1 flex flex-col items-center justify-center text-zinc-600 text-sm italic gap-2">
-              <span class="text-4xl opacity-20">📝</span>
-              <p>データがありません。</p>
-              <p>左側の設定を入力して「リスト生成」を押すか、手動で追加してください。</p>
-            </div>
-
-            <div v-else class="flex-1 overflow-auto max-h-[70vh] pr-2 custom-scrollbar">
-              <div class="space-y-3">
-                <div 
-                  v-for="(item, index) in previewList" 
-                  :key="index"
-                  class="group flex items-start gap-3 rounded-lg border border-zinc-800 bg-black/40 p-3 hover:border-zinc-600 transition-colors"
-                >
-                  <div class="w-16 pt-1 flex flex-col items-center">
-                    <span class="text-[10px] font-bold text-zinc-500 uppercase mb-1">話数</span>
-                    <input 
-                      v-model.number="item.episode_number" 
-                      type="number" 
+              <div class="flex-1 space-y-2">
+                <div class="flex gap-2">
+                  <div class="w-20">
+                    <label class="block text-[9px] text-zinc-500 mb-0.5"
+                      >Ep Num</label
+                    >
+                    <input
+                      v-model.number="ep.episode_number"
+                      type="number"
                       step="0.1"
-                      class="w-full bg-transparent text-center text-lg font-bold text-white outline-none border-b border-transparent focus:border-emerald-500 focus:text-emerald-400 transition-colors" 
+                      class="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-white focus:border-emerald-500 outline-none text-center"
                     />
                   </div>
-                  
-                  <div class="flex-1 space-y-2">
-                    <input 
-                      v-model="item.title" 
-                      type="text" 
-                      class="w-full bg-transparent text-sm font-bold text-white placeholder-zinc-600 outline-none border-b border-transparent focus:border-emerald-500 transition-colors"
-                      placeholder="タイトル（任意）"
+                  <div class="flex-1">
+                    <label class="block text-[9px] text-zinc-500 mb-0.5"
+                      >Title</label
+                    >
+                    <input
+                      v-model="ep.title"
+                      type="text"
+                      class="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-white focus:border-emerald-500 outline-none"
                     />
-                    
-                    <div class="flex items-center gap-2 bg-zinc-900/50 rounded px-2 py-1 border border-transparent focus-within:border-emerald-500/50">
-                      <span class="text-[9px] text-emerald-500 font-bold w-8">VIDEO</span>
-                      <input 
-                        v-model="item.video_path" 
-                        type="text" 
-                        class="flex-1 bg-transparent text-[11px] font-mono text-zinc-300 placeholder-zinc-700 outline-none"
-                        placeholder="M3U8 URL..." 
-                      />
-                    </div>
-
-                    <div class="flex items-center gap-2 bg-zinc-900/50 rounded px-2 py-1 border border-transparent focus-within:border-yellow-500/50">
-                      <span class="text-[9px] text-yellow-500 font-bold w-8">SUB</span>
-                      <input 
-                        v-model="item.subtitle_path" 
-                        type="text" 
-                        class="flex-1 bg-transparent text-[11px] font-mono text-zinc-300 placeholder-zinc-700 outline-none"
-                        placeholder="字幕 URL... (任意)" 
-                      />
-                    </div>
                   </div>
+                </div>
 
-                  <button 
-                    @click="removeRow(index)" 
-                    class="p-2 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 rounded-full transition"
-                    title="この行を削除"
-                  >
-                    ✕
-                  </button>
+                <div class="flex gap-2">
+                  <div class="flex-1">
+                    <input
+                      v-model="ep.video_path"
+                      type="text"
+                      placeholder="Video URL (.m3u8)"
+                      class="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-emerald-400 focus:border-emerald-500 outline-none font-mono"
+                    />
+                  </div>
+                  <div class="flex-1">
+                    <input
+                      v-model="ep.sub_url"
+                      type="text"
+                      placeholder="Subtitle URL (.vtt)"
+                      class="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-yellow-400 focus:border-emerald-500 outline-none font-mono"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRoute, useRouter, useSupabaseClient, useFetch, definePageMeta } from '#imports'
+import { ref, reactive, computed } from "vue";
+import {
+  useRoute,
+  useRouter,
+  useAsyncData,
+  definePageMeta,
+  useSupabaseClient,
+} from "#imports";
 
-definePageMeta({
-  middleware: 'admin'
-})
+definePageMeta({ middleware: "admin" });
 
-const route = useRoute()
-const router = useRouter()
-// Dùng <any> để tránh lỗi type strict của Supabase client
-const supabase = useSupabaseClient<any>()
+const route = useRoute();
+const router = useRouter();
+const supabase = useSupabaseClient<any>();
+const seriesId = route.params.id;
 
-// SỬA LỖI: Ép kiểu id thành string để tránh lỗi (string | string[])
-const seriesId = route.params.id as string
+// Load Collections
+const { data: collections } = await useAsyncData(
+  `admin-series-cols-${seriesId}`,
+  async () => {
+    const { data } = await supabase
+      .from("episode_collections")
+      .select("id, name, type")
+      .eq("series_id", seriesId);
+    return data;
+  }
+);
 
-// Types
-type PreviewItem = {
-  episode_number: number
-  title: string
-  video_path: string
-  subtitle_path: string
+const selectedCollectionId = ref<number | null>(null);
+const episodes = ref<any[]>([]);
+const saving = ref(false);
+
+// Auto-select first collection
+if (collections.value && collections.value.length > 0) {
+  const first = collections.value[0];
+  if (first) selectedCollectionId.value = first.id;
 }
 
-// State
-const collections = ref<any[]>([])
-const selectedCollectionId = ref<number | null>(null)
-const submitting = ref(false)
-const previewList = ref<PreviewItem[]>([])
-
-const config = reactive({
+// Generator Settings
+const gen = reactive({
   start: 1,
   end: 12,
-  urlPattern: '',
-  subtitlePattern: ''
-})
+  videoPattern: "",
+  subPattern: "",
+});
 
-// --- Load Data ---
-const fetchCollections = async () => {
-  const { data } = await supabase
-    .from('episode_collections')
-    .select('id, name')
-    .eq('series_id', seriesId)
-    .order('sort_order')
-  
-  collections.value = data || []
-  // Auto select default collection if exists
-  if (collections.value.length > 0) {
-    selectedCollectionId.value = collections.value[0].id
-  }
-}
-fetchCollections()
-
-// --- Actions ---
-
-// 1. Tạo danh sách tự động
-const generatePreview = () => {
-  if (!config.urlPattern.includes('{n}')) {
-    alert('エラー: 動画URLパターンには、話数を表す {n} を含めてください。\n例: .../ep{n}/master.m3u8')
-    return
-  }
-  
-  if (config.end < config.start) {
-    alert('エラー: 終了話数は開始話数以上である必要があります。')
-    return
+const handleGenerate = () => {
+  if (!gen.videoPattern) {
+    alert("動画リンクパターンを入力してください (Video pattern required)");
+    return;
   }
 
-  // Generate logic
-  for (let i = config.start; i <= config.end; i++) {
-    const vPath = config.urlPattern.replace('{n}', i.toString())
-    
-    // Tạo link sub nếu có pattern
-    const sPath = config.subtitlePattern && config.subtitlePattern.includes('{n}')
-      ? config.subtitlePattern.replace('{n}', i.toString())
-      : ''
-    
-    // Kiểm tra trùng lặp
-    const exists = previewList.value.some(item => item.episode_number === i)
-    if (!exists) {
-      previewList.value.push({
-        episode_number: i,
-        title: `第${i}話`,
-        video_path: vPath,
-        subtitle_path: sPath
-      })
-    }
-  }
-  
-  // Auto sort
-  sortList()
-}
+  for (let i = gen.start; i <= gen.end; i++) {
+    // Replace {n}
+    const vidUrl = gen.videoPattern.replace("{n}", String(i));
+    const subUrl = gen.subPattern
+      ? gen.subPattern.replace("{n}", String(i))
+      : "";
 
-// 2. Thêm thủ công (Manual)
+    // [FIX] episodes.value
+    episodes.value.push({
+      episode_number: i,
+      title: `第${i}話`,
+      video_path: vidUrl,
+      sub_url: subUrl, // Tạm thời lưu vào biến này, lúc save mới convert sang jsonb
+      duration_minutes: 0,
+      season_number: 1,
+    });
+  }
+};
+
 const addManualRow = () => {
-  // Tìm số tập lớn nhất để gợi ý
-  const maxEp = previewList.value.reduce((max, item) => Math.max(max, item.episode_number), 0)
-  
-  previewList.value.push({
-    episode_number: maxEp + 1,
-    title: '',
-    video_path: '',
-    subtitle_path: ''
-  })
-}
+  const nextEp =
+    episodes.value.length > 0
+      ? episodes.value[episodes.value.length - 1].episode_number + 1
+      : 1;
 
-// 3. Xóa dòng
+  // [FIX] episodes.value
+  episodes.value.push({
+    episode_number: nextEp,
+    title: `第${nextEp}話`,
+    video_path: "",
+    sub_url: "",
+    duration_minutes: 0,
+    season_number: 1,
+  });
+};
+
 const removeRow = (index: number) => {
-  previewList.value.splice(index, 1)
-}
+  // [FIX] episodes.value
+  episodes.value.splice(index, 1);
+};
 
-// 4. Sắp xếp danh sách
-const sortList = () => {
-  previewList.value.sort((a, b) => a.episode_number - b.episode_number)
-}
+const handleImport = async () => {
+  // [FIX] episodes.value.length
+  if (episodes.value.length === 0 || !selectedCollectionId.value) return;
+  saving.value = true;
 
-// 5. Gửi lên Server
-const submitBulk = async () => {
-  if (previewList.value.length === 0) return
+  // Convert data chuẩn bị gửi
+  // [FIX] episodes.value
+  const finalEpisodes = episodes.value.map((ep) => {
+    const subtitles = [];
+    if (ep.sub_url) {
+      subtitles.push({ src: ep.sub_url, label: "Japanese", lang: "ja" });
+    }
+    return {
+      episode_number: ep.episode_number,
+      title: ep.title,
+      video_path: ep.video_path,
+      duration_minutes: ep.duration_minutes,
+      season_number: ep.season_number,
+      subtitles: subtitles,
+    };
+  });
 
-  // Sort lại lần cuối
-  sortList()
-
-  if (!confirm(`${previewList.value.length} 件のエピソードを追加しますか？`)) return
-
-  submitting.value = true
   try {
-    const { error } = await useFetch('/api/admin/episodes/bulk', {
-      method: 'POST',
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    await $fetch("/api/admin/episodes/bulk", {
+      method: "POST",
       body: {
-        series_id: seriesId,
-        collection_id: selectedCollectionId.value,
-        episodes: previewList.value
-      }
-    })
+        seriesId: seriesId,
+        collectionId: selectedCollectionId.value,
+        episodes: finalEpisodes,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-    if (error.value) throw error.value
-
-    alert('追加が完了しました！')
-    router.push(`/admin/series/${seriesId}`)
+    alert(`${finalEpisodes.length}件のエピソードを追加しました`);
+    router.push(`/admin/series/${seriesId}/collections`);
   } catch (e: any) {
-    console.error(e)
-    alert('エラーが発生しました: ' + (e.message || e.statusMessage || 'Unknown error'))
+    alert("エラー: " + e.message);
   } finally {
-    submitting.value = false
+    saving.value = false;
   }
-}
+};
 </script>
 
 <style scoped>
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
-  height: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.05);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
 }
 </style>

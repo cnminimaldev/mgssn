@@ -1,256 +1,124 @@
 <template>
-  <div class="min-h-screen bg-black text-zinc-50 px-4 py-8">
-    <div class="mx-auto max-w-6xl">
-      <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+  <div class="min-h-screen bg-[#05060a] text-zinc-300 p-4 sm:p-6">
+    <div class="mx-auto max-w-7xl">
+      
+      <header class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-semibold">管理ダッシュボード</h1>
-          <p class="mt-1 text-xs text-zinc-400">
-            映画の登録・編集や各種マスターデータの管理を行います。
+          <h1 class="text-xl font-bold text-white">管理ダッシュボード</h1>
+          <p class="text-xs text-zinc-500 mt-1">
+            システム全体の管理・設定
           </p>
         </div>
+      </header>
 
-        <div class="flex flex-wrap gap-2">
-          <NuxtLink
-            to="/admin/series"
-            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400 transition"
-          >
-            シリーズ管理
-          </NuxtLink>
-
-          <NuxtLink
-            to="/admin/countries"
-            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400 transition"
-          >
-            国・地域
-          </NuxtLink>
-
-          <NuxtLink
-            to="/admin/genres"
-            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400 transition"
-          >
-            ジャンル
-          </NuxtLink>
-
-          <NuxtLink
-            to="/admin/providers"
-            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 hover:border-zinc-400 transition"
-          >
-            プロバイダー
-          </NuxtLink>
-
-          <NuxtLink
-            to="/admin/movies/new"
-            class="rounded-md bg-emerald-500 px-4 py-2 text-xs font-medium text-black hover:bg-emerald-400 transition"
-          >
-            ＋ 映画を追加
-          </NuxtLink>
-        </div>
-      </div>
-
-      <div class="mb-6 grid gap-4 rounded-lg border border-white/5 bg-zinc-950/70 p-4 md:grid-cols-[1fr,auto]">
-        <div class="relative">
-          <input
-            v-model="searchQuery"
-            type="text"
-            class="w-full rounded-md border border-zinc-700 bg-zinc-900 pl-9 pr-4 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-            placeholder="タイトル、原題、かな..."
-            @keydown.enter="page = 1" 
-          />
-          <span class="absolute left-3 top-2.5 text-zinc-500">🔍</span>
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        
+        <div class="col-span-full mt-2 mb-1">
+          <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">コンテンツ (Content)</h2>
         </div>
 
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-zinc-400">並び替え:</span>
-          <select
-            v-model="sortOrder"
-            class="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-          >
-            <option value="newest">作成日 (新しい順)</option>
-            <option value="oldest">作成日 (古い順)</option>
-            <option value="year_desc">公開年 (新しい順)</option>
-            <option value="title_asc">タイトル (A-Z)</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="rounded-lg border border-white/5 bg-zinc-950/70 overflow-hidden">
-        <div v-if="pending" class="py-12 text-center text-sm text-zinc-400">
-          読み込み中...
-        </div>
-
-        <div v-else-if="error" class="py-12 text-center text-sm text-red-400">
-          {{ error.message }}
-        </div>
-
-        <div v-else>
-          <div v-if="movies.length === 0" class="py-12 text-center text-sm text-zinc-400">
-            条件に一致する映画が見つかりませんでした。
+        <NuxtLink to="/admin/movies" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-emerald-500/50 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-black transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0118 18.375M20.625 4.5H3.375a1.125 1.125 0 00-1.125 1.125m17.25 0V18.375m-17.25-12.75V18.375m17.25-12.75c.621 0 1.125.504 1.125 1.125m-1.125-1.125h-1.5c-.621 0-1.125.504-1.125 1.125m-3.75 0c0 .621-.504 1.125-1.125 1.125h-1.5c-.621 0-1.125-.504-1.125-1.125M9 4.5c.621 0 1.125.504 1.125 1.125M13.5 4.5c.621 0 1.125.504 1.125 1.125" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white group-hover:text-emerald-400">映画管理</h3>
+              <p class="text-[10px] text-zinc-500">Movies</p>
+            </div>
           </div>
+        </NuxtLink>
 
-          <table v-else class="w-full text-left text-sm">
-            <thead class="bg-white/5 text-xs uppercase text-zinc-400">
-              <tr>
-                <th class="px-4 py-3">ポスター</th>
-                <th class="px-4 py-3">タイトル / 原題</th>
-                <th class="px-4 py-3">公開年 / 国</th>
-                <th class="px-4 py-3 text-center">注目</th>
-                <th class="px-4 py-3 text-right">アクション</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-white/5">
-              <tr v-for="movie in movies" :key="movie.id" class="group hover:bg-white/5 transition">
-                <td class="px-4 py-3 w-16">
-                  <div class="h-16 w-12 overflow-hidden rounded bg-zinc-800 shrink-0">
-                    <img
-                      v-if="movie.poster_url"
-                      :src="movie.poster_url"
-                      class="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                    <div v-else class="flex h-full w-full items-center justify-center text-[8px] text-zinc-500">
-                      NO IMG
-                    </div>
-                  </div>
-                </td>
+        <NuxtLink to="/admin/series" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-blue-500/50 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white group-hover:text-blue-400">シリーズ管理</h3>
+              <p class="text-[10px] text-zinc-500">Series</p>
+            </div>
+          </div>
+        </NuxtLink>
 
-                <td class="px-4 py-3">
-                  <div class="font-medium text-zinc-100 line-clamp-1">{{ movie.title }}</div>
-                  <div class="text-xs text-zinc-500 line-clamp-1">{{ movie.original_title || '-' }}</div>
-                  <div class="mt-1 text-[10px] text-zinc-600 font-mono">{{ movie.slug }}</div>
-                </td>
-
-                <td class="px-4 py-3 whitespace-nowrap">
-                  <div class="text-zinc-300">{{ movie.year }}年</div>
-                  <div class="text-xs text-zinc-500">{{ movie.origin_country }}</div>
-                </td>
-
-                <td class="px-4 py-3 text-center">
-                  <span 
-                    v-if="movie.is_featured" 
-                    class="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20"
-                  >
-                    Featured
-                  </span>
-                  <span v-else class="text-xs text-zinc-600">-</span>
-                </td>
-
-                <td class="px-4 py-3 text-right">
-                  <div class="flex items-center justify-end gap-3">
-                    <NuxtLink
-                      :to="`/movie/${movie.slug}`"
-                      target="_blank"
-                      class="text-zinc-400 hover:text-zinc-100"
-                      title="プレビュー"
-                    >
-                      ↗
-                    </NuxtLink>
-                    <NuxtLink
-                      :to="`/admin/movies/${movie.id}/collections`"
-                      class="text-emerald-400 hover:text-emerald-300"
-                    >
-                      Collections
-                    </NuxtLink>
-                    <NuxtLink
-                      :to="`/admin/movies/${movie.id}`"
-                      class="rounded bg-zinc-800 px-3 py-1.5 text-xs hover:bg-zinc-700"
-                    >
-                      編集
-                    </NuxtLink>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="col-span-full mt-4 mb-1">
+          <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">システム (System)</h2>
         </div>
-      </div>
 
-      <div v-if="totalPages > 1" class="mt-6 flex items-center justify-center gap-4">
-        <button
-          class="rounded border border-zinc-700 px-3 py-1 text-xs hover:bg-zinc-800 disabled:opacity-50"
-          :disabled="page <= 1"
-          @click="page--"
-        >
-          前へ
-        </button>
-        <span class="text-xs text-zinc-400">{{ page }} / {{ totalPages }}</span>
-        <button
-          class="rounded border border-zinc-700 px-3 py-1 text-xs hover:bg-zinc-800 disabled:opacity-50"
-          :disabled="page >= totalPages"
-          @click="page++"
-        >
-          次へ
-        </button>
+        <NuxtLink to="/admin/users" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-purple-500/50 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white group-hover:text-purple-400">ユーザー管理</h3>
+              <p class="text-[10px] text-zinc-500">Users</p>
+            </div>
+          </div>
+        </NuxtLink>
+
+        <div class="col-span-full mt-4 mb-1">
+          <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">マスターデータ (Master)</h2>
+        </div>
+
+        <NuxtLink to="/admin/genres" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-pink-500/50 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/10 text-pink-400 group-hover:bg-pink-500 group-hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white group-hover:text-pink-400">ジャンル</h3>
+              <p class="text-[10px] text-zinc-500">Genres</p>
+            </div>
+          </div>
+        </NuxtLink>
+
+        <NuxtLink to="/admin/countries" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-orange-500/50 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10 text-orange-400 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S13.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white group-hover:text-orange-400">国・地域</h3>
+              <p class="text-[10px] text-zinc-500">Countries</p>
+            </div>
+          </div>
+        </NuxtLink>
+
+        <NuxtLink to="/admin/providers" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-yellow-500/50 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-black transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white group-hover:text-yellow-400">プロバイダー</h3>
+              <p class="text-[10px] text-zinc-500">Providers</p>
+            </div>
+          </div>
+        </NuxtLink>
+
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
-import { useSupabaseClient, useAsyncData } from '#imports'
+import { definePageMeta } from '#imports'
 
-const supabase = useSupabaseClient<any>()
-
-// State
-const page = ref(1)
-const pageSize = 20
-const searchQuery = ref('')
-const sortOrder = ref('newest')
-
-// Hàm convert Katakana -> Hiragana (để search tiếng Nhật tốt hơn)
-const toHiragana = (input: string) => {
-  return input.replace(/[\u30A1-\u30F6]/g, (ch) =>
-    String.fromCharCode(ch.charCodeAt(0) - 0x60)
-  )
-}
-
-// Fetch Data (Movies List)
-const { data, pending, error, refresh } = await useAsyncData(
-  'admin-movies-list',
-  async () => {
-    let query = supabase
-      .from('movies')
-      .select('id, title, original_title, slug, year, origin_country, poster_url, is_featured, created_at', { count: 'exact' })
-
-    // Search nâng cao: title, title_kana, original_title
-    if (searchQuery.value) {
-      const q = searchQuery.value
-      const k = toHiragana(q)
-      query = query.or(`title.ilike.%${q}%,title_kana.ilike.%${k}%,original_title.ilike.%${q}%`)
-    }
-
-    // Sort
-    if (sortOrder.value === 'newest') query = query.order('created_at', { ascending: false })
-    if (sortOrder.value === 'oldest') query = query.order('created_at', { ascending: true })
-    if (sortOrder.value === 'year_desc') query = query.order('year', { ascending: false })
-    if (sortOrder.value === 'title_asc') query = query.order('title', { ascending: true })
-
-    // Pagination
-    const from = (page.value - 1) * pageSize
-    const to = from + pageSize - 1
-    query = query.range(from, to)
-
-    const { data, count, error } = await query
-    if (error) throw error
-
-    return { movies: data, count }
-  },
-  {
-    watch: [page, sortOrder]
-  }
-)
-
-// Debounce Search
-let timer: any = null
-watch(searchQuery, () => {
-  clearTimeout(timer)
-  timer = setTimeout(() => {
-    page.value = 1
-    refresh()
-  }, 500)
+definePageMeta({
+  middleware: 'admin',
 })
-
-const movies = computed(() => data.value?.movies ?? [])
-const totalCount = computed(() => data.value?.count ?? 0)
-const totalPages = computed(() => Math.ceil(totalCount.value / pageSize))
 </script>

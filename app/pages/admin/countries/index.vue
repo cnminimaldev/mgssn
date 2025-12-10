@@ -1,349 +1,240 @@
 <template>
-  <div class="min-h-screen bg-black text-zinc-50 px-4 py-8">
-    <div class="mx-auto max-w-5xl">
-      <div class="mb-6 flex items-center justify-between">
+  <div class="min-h-screen bg-[#05060a] text-zinc-300 p-6 sm:p-10">
+    <div class="mx-auto max-w-4xl">
+      <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="text-2xl font-semibold">国・地域の管理</h1>
-          <p class="mt-1 text-xs text-zinc-400">
-            作品の製作国として使用する国・地域コードを管理します。
-          </p>
+          <NuxtLink
+            to="/admin"
+            class="text-xs text-emerald-400 hover:underline mb-2 block"
+            >&larr; 管理画面に戻る</NuxtLink
+          >
+          <h1 class="text-2xl font-bold text-white">
+            国・地域管理 (Countries)
+          </h1>
         </div>
-        <NuxtLink
-          to="/admin"
-          class="text-sm text-zinc-400 hover:text-zinc-200"
+        <button
+          @click="openCreateModal"
+          class="flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-bold text-white hover:bg-orange-500 transition shadow-lg shadow-orange-900/20"
         >
-          管理トップへ戻る
-        </NuxtLink>
+          <span>＋</span> 新規作成
+        </button>
       </div>
 
-      <div class="grid gap-6 md:grid-cols-[2fr,3fr]">
-        <!-- 左: 一覧 -->
-        <div>
-          <div
-            class="mb-3 flex items-center justify-between text-xs text-zinc-400"
-          >
-            <span>登録済みの国・地域</span>
-            <span v-if="countries.length">{{ countries.length }} 件</span>
-          </div>
-
-          <div
-            class="overflow-hidden rounded-lg border border-white/5 bg-zinc-950/70"
-          >
-            <div
-              v-if="loading"
-              class="px-3 py-6 text-center text-sm text-zinc-400"
+      <div
+        class="overflow-hidden rounded-xl border border-white/10 bg-zinc-900/50"
+      >
+        <table class="w-full text-left text-sm">
+          <thead class="bg-white/5 text-xs uppercase text-zinc-400">
+            <tr>
+              <th class="px-6 py-4 font-medium">Code</th>
+              <th class="px-6 py-4 font-medium">Name (EN)</th>
+              <th class="px-6 py-4 font-medium">Name (JA)</th>
+              <th class="px-6 py-4 font-medium text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            <tr v-if="pending" class="bg-black/20">
+              <td colspan="4" class="px-6 py-8 text-center text-zinc-500">
+                Loading...
+              </td>
+            </tr>
+            <tr
+              v-else
+              v-for="c in countries"
+              :key="c.code"
+              class="hover:bg-white/5 transition-colors"
             >
-              読み込み中…
-            </div>
-
-            <div
-              v-else-if="errorMessage"
-              class="px-3 py-6 text-center text-sm text-red-400"
-            >
-              {{ errorMessage }}
-            </div>
-
-            <div v-else>
-              <div
-                v-if="!countries.length"
-                class="px-3 py-6 text-center text-sm text-zinc-400"
-              >
-                国・地域がまだ登録されていません。
-              </div>
-
-              <ul v-else class="divide-y divide-white/5 text-sm">
-                <li
-                  v-for="c in countriesSorted"
-                  :key="c.code"
-                  class="flex items-center justify-between px-3 py-2.5"
-                >
+              <td class="px-6 py-3 font-mono text-xs text-orange-400">
+                {{ c.code }}
+              </td>
+              <td class="px-6 py-3 text-white">{{ c.name }}</td>
+              <td class="px-6 py-3 text-zinc-300">{{ c.name_ja }}</td>
+              <td class="px-6 py-3 text-right">
+                <div class="flex items-center justify-end gap-2">
                   <button
-                    type="button"
-                    class="flex flex-1 flex-col items-start text-left"
-                    @click="editFromCountry(c)"
+                    @click="openEditModal(c)"
+                    class="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition"
                   >
-                    <div class="flex items-center gap-2">
-                      <span class="font-medium text-zinc-50">
-                        {{ c.name_ja }}
-                      </span>
-                      <span
-                        class="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300"
-                      >
-                        {{ c.code }}
-                      </span>
-                      <span
-                        v-if="!c.is_active"
-                        class="rounded bg-red-900/40 px-1.5 py-0.5 text-[10px] text-red-200"
-                      >
-                        無効
-                      </span>
-                    </div>
-                    <div class="mt-0.5 text-[11px] text-zinc-400">
-                      {{ c.name }}
-                    </div>
-                  </button>
-
-                  <div class="flex items-center gap-2 pl-2">
-                    <button
-                      type="button"
-                      class="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:border-zinc-400"
-                      @click="toggleActive(c)"
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="w-4 h-4"
                     >
-                      {{ c.is_active ? '無効にする' : '有効にする' }}
-                    </button>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <!-- 右: フォーム -->
-        <div class="rounded-lg border border-white/5 bg-zinc-950/70 p-4">
-          <h2 class="mb-3 text-sm font-semibold text-zinc-100">
-            {{ isEditing ? '国・地域を編集' : '新しい国・地域を追加' }}
-          </h2>
-
-          <form class="space-y-3" @submit.prevent="handleSubmit">
-            <div>
-              <label class="mb-1 block text-xs text-zinc-300">
-                コード (ISO 2文字)
-              </label>
-              <input
-                v-model="form.code"
-                :disabled="isEditing"
-                type="text"
-                class="w-32 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm uppercase text-zinc-50 disabled:cursor-not-allowed disabled:bg-zinc-900/60"
-                placeholder="JP / US / KR"
-                required
-              />
-            </div>
-
-            <div>
-              <label class="mb-1 block text-xs text-zinc-300">
-                名前 (英語)
-              </label>
-              <input
-                v-model="form.name"
-                type="text"
-                class="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-50"
-                placeholder="Japan"
-                required
-              />
-            </div>
-
-            <div>
-              <label class="mb-1 block text-xs text-zinc-300">
-                名前 (日本語)
-              </label>
-              <input
-                v-model="form.name_ja"
-                type="text"
-                class="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-50"
-                placeholder="日本"
-                required
-              />
-            </div>
-
-            <div>
-              <label class="mb-1 block text-xs text-zinc-300">
-                表示順 (sort_order)
-              </label>
-              <input
-                v-model.number="form.sort_order"
-                type="number"
-                class="w-32 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-50"
-              />
-            </div>
-
-            <div class="flex items-center gap-2">
-              <input
-                id="country-active"
-                v-model="form.is_active"
-                type="checkbox"
-                class="h-4 w-4 rounded border-zinc-600 bg-zinc-900"
-              />
-              <label
-                for="country-active"
-                class="text-xs text-zinc-300"
-              >
-                有効（検索フィルターなどに表示）
-              </label>
-            </div>
-
-            <div
-              v-if="formMessage"
-              class="text-xs"
-              :class="formError ? 'text-red-400' : 'text-emerald-400'"
-            >
-              {{ formMessage }}
-            </div>
-
-            <div class="flex gap-2 pt-1">
-              <button
-                type="submit"
-                :disabled="submitting"
-                class="inline-flex items-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-black hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {{ submitting ? '保存中…' : isEditing ? '更新する' : '追加する' }}
-              </button>
-              <button
-                v-if="isEditing"
-                type="button"
-                class="inline-flex items-center rounded-md border border-zinc-600 px-3 py-2 text-sm text-zinc-100 hover:border-zinc-300"
-                @click="resetForm"
-              >
-                新規作成モードに戻る
-              </button>
-            </div>
-          </form>
-        </div>
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    @click="deleteCountry(c)"
+                    class="p-1.5 rounded text-red-400 hover:text-white hover:bg-red-500/80 transition"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="w-4 h-4"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+
+      <BaseModal
+        v-model="showModal"
+        :title="isEditing ? '国・地域編集 (Edit)' : '新規登録 (New)'"
+      >
+        <form @submit.prevent="handleSave" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-zinc-400 mb-1"
+              >Code (2 letters) <span class="text-red-500">*</span></label
+            >
+            <input
+              v-model="form.code"
+              type="text"
+              maxlength="2"
+              required
+              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-orange-500 outline-none uppercase"
+              placeholder="JP"
+              :disabled="isEditing"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-zinc-400 mb-1"
+              >English Name <span class="text-red-500">*</span></label
+            >
+            <input
+              v-model="form.name"
+              type="text"
+              required
+              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-orange-500 outline-none"
+              placeholder="Japan"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-zinc-400 mb-1"
+              >Japanese Name <span class="text-red-500">*</span></label
+            >
+            <input
+              v-model="form.name_ja"
+              type="text"
+              required
+              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-orange-500 outline-none"
+              placeholder="日本"
+            />
+          </div>
+        </form>
+        <template #footer>
+          <button
+            @click="showModal = false"
+            class="px-4 py-2 rounded text-sm text-zinc-400 hover:text-white transition"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handleSave"
+            :disabled="saving"
+            class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition flex items-center gap-2"
+          >
+            <span
+              v-if="saving"
+              class="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"
+            ></span>
+            <span>Save</span>
+          </button>
+        </template>
+      </BaseModal>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
-import { useSupabaseClient } from '#imports'
+import { ref, reactive, computed } from "vue";
+import { useSupabaseClient, useAsyncData, definePageMeta } from "#imports";
+import BaseModal from "~/components/BaseModal.vue";
 
-type CountryRow = {
-  code: string
-  name: string
-  name_ja: string
-  sort_order: number | null
-  is_active: boolean | null
-}
+definePageMeta({ middleware: "admin" });
+const supabase = useSupabaseClient<any>();
 
-const supabase = useSupabaseClient<any>()
+const {
+  data: countriesData,
+  pending,
+  refresh,
+} = await useAsyncData("admin-countries", async () => {
+  const { data } = await supabase
+    .from("countries")
+    .select("*")
+    .order("sort_order");
+  return data;
+});
+const countries = computed(() => countriesData.value || []);
 
-const countries = ref<CountryRow[]>([])
-const loading = ref(true)
-const errorMessage = ref('')
+const showModal = ref(false);
+const isEditing = ref(false);
+const saving = ref(false);
 
 const form = reactive({
-  code: '',
-  name: '',
-  name_ja: '',
-  sort_order: 0 as number | null,
-  is_active: true,
-})
+  code: "",
+  name: "",
+  name_ja: "",
+});
 
-const isEditing = computed(() => !!form.code)
-const submitting = ref(false)
-const formMessage = ref('')
-const formError = ref(false)
+const openCreateModal = () => {
+  isEditing.value = false;
+  Object.assign(form, { code: "", name: "", name_ja: "" });
+  showModal.value = true;
+};
 
-const loadCountries = async () => {
-  loading.value = true
-  errorMessage.value = ''
+const openEditModal = (item: any) => {
+  isEditing.value = true;
+  Object.assign(form, {
+    code: item.code,
+    name: item.name,
+    name_ja: item.name_ja,
+  });
+  showModal.value = true;
+};
+
+const handleSave = async () => {
+  if (!form.code || !form.name) return;
+  saving.value = true;
   try {
-    const { data, error } = await supabase
-      .from('countries')
-      .select('code, name, name_ja, sort_order, is_active')
-      .order('sort_order', { ascending: true })
-      .order('name_ja', { ascending: true })
-
-    if (error) {
-      errorMessage.value = error.message
-      return
-    }
-
-    countries.value = data ?? []
-  } finally {
-    loading.value = false
-  }
-}
-
-const countriesSorted = computed(() => countries.value ?? [])
-
-const resetForm = () => {
-  form.code = ''
-  form.name = ''
-  form.name_ja = ''
-  form.sort_order = 0
-  form.is_active = true
-  formMessage.value = ''
-  formError.value = false
-}
-
-const editFromCountry = (c: CountryRow) => {
-  form.code = c.code
-  form.name = c.name
-  form.name_ja = c.name_ja
-  form.sort_order = c.sort_order ?? 0
-  form.is_active = c.is_active ?? true
-  formMessage.value = ''
-  formError.value = false
-}
-
-const handleSubmit = async () => {
-  submitting.value = true
-  formMessage.value = ''
-  formError.value = false
-
-  try {
-    if (!form.code.trim() || !form.name.trim() || !form.name_ja.trim()) {
-      formMessage.value = 'コード / 名前 は必須です。'
-      formError.value = true
-      return
-    }
-
-    const code = form.code.trim().toUpperCase()
-
-    const payload = {
-      code,
-      name: form.name.trim(),
-      name_ja: form.name_ja.trim(),
-      sort_order: form.sort_order ?? 0,
-      is_active: form.is_active,
-    }
-
     if (isEditing.value) {
-      const { error } = await supabase
-        .from('countries')
-        .update(payload)
-        .eq('code', code)
-
-      if (error) {
-        formMessage.value = error.message
-        formError.value = true
-        return
-      }
-
-      formMessage.value = '国・地域を更新しました。'
+      await supabase
+        .from("countries")
+        .update({ name: form.name, name_ja: form.name_ja })
+        .eq("code", form.code);
     } else {
-      const { error } = await supabase.from('countries').insert(payload)
-
-      if (error) {
-        formMessage.value = error.message
-        formError.value = true
-        return
-      }
-
-      formMessage.value = '国・地域を追加しました。'
+      await supabase.from("countries").insert({ ...form });
     }
-
-    await loadCountries()
+    await refresh();
+    showModal.value = false;
+  } catch (e: any) {
+    alert("Error: " + e.message);
   } finally {
-    submitting.value = false
+    saving.value = false;
   }
-}
+};
 
-const toggleActive = async (c: CountryRow) => {
-  const newActive = !(c.is_active ?? true)
-  const { error } = await supabase
-    .from('countries')
-    .update({ is_active: newActive })
-    .eq('code', c.code)
-
-  if (error) {
-    alert('更新に失敗しました: ' + error.message)
-    return
-  }
-  await loadCountries()
-}
-
-// load lần đầu
-loadCountries()
+const deleteCountry = async (c: any) => {
+  if (!confirm(`Delete "${c.name}"?`)) return;
+  await supabase.from("countries").delete().eq("code", c.code);
+  refresh();
+};
 </script>

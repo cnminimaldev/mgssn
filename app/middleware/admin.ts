@@ -1,10 +1,7 @@
-export default defineNuxtRouteMiddleware((to) => {
-  // Sử dụng useSupabaseUser trực tiếp để tránh gọi useRoute() trong useAuth
-  const user = useSupabaseUser()
-  const config = useRuntimeConfig()
+export default defineNuxtRouteMiddleware(async (to) => {
+  const { user, isAdmin, fetchProfile } = useAuth()
 
-  // 1. Chưa login -> Redirect sang Login
-  // Dùng to.fullPath để lấy link hiện tại thay vì useRoute().fullPath
+  // 1. Chưa login -> Redirect
   if (!user.value) {
     return navigateTo({
       path: '/login',
@@ -12,12 +9,19 @@ export default defineNuxtRouteMiddleware((to) => {
     })
   }
 
-  // 2. Kiểm tra quyền Admin
-  const email = user.value.email
-  const adminEmails = config.public.adminEmails as string[] | undefined
+  // 2. Chờ tải role
+  await fetchProfile()
 
-  // Nếu không có email hoặc email không nằm trong danh sách admin
-  if (!email || !adminEmails?.includes(email)) {
+  // [DEBUG LOG] Kiểm tra xem code đang nhận diện user là ai
+  console.log('🛡️ Admin Middleware Check:', {
+    email: user.value.email,
+    role: user.value.role,
+    isAdmin: isAdmin.value
+  })
+
+  // 3. Kiểm tra quyền
+  if (!isAdmin.value) {
+    console.warn('⛔ Access denied: User is not admin. Redirecting to home.')
     return navigateTo('/')
   }
 })

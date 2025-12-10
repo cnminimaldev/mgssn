@@ -1,8 +1,7 @@
-// server/api/movies/[slug].get.ts
 import { serverSupabaseClient } from '#supabase/server'
 import { createError } from 'h3'
 
-// Định nghĩa lại các type helper nếu cần (hoặc import từ utils nếu bạn đã tách ra)
+// Helper Types
 type GenreItem = {
   id: number
   slug: string
@@ -10,6 +9,7 @@ type GenreItem = {
   name_ja: string | null
 }
 
+// Mapper Function
 function mapDbMovieToApi(row: any) {
   if (!row) return null
 
@@ -40,11 +40,14 @@ function mapDbMovieToApi(row: any) {
     titleKana: row.title_kana ?? null,
 
     year: row.year ?? 0,
-    country: row.origin_country ?? row.country ?? '日本',
+    country: row.origin_country ?? row.country ?? 'JP',
     description: row.description ?? '',
 
     thumbnail: row.poster_url ?? '/images/fallback-poster.png',
-    videoUrl: row.video_path ?? '/videos/demo.mp4',
+    posterUrl: row.poster_url ?? null, // Thêm trường này cho form admin
+    bannerUrl: row.banner_url ?? null, // Thêm trường này cho form admin
+    videoUrl: row.video_path ?? '',
+    
     genre: primaryGenre ?? 'その他',
     genres: genreItems.map((g) => ({
       id: g.id,
@@ -59,6 +62,7 @@ function mapDbMovieToApi(row: any) {
     releaseDate: row.release_date ?? null,
     director: row.director ?? null,
     mainCast: row.main_cast ?? null,
+    durationMinutes: row.duration_minutes ?? 0, // Mapping cho admin form
 
     previousSlugs: row.previousSlugs ?? [],
     episodes: row.episodes ?? [],
@@ -68,23 +72,31 @@ function mapDbMovieToApi(row: any) {
 export default defineEventHandler(async (event) => {
   const client = await serverSupabaseClient(event)
   
-  // Lấy slug từ params
-  const slug = event.context.params?.slug
+  // Lấy param (có thể là slug text hoặc ID số)
+  const slugOrId = event.context.params?.slug
 
-  // 1. Kiểm tra kỹ: nếu không có slug thì báo lỗi ngay lập tức
-  if (!slug || typeof slug !== 'string') {
+  if (!slugOrId || typeof slugOrId !== 'string') {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Missing or invalid slug',
+      statusMessage: 'Missing or invalid parameter',
     })
   }
 
-  // 2. Tìm phim theo slug (lúc này TypeScript đã biết slug là string)
-  const { data, error } = await client
+  let query = client
     .from('movies')
     .select('*, movie_genres(genre:genres(id, slug, name, name_ja))')
-    .eq('slug', slug)
-    .limit(1) // Dùng limit(1) thay vì single() để tránh lỗi nếu không tìm thấy, ta sẽ xử lý thủ công bên dưới
+
+  // [SỬA ĐỔI QUAN TRỌNG]
+  // Kiểm tra nếu chuỗi là số -> Tìm theo ID hoặc Slug
+  // Nếu là chữ -> Chỉ tìm theo Slug
+  if (/^\d+$/.test(slugOrId)) {
+    // Dùng .or() để tìm: (id = 2 OR slug = "2")
+    query = query.or(`id.eq.${slugOrId},slug.eq.${slugOrId}`)
+  } else {
+    query = query.eq('slug', slugOrId)
+  }
+
+  const { data, error } = await query.limit(1)
 
   if (error) {
     throw createError({
@@ -93,13 +105,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Lấy phần tử đầu tiên (nếu có)
   const row = data?.[0]
 
-  // Nếu không tìm thấy phim, trả về null hoặc báo lỗi 404 tùy logic frontend
-  // Ở đây ta trả về 404 để frontend biết đường xử lý (ví dụ check history để redirect)
   if (!row) {
-    // Frontend sẽ bắt lỗi 404 này để tiếp tục check bảng history
+    // Nếu không tìm thấy bằng query chính, Frontend có thể xử lý tiếp (ví dụ check bảng history)
     throw createError({
       statusCode: 404,
       statusMessage: 'Movie not found',

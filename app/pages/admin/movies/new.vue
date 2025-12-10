@@ -1,415 +1,332 @@
 <template>
-  <div class="min-h-screen bg-black text-zinc-50 px-4 py-8">
-    <div class="mx-auto max-w-2xl">
-      <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-2xl font-semibold">新しい映画を追加</h1>
-        
-        <div class="flex items-center gap-3">
-          <button
-            type="button"
-            class="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300"
-            @click="showSmartPaste = true"
+  <div class="min-h-screen bg-[#05060a] text-zinc-300 p-6 sm:p-10">
+    <div class="mx-auto max-w-5xl">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <NuxtLink
+            to="/admin/movies"
+            class="text-xs text-emerald-400 hover:underline mb-2 flex items-center gap-1"
           >
-            <span>⚡ スマートペースト</span>
-          </button>
-
-          <NuxtLink to="/admin" class="text-sm text-zinc-400 hover:text-zinc-200">
-            戻る
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-3 h-3"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+              />
+            </svg>
+            映画一覧に戻る
           </NuxtLink>
+          <h1 class="text-2xl font-bold text-white">
+            新規映画登録 (New Movie)
+          </h1>
+          <p class="text-xs text-zinc-500 mt-1">
+            新しい映画情報を入力してください
+          </p>
         </div>
+
+        <button
+          type="button"
+          @click="showSmartPaste = true"
+          class="flex items-center gap-2 rounded-lg bg-indigo-600/20 border border-indigo-500/30 px-4 py-2 text-sm font-bold text-indigo-400 hover:bg-indigo-600/40 transition"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+            />
+          </svg>
+          スマートペースト
+        </button>
       </div>
+
+      <form @submit.prevent="handleCreate" class="space-y-8 animate-fade-in">
+        <div class="bg-zinc-900/50 border border-white/5 rounded-xl p-6">
+          <h2
+            class="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-white/5 pb-2"
+          >
+            基本情報
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1"
+                  >タイトル <span class="text-red-500">*</span></label
+                >
+                <input
+                  v-model="form.title"
+                  type="text"
+                  required
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white placeholder-zinc-700"
+                  placeholder="例: アバター"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1"
+                  >原題</label
+                >
+                <input
+                  v-model="form.original_title"
+                  type="text"
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white placeholder-zinc-700"
+                  placeholder="例: Avatar"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1"
+                  >タイトルかな</label
+                >
+                <input
+                  v-model="form.title_kana"
+                  type="text"
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white placeholder-zinc-700"
+                  placeholder="例: あばたー"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1"
+                  >スラッグ (URL) <span class="text-red-500">*</span></label
+                >
+                <input
+                  v-model="form.slug"
+                  type="text"
+                  required
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white font-mono placeholder-zinc-700"
+                  placeholder="例: avatar-2009"
+                />
+                <p class="text-[10px] text-zinc-500 mt-1">
+                  ※ 英数字とハイフンのみ (Unique ID)
+                </p>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-zinc-400 mb-1"
+                    >公開年</label
+                  >
+                  <input
+                    v-model.number="form.year"
+                    type="number"
+                    class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-zinc-400 mb-1"
+                    >製作国</label
+                  >
+                  <input
+                    v-model="form.origin_country"
+                    type="text"
+                    maxlength="2"
+                    placeholder="JP"
+                    class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white uppercase"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1"
+                  >監督</label
+                >
+                <input
+                  v-model="form.director"
+                  type="text"
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1"
+                  >キャスト</label
+                >
+                <input
+                  v-model="form.main_cast"
+                  type="text"
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1"
+                  >再生時間 (分)</label
+                >
+                <input
+                  v-model.number="form.duration_minutes"
+                  type="number"
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label class="block text-xs font-medium text-zinc-400 mb-1"
+              >あらすじ</label
+            >
+            <textarea
+              v-model="form.description"
+              rows="4"
+              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="bg-zinc-900/50 border border-white/5 rounded-xl p-6">
+          <h2
+            class="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-white/5 pb-2"
+          >
+            画像設定
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <label class="block text-xs font-medium text-zinc-400 mb-2"
+                >ポスター (Vertical)</label
+              >
+              <FormImageUpload
+                v-model="form.poster_url"
+                folder="posters"
+                ratio="poster"
+                class="w-full"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-zinc-400 mb-2"
+                >バナー (Horizontal)</label
+              >
+              <FormImageUpload
+                v-model="form.banner_url"
+                folder="banners"
+                ratio="banner"
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="flex items-center justify-end gap-4 pt-4 border-t border-white/5"
+        >
+          <NuxtLink
+            to="/admin/movies"
+            class="px-4 py-2 rounded text-sm text-zinc-400 hover:text-white transition"
+          >
+            キャンセル
+          </NuxtLink>
+          <button
+            type="submit"
+            :disabled="saving"
+            class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-emerald-900/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span
+              v-if="saving"
+              class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"
+            ></span>
+            <span>登録する</span>
+          </button>
+        </div>
+      </form>
 
       <SmartPasteModal
         :show="showSmartPaste"
         @close="showSmartPaste = false"
-        @apply="onSmartPaste"
+        @apply="handleSmartPaste"
       />
-
-      <form class="space-y-4" @submit.prevent="handleSubmit">
-        <div>
-          <label class="mb-1 block text-sm">タイトル（日本向け）</label>
-          <input
-            v-model="form.title"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            required
-          />
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">原題</label>
-          <input
-            v-model="form.original_title"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            placeholder="例: Frozen"
-          />
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">タイトル（かな）</label>
-          <input
-            v-model="form.title_kana"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            placeholder="例: あなとゆきのじょおう"
-          />
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">Slug</label>
-          <input
-            v-model="form.slug"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            placeholder="例: frozen"
-            required
-          />
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">説明</label>
-          <textarea
-            v-model="form.description"
-            rows="3"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div class="grid grid-cols-3 gap-4">
-          <div>
-            <label class="mb-1 block text-sm">年</label>
-            <input
-              v-model.number="form.year"
-              type="number"
-              min="1900"
-              max="2100"
-              class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label class="mb-1 block text-sm">上映時間（分）</label>
-            <input
-              v-model.number="form.duration_minutes"
-              type="number"
-              min="1"
-              class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label class="mb-1 block text-sm">公開日</label>
-            <input
-              v-model="form.release_date"
-              type="date"
-              class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">製作国</label>
-          <div v-if="countryOptions.length">
-            <select
-              v-model="form.origin_country"
-              class="w-40 rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm text-zinc-50 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            >
-              <option value="">選択してください</option>
-              <option v-for="c in countryOptions" :key="c.code" :value="c.code">
-                {{ c.name_ja }} ({{ c.code }})
-              </option>
-            </select>
-          </div>
-          <p class="mt-1 text-xs text-zinc-500">
-            ISO 2文字コード（例: JP / US / KR）。国・地域は「国・地域管理」から追加してください。
-          </p>
-        </div>
-
-        <div>
-          <div class="mb-1 flex items-center justify-between">
-            <label class="block text-sm">ジャンル（複数選択可）</label>
-            <button
-              v-if="genreOptions.length"
-              type="button"
-              class="text-xs text-emerald-300 hover:text-emerald-200"
-              @click="selectedGenreIds = []"
-            >
-              クリア
-            </button>
-          </div>
-          <div v-if="genreOptions.length" class="flex flex-wrap gap-2">
-            <button
-              v-for="g in genreOptions"
-              :key="g.id"
-              type="button"
-              class="rounded-full border px-3 py-1 text-xs transition"
-              :class="
-                selectedGenreIds.includes(g.id)
-                  ? 'border-emerald-400 bg-emerald-500/20 text-emerald-100'
-                  : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-400'
-              "
-              @click="toggleGenre(g.id)"
-            >
-              {{ g.name_ja || g.name || g.slug }}
-            </button>
-          </div>
-          <p v-else class="mt-1 text-xs text-zinc-500">
-            ジャンルがまだ登録されていません。
-          </p>
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">監督</label>
-          <input
-            v-model="form.director"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            placeholder="例: 山田太郎"
-          />
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">主演</label>
-          <input
-            v-model="form.main_cast"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            placeholder="例: 山田太郎, 佐藤花子"
-          />
-          <p class="mt-1 text-xs text-zinc-500">
-            カンマ区切りで入力してください。
-          </p>
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm">動画パス（HLS .m3u8）</label>
-          <input
-            v-model="form.video_path"
-            type="text"
-            class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
-            placeholder="/hls/movie1/index.m3u8"
-          />
-        </div>
-
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <FormImageUpload
-            label="ポスター画像"
-            v-model="form.poster_url"
-            folder="movies"
-            ratio="poster"
-          />
-          <FormImageUpload
-            label="バナー画像"
-            v-model="form.banner_url"
-            folder="movies"
-            ratio="banner"
-          />
-        </div>
-
-        <div>
-          <label class="inline-flex items-center gap-2 text-sm">
-            <input
-              v-model="form.is_featured"
-              type="checkbox"
-              class="rounded border-zinc-600 bg-zinc-900"
-            />
-            注目作品（featured）
-          </label>
-        </div>
-
-        <div v-if="errorMessage" class="text-sm text-red-400">
-          {{ errorMessage }}
-        </div>
-        <div v-if="successMessage" class="text-sm text-emerald-400">
-          {{ successMessage }}
-        </div>
-
-        <button
-          type="submit"
-          :disabled="submitting"
-          class="mt-2 inline-flex items-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-black hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {{ submitting ? '保存中…' : '保存する' }}
-        </button>
-      </form>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed } from 'vue'
-import { useRouter, useSupabaseClient, useAsyncData } from '#imports'
-import SmartPasteModal from '~/components/SmartPasteModal.vue'
+import { ref, reactive } from "vue";
+import { useRouter, definePageMeta, useSupabaseClient } from "#imports";
+import FormImageUpload from "~/components/FormImageUpload.vue";
+// [THÊM] Import Smart Paste
+import SmartPasteModal from "~/components/SmartPasteModal.vue";
 
-const router = useRouter()
-const supabase = useSupabaseClient<any>()
+definePageMeta({
+  middleware: "admin",
+});
 
-// --- Genres ---
-type GenreRow = {
-  id: number
-  slug: string
-  name: string | null
-  name_ja: string | null
-}
+const router = useRouter();
+const supabase = useSupabaseClient<any>();
+const saving = ref(false);
+const showSmartPaste = ref(false); // [THÊM] State cho Modal
 
-type CountryRow = {
-  code: string
-  name: string
-  name_ja: string
-  sort_order: number | null
-  is_active: boolean | null
-}
-
-const { data: genresData } = await useAsyncData<GenreRow[]>(
-  'admin-genres',
-  async () => {
-    const { data, error } = await supabase
-      .from('genres')
-      .select('id, slug, name, name_ja')
-      .order('name_ja', { ascending: true })
-
-    if (error) throw error
-    return data ?? []
-  }
-)
-
-const { data: countriesData } = await useAsyncData<CountryRow[]>(
-  'admin-countries',
-  async () => {
-    const { data, error } = await supabase
-      .from('countries')
-      .select('code, name, name_ja, sort_order, is_active')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true })
-      .order('name_ja', { ascending: true })
-
-    if (error) throw error
-    return data ?? []
-  }
-)
-
-const countryOptions = computed<CountryRow[]>(() => countriesData.value ?? [])
-const genreOptions = computed<GenreRow[]>(() => genresData.value ?? [])
-const selectedGenreIds = ref<number[]>([])
-
-const toggleGenre = (id: number) => {
-  const idx = selectedGenreIds.value.indexOf(id)
-  if (idx === -1) {
-    selectedGenreIds.value.push(id)
-  } else {
-    selectedGenreIds.value.splice(idx, 1)
-  }
-}
-
-// --- Form State ---
 const form = reactive({
-  title: '',
-  original_title: '',
-  title_kana: '',
-  slug: '',
-  description: '',
-  year: undefined as number | undefined,
-  duration_minutes: undefined as number | undefined,
-  release_date: '' as string, // 'YYYY-MM-DD'
-  origin_country: '',
-  director: '',
-  main_cast: '',
-  video_path: '',
-  poster_url: '',
-  banner_url: '',
-  is_featured: false,
-})
+  title: "",
+  original_title: "",
+  title_kana: "",
+  slug: "",
+  year: new Date().getFullYear(),
+  origin_country: "JP",
+  description: "",
+  director: "",
+  main_cast: "",
+  poster_url: "",
+  banner_url: "",
+  duration_minutes: 0,
+  type: "movie",
+});
 
-const submitting = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
+// [THÊM] Hàm xử lý data từ Modal
+const handleSmartPaste = (data: any) => {
+  Object.assign(form, data);
+};
 
-// --- Smart Paste Logic ---
-const showSmartPaste = ref(false)
-
-const onSmartPaste = (data: any) => {
-  if (data.title) form.title = data.title
-  if (data.original_title) form.original_title = data.original_title
-  if (data.title_kana) form.title_kana = data.title_kana
-  if (data.slug) form.slug = data.slug
-  if (data.description) form.description = data.description
-  if (data.year) form.year = data.year
-  if (data.duration_minutes) form.duration_minutes = data.duration_minutes
-  if (data.release_date) form.release_date = data.release_date
-  if (data.origin_country) {
-    // Kiểm tra xem country code có trong danh sách active không
-    const exists = countryOptions.value.some(c => c.code === data.origin_country)
-    if (exists) form.origin_country = data.origin_country
+const handleCreate = async () => {
+  if (!form.title || !form.slug) {
+    alert("タイトルとスラッグは必須です");
+    return;
   }
-  if (data.director) form.director = data.director
-  if (data.main_cast) form.main_cast = data.main_cast
-}
 
-// --- Submit ---
-const handleSubmit = async () => {
-  errorMessage.value = ''
-  successMessage.value = ''
-  submitting.value = true
-
-  let createdMovieId: number | null = null // Biến lưu ID phim vừa tạo
-
+  saving.value = true;
   try {
-    const payload = {
-      title: form.title,
-      original_title: form.original_title || null,
-      title_kana: form.title_kana || null,
-      slug: form.slug,
-      description: form.description || null,
-      year: form.year ?? null,
-      duration_minutes: form.duration_minutes ?? null,
-      release_date: form.release_date || null,
-      origin_country: form.origin_country || null,
-      director: form.director || null,
-      main_cast: form.main_cast || null,
-      video_path: form.video_path || null,
-      poster_url: form.poster_url || null,
-      banner_url: form.banner_url || null,
-      is_featured: form.is_featured,
-    }
+    const { data, error } = await supabase
+      .from("movies")
+      .insert({
+        ...form,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .select()
+      .single();
 
-    // 1) insert movie
-    const { data: inserted, error } = await supabase
-      .from('movies')
-      .insert(payload)
-      .select('id')
-      .single()
+    if (error) throw error;
 
-    if (error) {
-      errorMessage.value = error.message
-      return
-    }
-
-    const movieId = inserted?.id as number | undefined
-    if (movieId && selectedGenreIds.value.length > 0) {
-      // 2) insert genres
-      const mgPayload = selectedGenreIds.value.map((gid) => ({
-        movie_id: movieId,
-        genre_id: gid,
-      }))
-
-      const { error: mgError } = await supabase
-        .from('movie_genres')
-        .insert(mgPayload)
-
-      if (mgError) {
-        console.error(mgError)
-        errorMessage.value =
-          '映画は作成されましたが、ジャンルの紐付けに失敗しました: ' +
-          mgError.message
-        return
-      }
-    }
-
-    successMessage.value = '映画を作成しました。'
-    setTimeout(() => {
-      router.push('/admin')
-    }, 700)
+    alert("登録しました");
+    router.push(`/admin/movies/${data.id}`);
+  } catch (e: any) {
+    alert("エラー: " + e.message);
   } finally {
-    submitting.value = false
+    saving.value = false;
+  }
+};
+</script>
+
+<style>
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
-</script>
+</style>
