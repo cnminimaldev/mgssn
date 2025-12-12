@@ -216,7 +216,7 @@
 
             <div v-if="!isIOS" class="group/vol flex items-center ml-2">
               <button
-                class="text-white hover:text-emerald-400 p-1 mr-1"
+                class="text-white hover:text-emerald-400 p-1 mr-3"
                 @click.stop="toggleMute"
               >
                 <svg
