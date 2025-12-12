@@ -102,11 +102,20 @@
           class="group/progress pointer-events-auto relative mb-4 h-1.5 w-full cursor-pointer touch-none select-none rounded-full bg-white/20 hover:h-2 transition-all"
           @click="handleSeek"
           @mousedown="startDragging"
-          @mousemove="handleDragging"
+          @mousemove="handleProgressMove"
+          @mouseleave="handleProgressLeave"
           @touchstart="startDragging"
           @touchmove="handleDragging"
           @touchend="stopDragging"
         >
+          <div 
+            v-if="isHoveringProgress"
+            class="absolute bottom-4 -translate-x-1/2 rounded bg-black/80 px-2 py-1 text-xs font-bold text-white shadow-sm border border-white/10 whitespace-nowrap pointer-events-none z-50"
+            :style="{ left: hoverProgressLeft }"
+          >
+            {{ hoverProgressTime }}
+          </div>
+
           <div
             class="absolute h-full rounded-full bg-white/30 transition-all duration-300"
             :style="{ width: `${bufferedPercentage}%` }"
@@ -571,6 +580,11 @@ const lastTime = ref(0);
 // [THÊM MỚI] Biến kiểm tra iOS
 const isIOS = ref(false);
 
+// [THÊM MỚI] Tooltip State
+const isHoveringProgress = ref(false);
+const hoverProgressLeft = ref("0%");
+const hoverProgressTime = ref("00:00");
+
 // Menu States
 const showSettings = ref(false);
 const showSubsMenu = ref(false);
@@ -698,8 +712,6 @@ const changeTrack = async (index: number) => {
 
   if (index === -1 || !props.subtitles || !props.subtitles[index]) return;
 
-  // Nếu là iOS, ta chỉ cần set activeTrackIndex, thẻ <track> sẽ tự update.
-  // Không cần fetch và parse sub nếu đang ở iOS (để tiết kiệm tài nguyên)
   if (isIOS.value) return;
 
   const sub = props.subtitles[index];
@@ -715,7 +727,6 @@ const changeTrack = async (index: number) => {
 };
 
 const updateSubtitle = (time: number) => {
-  // Nếu là iOS, bỏ qua logic custom sub
   if (isIOS.value) return;
 
   if (!parsedCues.value || parsedCues.value.length === 0) {
@@ -805,12 +816,10 @@ watch(subSettings, (newVal) => {
   localStorage.setItem("player_sub_settings", JSON.stringify(newVal));
 });
 
-// Quality
 type QualityLevel = { id: number; label: string; height: number };
 const qualityLevels = ref<QualityLevel[]>([]);
 const currentQuality = ref<number>(-1);
 
-// Computed
 const progressPercentage = computed(() => {
   if (!duration.value) return 0;
   return (currentTime.value / duration.value) * 100;
@@ -895,13 +904,11 @@ const initPlayer = () => {
       }
     });
   } else {
-    // Native HLS (iOS, Safari)
     video.src = props.src;
     if (props.startTime) video.currentTime = props.startTime;
   }
 };
 
-// Handlers
 const focusPlayer = () => {
   containerRef.value?.focus();
 };
@@ -935,7 +942,6 @@ const seekBy = (seconds: number) => {
   );
   videoRef.value.currentTime = newTime;
   currentTime.value = newTime;
-  // Reset index sub khi tua
   currentCueIndex.value = 0;
   updateSubtitle(newTime);
   showControlsTemporary();
@@ -1002,7 +1008,6 @@ const stopDragging = () => {
   isDragging = false;
 };
 
-// [NÂNG CẤP] Hỗ trợ cả Touch và Mouse
 const handleDragging = (e: MouseEvent | TouchEvent) => {
   if (isDragging && videoRef.value && duration.value) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -1021,12 +1026,26 @@ const handleDragging = (e: MouseEvent | TouchEvent) => {
   }
 };
 
+// [THÊM MỚI] Tooltip Handlers
+const handleProgressMove = (e: MouseEvent) => {
+  if (!duration.value) return;
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const offsetX = e.clientX - rect.left;
+  const percent = Math.max(0, Math.min(1, offsetX / rect.width));
+  
+  hoverProgressLeft.value = `${percent * 100}%`;
+  hoverProgressTime.value = formatTime(percent * duration.value);
+  isHoveringProgress.value = true;
+};
+
+const handleProgressLeave = () => {
+  isHoveringProgress.value = false;
+};
+
 const toggleFullscreen = () => {
   if (!containerRef.value) return;
 
-  // iOS check
   if (isIOS.value && videoRef.value) {
-    // Trên iPhone, thường dùng webkitEnterFullscreen trên video element
     // @ts-ignore
     if (videoRef.value.webkitEnterFullscreen) {
       // @ts-ignore
@@ -1129,7 +1148,6 @@ const onEnded = () => {
 watch(() => props.src, initPlayer);
 
 onMounted(() => {
-  // [THÊM] Detect iOS
   const ua = navigator.userAgent;
   isIOS.value = /iPad|iPhone|iPod/.test(ua);
 
@@ -1146,7 +1164,9 @@ onMounted(() => {
   }
   window.addEventListener("mouseup", stopDragging);
   document.addEventListener("fullscreenchange", onFullscreenChange);
-  window.addEventListener("keydown", handleKeydown);
+  
+  // [SỬA LỖI] Xóa việc gán handleKeydown vào window để tránh double-event
+  // window.addEventListener("keydown", handleKeydown);
 
   initPlayer();
 });
@@ -1165,7 +1185,8 @@ onBeforeUnmount(() => {
   }
   window.removeEventListener("mouseup", stopDragging);
   document.removeEventListener("fullscreenchange", onFullscreenChange);
-  window.removeEventListener("keydown", handleKeydown);
+  // window.removeEventListener("keydown", handleKeydown);
+  
   if (hls) hls.destroy();
   if (controlsTimeout) clearTimeout(controlsTimeout);
   if (mouseMoveTimeout) clearTimeout(mouseMoveTimeout);
