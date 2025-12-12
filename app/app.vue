@@ -2,7 +2,19 @@
   <div
     class="min-h-screen bg-[#05060a] text-zinc-300 font-sans selection:bg-emerald-500/30"
   >
-    <NuxtLoadingIndicator color="#10b981" :height="3" :duration="2000" />
+    <Transition name="fade">
+      <div
+        v-if="isPageLoading"
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      >
+        <div class="flex flex-col items-center gap-4">
+          <div
+            class="h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-emerald-500"
+          ></div>
+          <span class="text-sm font-medium text-emerald-400 animate-pulse">Loading...</span>
+        </div>
+      </div>
+    </Transition>
 
     <header
       class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-white/5 bg-black/80 backdrop-blur-md"
@@ -318,13 +330,25 @@
 import { ref, watch, onMounted } from "vue";
 import { useAuth } from "~/composables/useAuth";
 import { useMyList } from "~/composables/useMyList";
-import { useRoute, useSupabaseUser } from "#imports";
+import { useRoute, useSupabaseUser, useNuxtApp } from "#imports";
 
 const { user, isAdmin, logout, fetchProfile } = useAuth();
 const { fetchMyList, clearMyList } = useMyList();
 const supabaseUser = useSupabaseUser();
 const isDrawerOpen = ref(false);
 const route = useRoute();
+const nuxtApp = useNuxtApp();
+
+// [THÊM MỚI] Logic Loading State
+const isPageLoading = ref(false);
+
+nuxtApp.hook("page:start", () => {
+  isPageLoading.value = true;
+});
+
+nuxtApp.hook("page:finish", () => {
+  isPageLoading.value = false;
+});
 
 // --- LOGIC GLOBAL AUTH (Chỉ chạy 1 lần tại đây) ---
 
@@ -369,5 +393,16 @@ const handleLogout = async () => {
 }
 .translate-x-0 {
   transform: translateX(0);
+}
+
+/* [THÊM MỚI] Animation Fade cho Loading Overlay */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
