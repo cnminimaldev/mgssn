@@ -33,7 +33,7 @@
             </div>
 
             <h1
-              class="text-4xl font-black tracking-tight sm:text-6xl lg:text-7xl leading-none drop-shadow-2xl text-transparent bg-clip-text bg-gradient-to-br from-white to-zinc-400"
+              class="text-3xl font-black tracking-tight sm:text-5xl lg:text-6xl leading-tight drop-shadow-2xl text-transparent bg-clip-text bg-gradient-to-br from-white to-zinc-400"
             >
               {{ heroMovie.title }}
             </h1>
@@ -203,7 +203,6 @@ useSeoMeta({
 
 // -- 1. Fetch Genres --
 // [FIX] Sử dụng @ts-ignore để vô hiệu hóa kiểm tra type đệ quy của Nuxt cho route này
-// Lỗi "Excessive stack depth" xảy ra do hệ thống route admin ngày càng phức tạp
 const { data: filterData } = await useAsyncData<FiltersResponse>(
   "home-filters",
   () =>
