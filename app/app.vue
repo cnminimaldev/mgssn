@@ -2,6 +2,8 @@
   <div
     class="min-h-screen bg-[#05060a] text-zinc-300 font-sans selection:bg-emerald-500/30"
   >
+    <NuxtLoadingIndicator color="#10b981" :height="3" :duration="2000" />
+
     <header
       class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-white/5 bg-black/80 backdrop-blur-md"
     >
