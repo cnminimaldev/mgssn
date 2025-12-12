@@ -2,16 +2,22 @@
   <div
     class="min-h-screen bg-[#05060a] text-zinc-300 font-sans selection:bg-emerald-500/30"
   >
-    <Transition name="fade">
+    <Transition name="fade" mode="out-in">
       <div
-        v-if="isPageLoading"
-        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        v-show="isPageLoading"
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-[2px]"
       >
-        <div class="flex flex-col items-center gap-4">
+        <div class="flex flex-col items-center gap-6">
           <div
-            class="h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-emerald-500"
-          ></div>
-          <span class="text-sm font-medium text-emerald-400 animate-pulse">Loading...</span>
+            class="relative h-16 w-16"
+          >
+            <div class="absolute inset-0 rounded-full border-[6px] border-white/10"></div>
+            <div class="absolute inset-0 animate-spin rounded-full border-[6px] border-emerald-500 border-t-transparent shadow-[0_0_15px_rgba(16,185,129,0.4)]"></div>
+          </div>
+          
+          <span class="text-base font-bold tracking-widest text-white/90 animate-pulse">
+            読み込み中...
+          </span>
         </div>
       </div>
     </Transition>
@@ -330,7 +336,7 @@
 import { ref, watch, onMounted } from "vue";
 import { useAuth } from "~/composables/useAuth";
 import { useMyList } from "~/composables/useMyList";
-import { useRoute, useSupabaseUser, useNuxtApp } from "#imports";
+import { useRoute, useSupabaseUser, useNuxtApp, useRouter } from "#imports";
 
 const { user, isAdmin, logout, fetchProfile } = useAuth();
 const { fetchMyList, clearMyList } = useMyList();
@@ -338,21 +344,36 @@ const supabaseUser = useSupabaseUser();
 const isDrawerOpen = ref(false);
 const route = useRoute();
 const nuxtApp = useNuxtApp();
+const router = useRouter();
 
-// [THÊM MỚI] Logic Loading State
+// --- [LOGIC LOADING CẢI TIẾN] ---
+// Sử dụng Router Hook để bắt sự kiện NHANH NHẤT có thể
 const isPageLoading = ref(false);
 
-nuxtApp.hook("page:start", () => {
-  isPageLoading.value = true;
+// 1. Kích hoạt Loading ngay khi Router bắt đầu điều hướng (trước cả preflight/middleware)
+router.beforeEach((to, from, next) => {
+  // Chỉ hiện loading nếu đổi trang khác
+  if (to.path !== from.path) {
+    isPageLoading.value = true;
+  }
+  next();
 });
 
+// 2. Tắt Loading khi trang đã load xong dữ liệu (Suspense resolved)
 nuxtApp.hook("page:finish", () => {
+  // Thêm một chút delay nhỏ (200ms) để tránh nháy màn hình nếu load quá nhanh
+  setTimeout(() => {
+    isPageLoading.value = false;
+  }, 200);
+});
+
+// 3. Tắt Loading nếu có lỗi xảy ra để không bị treo
+nuxtApp.hook("app:error", () => {
   isPageLoading.value = false;
 });
 
-// --- LOGIC GLOBAL AUTH (Chỉ chạy 1 lần tại đây) ---
+// ---------------------------------
 
-// 1. Khi App vừa load (F5), nếu đã login thì lấy Profile + My List ngay
 onMounted(() => {
   if (supabaseUser.value) {
     fetchProfile();
@@ -360,28 +381,21 @@ onMounted(() => {
   }
 });
 
-// 2. Theo dõi đăng nhập/đăng xuất toàn cục
 watch(supabaseUser, (newUser) => {
   if (newUser) {
-    // Vừa login -> Lấy profile & mylist
     fetchProfile();
     fetchMyList();
   } else {
-    // Logout -> Xóa dữ liệu local
     clearMyList();
   }
 });
 
-// --------------------------------------------------
-
-// Đóng drawer khi chuyển trang
 watch(route, () => {
   isDrawerOpen.value = false;
 });
 
 const handleLogout = async () => {
   await logout();
-  // clearMyList đã được gọi ở watcher rồi
   isDrawerOpen.value = false;
   window.location.href = "/";
 };
@@ -395,8 +409,13 @@ const handleLogout = async () => {
   transform: translateX(0);
 }
 
-/* [THÊM MỚI] Animation Fade cho Loading Overlay */
-.fade-enter-active,
+/* [HIỆU ỨNG CHỈ CÓ KHI BIẾN MẤT] */
+/* Khi hiện (Enter): Không có transition -> Hiện ngay lập tức */
+.fade-enter-active {
+  transition: none;
+}
+
+/* Khi ẩn (Leave): Fade out trong 0.3s cho mượt */
 .fade-leave-active {
   transition: opacity 0.3s ease;
 }
