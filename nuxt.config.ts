@@ -16,7 +16,7 @@ export default defineNuxtConfig({
   vite: {
     esbuild: {
       // Tự động xóa console và debugger khi build production
-      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+      drop: process.env.NODE_ENV === 'debugger' ? ['console', 'production'] : [],
     },
   },
 
@@ -25,6 +25,14 @@ export default defineNuxtConfig({
     // Thay bằng domain thật của bạn (VD: https://mugenstream.com)
     // Khi chạy local dev, nó vẫn có thể hiện localhost, nhưng khi build/deploy nó sẽ dùng link này
     url: process.env.NUXT_PUBLIC_SITE_URL || 'https://mugentv.com',
+  },
+
+  app: {
+    head: {
+      link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon.png' }
+      ]
+    }
   },
 
   // 2. Cấu hình Sitemap

@@ -27,6 +27,30 @@ create sequence "public"."series_id_seq";
       );
 
 
+alter table "public"."collection_providers" enable row level security;
+
+
+  create table "public"."content_stats" (
+    "content_id" bigint not null,
+    "type" text not null,
+    "view_count" bigint default 0,
+    "updated_at" timestamp with time zone default now()
+      );
+
+
+alter table "public"."content_stats" enable row level security;
+
+
+  create table "public"."content_stats_daily" (
+    "content_id" bigint not null,
+    "type" text not null,
+    "date" date not null default CURRENT_DATE,
+    "view_count" bigint default 0
+      );
+
+
+alter table "public"."content_stats_daily" enable row level security;
+
 
   create table "public"."content_views" (
     "id" bigint generated always as identity not null,
@@ -37,6 +61,8 @@ create sequence "public"."series_id_seq";
       );
 
 
+alter table "public"."content_views" enable row level security;
+
 
   create table "public"."countries" (
     "code" text not null,
@@ -46,6 +72,8 @@ create sequence "public"."series_id_seq";
     "is_active" boolean default true
       );
 
+
+alter table "public"."countries" enable row level security;
 
 
   create table "public"."episode_collections" (
@@ -65,6 +93,8 @@ create sequence "public"."series_id_seq";
     "provider_id" bigint
       );
 
+
+alter table "public"."episode_collections" enable row level security;
 
 
   create table "public"."episode_progress" (
@@ -98,6 +128,8 @@ alter table "public"."episode_progress" enable row level security;
       );
 
 
+alter table "public"."episodes" enable row level security;
+
 
   create table "public"."genres" (
     "id" bigint not null default nextval('public.genres_id_seq'::regclass),
@@ -108,6 +140,8 @@ alter table "public"."episode_progress" enable row level security;
     "is_active" boolean default true
       );
 
+
+alter table "public"."genres" enable row level security;
 
 
   create table "public"."movie_collections" (
@@ -128,12 +162,16 @@ alter table "public"."episode_progress" enable row level security;
       );
 
 
+alter table "public"."movie_collections" enable row level security;
+
 
   create table "public"."movie_genres" (
     "movie_id" bigint not null,
     "genre_id" bigint not null
       );
 
+
+alter table "public"."movie_genres" enable row level security;
 
 
   create table "public"."movie_parts" (
@@ -153,6 +191,8 @@ alter table "public"."episode_progress" enable row level security;
     "subtitles" jsonb default '[]'::jsonb
       );
 
+
+alter table "public"."movie_parts" enable row level security;
 
 
   create table "public"."movie_progress" (
@@ -174,6 +214,8 @@ alter table "public"."movie_progress" enable row level security;
     "created_at" timestamp with time zone not null default now()
       );
 
+
+alter table "public"."movie_slug_history" enable row level security;
 
 
   create table "public"."movies" (
@@ -202,6 +244,8 @@ alter table "public"."movie_progress" enable row level security;
       );
 
 
+alter table "public"."movies" enable row level security;
+
 
   create table "public"."profiles" (
     "id" uuid not null,
@@ -227,6 +271,8 @@ alter table "public"."profiles" enable row level security;
       );
 
 
+alter table "public"."reviews" enable row level security;
+
 
   create table "public"."series" (
     "id" bigint not null default nextval('public.series_id_seq'::regclass),
@@ -248,12 +294,16 @@ alter table "public"."profiles" enable row level security;
       );
 
 
+alter table "public"."series" enable row level security;
+
 
   create table "public"."series_genres" (
     "series_id" bigint not null,
     "genre_id" integer not null
       );
 
+
+alter table "public"."series_genres" enable row level security;
 
 
   create table "public"."series_slug_history" (
@@ -264,6 +314,8 @@ alter table "public"."profiles" enable row level security;
       );
 
 
+alter table "public"."series_slug_history" enable row level security;
+
 
   create table "public"."user_movie_list" (
     "user_id" uuid not null,
@@ -272,6 +324,8 @@ alter table "public"."profiles" enable row level security;
       );
 
 
+alter table "public"."user_movie_list" enable row level security;
+
 
   create table "public"."user_series_list" (
     "user_id" uuid not null,
@@ -279,6 +333,8 @@ alter table "public"."profiles" enable row level security;
     "created_at" timestamp with time zone default now()
       );
 
+
+alter table "public"."user_series_list" enable row level security;
 
 alter sequence "public"."collection_providers_id_seq" owned by "public"."collection_providers"."id";
 
@@ -299,6 +355,10 @@ alter sequence "public"."series_id_seq" owned by "public"."series"."id";
 CREATE UNIQUE INDEX collection_providers_code_key ON public.collection_providers USING btree (code);
 
 CREATE UNIQUE INDEX collection_providers_pkey ON public.collection_providers USING btree (id);
+
+CREATE UNIQUE INDEX content_stats_daily_pkey ON public.content_stats_daily USING btree (content_id, type, date);
+
+CREATE UNIQUE INDEX content_stats_pkey ON public.content_stats USING btree (content_id, type);
 
 CREATE INDEX content_views_content_idx ON public.content_views USING btree (content_id, type);
 
@@ -363,6 +423,10 @@ CREATE UNIQUE INDEX user_movie_list_pkey ON public.user_movie_list USING btree (
 CREATE UNIQUE INDEX user_series_list_pkey ON public.user_series_list USING btree (user_id, series_id);
 
 alter table "public"."collection_providers" add constraint "collection_providers_pkey" PRIMARY KEY using index "collection_providers_pkey";
+
+alter table "public"."content_stats" add constraint "content_stats_pkey" PRIMARY KEY using index "content_stats_pkey";
+
+alter table "public"."content_stats_daily" add constraint "content_stats_daily_pkey" PRIMARY KEY using index "content_stats_daily_pkey";
 
 alter table "public"."content_views" add constraint "content_views_pkey" PRIMARY KEY using index "content_views_pkey";
 
@@ -605,30 +669,42 @@ CREATE OR REPLACE FUNCTION public.get_ranking(period text, limit_count integer D
  LANGUAGE plpgsql
 AS $function$
 BEGIN
-  RETURN QUERY
-  SELECT 
-    ac.id,
-    ac.type,
-    ac.title,
-    ac.slug,
-    ac.poster_url,
-    ac.banner_url,
-    COUNT(v.id) AS view_count,
-    ac.year,
-    ac.origin_country
-  FROM public.all_contents ac
-  JOIN public.content_views v ON v.content_id = ac.id AND v.type = ac.type
-  WHERE
-    CASE
-      WHEN period = 'day' THEN v.created_at > (now() - interval '24 hours')
-      WHEN period = 'week' THEN v.created_at > (now() - interval '7 days')
-      WHEN period = 'month' THEN v.created_at > (now() - interval '30 days')
-      WHEN period = 'year' THEN v.created_at > (now() - interval '1 year')
-      ELSE true -- 'all'
-    END
-  GROUP BY ac.id, ac.type, ac.title, ac.slug, ac.poster_url, ac.banner_url, ac.year, ac.origin_country
-  ORDER BY view_count DESC
-  LIMIT limit_count;
+  -- 1. Logic cho 'All Time' (Lấy từ bảng tổng content_stats)
+  IF period = 'all' OR period IS NULL THEN
+      RETURN QUERY
+      SELECT 
+        ac.id, ac.type, ac.title, ac.slug, ac.poster_url, ac.banner_url,
+        cs.view_count, -- Lấy số tổng
+        ac.year, ac.origin_country
+      FROM public.all_contents ac
+      JOIN public.content_stats cs ON cs.content_id = ac.id AND cs.type = ac.type
+      ORDER BY cs.view_count DESC
+      LIMIT limit_count;
+
+  -- 2. Logic cho Day/Week/Month/Year (Lấy từ bảng ngày content_stats_daily)
+  ELSE
+      RETURN QUERY
+      SELECT 
+        ac.id, ac.type, ac.title, ac.slug, ac.poster_url, ac.banner_url,
+        SUM(csd.view_count)::bigint AS view_count, -- Cộng dồn các ngày lại
+        ac.year, ac.origin_country
+      FROM public.all_contents ac
+      JOIN public.content_stats_daily csd ON csd.content_id = ac.id AND csd.type = ac.type
+      WHERE
+        CASE
+          -- Ngày: Chỉ lấy dòng có ngày = hôm nay (hoặc 24h qua tùy logic, ở đây lấy theo ngày lịch)
+          WHEN period = 'day' THEN csd.date = CURRENT_DATE 
+          -- Tuần: Lấy các dòng có ngày trong 7 ngày qua
+          WHEN period = 'week' THEN csd.date >= (CURRENT_DATE - 7)
+          -- Tháng: Lấy 30 ngày qua
+          WHEN period = 'month' THEN csd.date >= (CURRENT_DATE - 30)
+          -- Năm: Lấy 365 ngày qua
+          WHEN period = 'year' THEN csd.date >= (CURRENT_DATE - 365)
+        END
+      GROUP BY ac.id, ac.type, ac.title, ac.slug, ac.poster_url, ac.banner_url, ac.year, ac.origin_country
+      ORDER BY view_count DESC
+      LIMIT limit_count;
+  END IF;
 END;
 $function$
 ;
@@ -651,6 +727,33 @@ end;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.handle_new_view()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  -- A. Tăng tổng view (All Time) - Như cũ
+  INSERT INTO public.content_stats (content_id, type, view_count, updated_at)
+  VALUES (NEW.content_id, NEW.type, 1, NEW.created_at)
+  ON CONFLICT (content_id, type)
+  DO UPDATE SET
+    view_count = content_stats.view_count + 1,
+    updated_at = NEW.created_at;
+
+  -- B. Tăng view của ngày hôm nay (Daily) - Mới thêm
+  INSERT INTO public.content_stats_daily (content_id, type, date, view_count)
+  VALUES (NEW.content_id, NEW.type, CURRENT_DATE, 1)
+  ON CONFLICT (content_id, type, date)
+  DO UPDATE SET
+    view_count = content_stats_daily.view_count + 1;
+    
+  RETURN NEW;
+END;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.is_admin()
  RETURNS boolean
  LANGUAGE plpgsql
@@ -658,8 +761,7 @@ CREATE OR REPLACE FUNCTION public.is_admin()
 AS $function$
 BEGIN
   RETURN EXISTS (
-    SELECT 1
-    FROM public.profiles
+    SELECT 1 FROM public.profiles
     WHERE id = auth.uid() AND role = 'admin'
   );
 END;
@@ -721,6 +823,118 @@ grant trigger on table "public"."collection_providers" to "service_role";
 grant truncate on table "public"."collection_providers" to "service_role";
 
 grant update on table "public"."collection_providers" to "service_role";
+
+grant delete on table "public"."content_stats" to "anon";
+
+grant insert on table "public"."content_stats" to "anon";
+
+grant references on table "public"."content_stats" to "anon";
+
+grant select on table "public"."content_stats" to "anon";
+
+grant trigger on table "public"."content_stats" to "anon";
+
+grant truncate on table "public"."content_stats" to "anon";
+
+grant update on table "public"."content_stats" to "anon";
+
+grant delete on table "public"."content_stats" to "authenticated";
+
+grant insert on table "public"."content_stats" to "authenticated";
+
+grant references on table "public"."content_stats" to "authenticated";
+
+grant select on table "public"."content_stats" to "authenticated";
+
+grant trigger on table "public"."content_stats" to "authenticated";
+
+grant truncate on table "public"."content_stats" to "authenticated";
+
+grant update on table "public"."content_stats" to "authenticated";
+
+grant delete on table "public"."content_stats" to "postgres";
+
+grant insert on table "public"."content_stats" to "postgres";
+
+grant references on table "public"."content_stats" to "postgres";
+
+grant select on table "public"."content_stats" to "postgres";
+
+grant trigger on table "public"."content_stats" to "postgres";
+
+grant truncate on table "public"."content_stats" to "postgres";
+
+grant update on table "public"."content_stats" to "postgres";
+
+grant delete on table "public"."content_stats" to "service_role";
+
+grant insert on table "public"."content_stats" to "service_role";
+
+grant references on table "public"."content_stats" to "service_role";
+
+grant select on table "public"."content_stats" to "service_role";
+
+grant trigger on table "public"."content_stats" to "service_role";
+
+grant truncate on table "public"."content_stats" to "service_role";
+
+grant update on table "public"."content_stats" to "service_role";
+
+grant delete on table "public"."content_stats_daily" to "anon";
+
+grant insert on table "public"."content_stats_daily" to "anon";
+
+grant references on table "public"."content_stats_daily" to "anon";
+
+grant select on table "public"."content_stats_daily" to "anon";
+
+grant trigger on table "public"."content_stats_daily" to "anon";
+
+grant truncate on table "public"."content_stats_daily" to "anon";
+
+grant update on table "public"."content_stats_daily" to "anon";
+
+grant delete on table "public"."content_stats_daily" to "authenticated";
+
+grant insert on table "public"."content_stats_daily" to "authenticated";
+
+grant references on table "public"."content_stats_daily" to "authenticated";
+
+grant select on table "public"."content_stats_daily" to "authenticated";
+
+grant trigger on table "public"."content_stats_daily" to "authenticated";
+
+grant truncate on table "public"."content_stats_daily" to "authenticated";
+
+grant update on table "public"."content_stats_daily" to "authenticated";
+
+grant delete on table "public"."content_stats_daily" to "postgres";
+
+grant insert on table "public"."content_stats_daily" to "postgres";
+
+grant references on table "public"."content_stats_daily" to "postgres";
+
+grant select on table "public"."content_stats_daily" to "postgres";
+
+grant trigger on table "public"."content_stats_daily" to "postgres";
+
+grant truncate on table "public"."content_stats_daily" to "postgres";
+
+grant update on table "public"."content_stats_daily" to "postgres";
+
+grant delete on table "public"."content_stats_daily" to "service_role";
+
+grant insert on table "public"."content_stats_daily" to "service_role";
+
+grant references on table "public"."content_stats_daily" to "service_role";
+
+grant select on table "public"."content_stats_daily" to "service_role";
+
+grant trigger on table "public"."content_stats_daily" to "service_role";
+
+grant truncate on table "public"."content_stats_daily" to "service_role";
+
+grant update on table "public"."content_stats_daily" to "service_role";
 
 grant delete on table "public"."content_views" to "anon";
 
@@ -1787,64 +2001,311 @@ grant truncate on table "public"."user_series_list" to "service_role";
 grant update on table "public"."user_series_list" to "service_role";
 
 
-  create policy "Users can manage their episode progress"
-  on "public"."episode_progress"
+  create policy "Admin manage providers"
+  on "public"."collection_providers"
   as permissive
   for all
-  to public
-using ((auth.uid() = user_id))
-with check ((auth.uid() = user_id));
+  to authenticated
+using (public.is_admin());
 
 
 
-  create policy "Users can manage their movie progress"
-  on "public"."movie_progress"
+  create policy "Public read providers"
+  on "public"."collection_providers"
   as permissive
-  for all
+  for select
   to public
-using ((auth.uid() = user_id))
-with check ((auth.uid() = user_id));
+using (true);
 
 
 
-  create policy "Allow read access"
-  on "public"."profiles"
+  create policy "Public view stats"
+  on "public"."content_stats"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Public view daily stats"
+  on "public"."content_stats_daily"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Admin view logs"
+  on "public"."content_views"
   as permissive
   for select
   to authenticated
-using (((auth.uid() = id) OR public.is_admin()));
+using (public.is_admin());
 
 
 
-  create policy "Profiles are viewable by owner"
+  create policy "Users can insert view"
+  on "public"."content_views"
+  as permissive
+  for insert
+  to authenticated
+with check (true);
+
+
+
+  create policy "Admin can manage countries"
+  on "public"."countries"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+
+
+  create policy "Public can view countries"
+  on "public"."countries"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Admin manage ep_collections"
+  on "public"."episode_collections"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin());
+
+
+
+  create policy "Public read ep_collections"
+  on "public"."episode_collections"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Users manage own ep progress"
+  on "public"."episode_progress"
+  as permissive
+  for all
+  to authenticated
+using ((auth.uid() = user_id))
+with check ((auth.uid() = user_id));
+
+
+
+  create policy "Users view own ep progress"
+  on "public"."episode_progress"
+  as permissive
+  for select
+  to authenticated
+using ((auth.uid() = user_id));
+
+
+
+  create policy "Admin can manage episodes"
+  on "public"."episodes"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+
+
+  create policy "Public can view episodes"
+  on "public"."episodes"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Admin can manage genres"
+  on "public"."genres"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+
+
+  create policy "Public can view genres"
+  on "public"."genres"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Admin manage mv_collections"
+  on "public"."movie_collections"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin());
+
+
+
+  create policy "Public read mv_collections"
+  on "public"."movie_collections"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Admin manage mv_genres"
+  on "public"."movie_genres"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin());
+
+
+
+  create policy "Public read mv_genres"
+  on "public"."movie_genres"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Admin manage mv_parts"
+  on "public"."movie_parts"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin());
+
+
+
+  create policy "Public read mv_parts"
+  on "public"."movie_parts"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Users manage own movie progress"
+  on "public"."movie_progress"
+  as permissive
+  for all
+  to authenticated
+using ((auth.uid() = user_id))
+with check ((auth.uid() = user_id));
+
+
+
+  create policy "Users view own movie progress"
+  on "public"."movie_progress"
+  as permissive
+  for select
+  to authenticated
+using ((auth.uid() = user_id));
+
+
+
+  create policy "Admin manage slug history"
+  on "public"."movie_slug_history"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin());
+
+
+
+  create policy "Public read slug history"
+  on "public"."movie_slug_history"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Admin can manage movies"
+  on "public"."movies"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+
+
+  create policy "Public can view movies"
+  on "public"."movies"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Admin manage profiles"
+  on "public"."profiles"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin());
+
+
+
+  create policy "Public view profiles"
   on "public"."profiles"
   as permissive
   for select
   to public
-using ((auth.uid() = id));
+using (true);
 
 
 
-  create policy "Users can insert their own profile"
+  create policy "Users insert own profile"
   on "public"."profiles"
   as permissive
   for insert
-  to public
+  to authenticated
 with check ((auth.uid() = id));
 
 
 
-  create policy "Users can update their own profile"
+  create policy "Users update own profile"
   on "public"."profiles"
   as permissive
   for update
-  to public
+  to authenticated
 using ((auth.uid() = id))
 with check ((auth.uid() = id));
 
 
 
-  create policy "Reviews are viewable by everyone"
+  create policy "Admin manage reviews"
+  on "public"."reviews"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin());
+
+
+
+  create policy "Public view reviews"
   on "public"."reviews"
   as permissive
   for select
@@ -1853,42 +2314,126 @@ using (true);
 
 
 
-  create policy "Users can insert their own review"
+  create policy "Users create reviews"
   on "public"."reviews"
   as permissive
   for insert
-  to public
+  to authenticated
 with check ((auth.uid() = user_id));
 
 
 
-  create policy "Users can update their own review"
+  create policy "Users delete own reviews"
   on "public"."reviews"
   as permissive
-  for update
-  to public
+  for delete
+  to authenticated
 using ((auth.uid() = user_id));
 
 
 
-  create policy "Users can manage their movie list"
+  create policy "Users update own reviews"
+  on "public"."reviews"
+  as permissive
+  for update
+  to authenticated
+using ((auth.uid() = user_id));
+
+
+
+  create policy "Admin can manage series"
+  on "public"."series"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+
+
+  create policy "Public can view series"
+  on "public"."series"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Admin manage sr_genres"
+  on "public"."series_genres"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin());
+
+
+
+  create policy "Public read sr_genres"
+  on "public"."series_genres"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Admin manage sr slug history"
+  on "public"."series_slug_history"
+  as permissive
+  for all
+  to authenticated
+using (public.is_admin());
+
+
+
+  create policy "Public read sr slug history"
+  on "public"."series_slug_history"
+  as permissive
+  for select
+  to public
+using (true);
+
+
+
+  create policy "Users manage own movie list"
   on "public"."user_movie_list"
   as permissive
   for all
-  to public
+  to authenticated
 using ((auth.uid() = user_id))
 with check ((auth.uid() = user_id));
 
 
 
-  create policy "Users can manage their series list"
+  create policy "Users view own movie list"
+  on "public"."user_movie_list"
+  as permissive
+  for select
+  to authenticated
+using ((auth.uid() = user_id));
+
+
+
+  create policy "Users manage own series list"
   on "public"."user_series_list"
   as permissive
   for all
-  to public
+  to authenticated
 using ((auth.uid() = user_id))
 with check ((auth.uid() = user_id));
 
+
+
+  create policy "Users view own series list"
+  on "public"."user_series_list"
+  as permissive
+  for select
+  to authenticated
+using ((auth.uid() = user_id));
+
+
+CREATE TRIGGER on_view_added AFTER INSERT ON public.content_views FOR EACH ROW EXECUTE FUNCTION public.handle_new_view();
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="pending" class="py-20 text-center">
+  <div v-if="loading" class="py-20 text-center">
     <div
       class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-zinc-600 border-t-emerald-500"
     ></div>
@@ -34,13 +34,13 @@
       <h2
         class="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-white/5 pb-2"
       >
-        基本情報
+        基本情報 (Basic Info)
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="space-y-4">
           <div>
             <label class="block text-xs font-medium text-zinc-400 mb-1"
-              >タイトル</label
+              >タイトル <span class="text-red-500">*</span></label
             >
             <input
               v-model="form.title"
@@ -71,7 +71,7 @@
           </div>
           <div>
             <label class="block text-xs font-medium text-zinc-400 mb-1"
-              >スラッグ</label
+              >スラッグ (URL) <span class="text-red-500">*</span></label
             >
             <input
               v-model="form.slug"
@@ -107,6 +107,18 @@
               />
             </div>
           </div>
+
+          <div>
+            <label class="block text-xs font-medium text-zinc-400 mb-1"
+              >公開日 (Release Date)</label
+            >
+            <input
+              v-model="form.release_date"
+              type="date"
+              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white [color-scheme:dark]"
+            />
+          </div>
+
           <div>
             <label class="block text-xs font-medium text-zinc-400 mb-1"
               >監督</label
@@ -156,6 +168,39 @@
       <h2
         class="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-white/5 pb-2"
       >
+        ジャンル (Genres)
+      </h2>
+      <div v-if="genresLoading" class="text-xs text-zinc-500">
+        Loading genres...
+      </div>
+      <div
+        v-else
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
+      >
+        <label
+          v-for="genre in genres"
+          :key="genre.id"
+          class="flex items-center gap-2 cursor-pointer group"
+        >
+          <input
+            type="checkbox"
+            :value="genre.id"
+            v-model="form.genre_ids"
+            class="w-4 h-4 rounded border-zinc-700 bg-black text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+          />
+          <span
+            class="text-sm text-zinc-400 group-hover:text-white transition-colors"
+          >
+            {{ genre.name_ja || genre.name }}
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="bg-zinc-900/50 border border-white/5 rounded-xl p-6">
+      <h2
+        class="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-white/5 pb-2"
+      >
         画像設定
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -184,9 +229,29 @@
       </div>
     </div>
 
-    <div
-      class="flex items-center justify-end gap-4 pt-4 border-t border-white/5"
-    >
+    <div class="flex items-center justify-between pt-4 border-t border-white/5">
+      <button
+        type="button"
+        @click="handleDelete"
+        class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 transition"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-4 h-4"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+          />
+        </svg>
+        削除する
+      </button>
+
       <button
         type="submit"
         :disabled="saving"
@@ -202,6 +267,7 @@
 
     <SmartPasteModal
       :show="showSmartPaste"
+      :genres="genres"
       @close="showSmartPaste = false"
       @apply="handleSmartPaste"
     />
@@ -209,11 +275,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import {
   useRoute,
   useRouter,
-  useFetch,
   definePageMeta,
   useSupabaseClient,
 } from "#imports";
@@ -227,10 +292,14 @@ definePageMeta({
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient<any>();
-
 const movieId = route.params.id;
+
+const loading = ref(true);
 const saving = ref(false);
 const showSmartPaste = ref(false);
+
+const genres = ref<any[]>([]);
+const genresLoading = ref(true);
 
 const form = reactive({
   title: "",
@@ -245,64 +314,126 @@ const form = reactive({
   poster_url: "",
   banner_url: "",
   duration_minutes: 0,
+  release_date: "",
+  genre_ids: [] as number[],
 });
 
-const {
-  data: movie,
-  pending,
-  refresh,
-} = await useFetch(`/api/movies/${movieId}`, {
-  key: `admin-movie-${movieId}`,
+// Load Data
+onMounted(async () => {
+  try {
+    // 1. Load Genres List
+    const { data: genresData } = await supabase
+      .from("genres")
+      .select("id, name, name_ja")
+      .order("sort_order", { ascending: true });
+    genres.value = genresData || [];
+    genresLoading.value = false;
+
+    // 2. Load Movie
+    const { data: movieData, error } = await supabase
+      .from("movies")
+      .select("*")
+      .eq("id", movieId)
+      .single();
+
+    if (error) throw error;
+
+    // 3. Load Selected Genres
+    const { data: selectedGenres } = await supabase
+      .from("movie_genres")
+      .select("genre_id")
+      .eq("movie_id", movieId);
+
+    // Sync to form
+    Object.assign(form, {
+      title: movieData.title || "",
+      original_title: movieData.original_title || "",
+      title_kana: movieData.title_kana || "",
+      slug: movieData.slug || "",
+      year: movieData.year || new Date().getFullYear(),
+      origin_country: movieData.origin_country || "JP",
+      description: movieData.description || "",
+      director: movieData.director || "",
+      main_cast: movieData.main_cast || "",
+      poster_url: movieData.poster_url || "",
+      banner_url: movieData.banner_url || "",
+      duration_minutes: movieData.duration_minutes || 0,
+      release_date: movieData.release_date || "",
+      genre_ids: selectedGenres
+        ? selectedGenres.map((x: any) => x.genre_id)
+        : [],
+    });
+  } catch (e: any) {
+    alert("エラー: " + e.message);
+    router.push("/admin/movies");
+  } finally {
+    loading.value = false;
+  }
 });
-
-const syncDataToForm = (data: any) => {
-  if (!data) return;
-  Object.assign(form, {
-    title: data.title || "",
-    original_title: data.original_title || data.originalTitle || "",
-    title_kana: data.title_kana || data.titleKana || "",
-    slug: data.slug || "",
-    year: data.year || new Date().getFullYear(),
-    origin_country: data.origin_country || data.country || "JP",
-    description: data.description || "",
-    director: data.director || "",
-    main_cast: data.main_cast || data.mainCast || "",
-    poster_url: data.poster_url || data.posterUrl || "",
-    banner_url: data.banner_url || data.bannerUrl || "",
-    duration_minutes: data.duration_minutes || data.durationMinutes || 0,
-  });
-};
-
-watch(
-  movie,
-  (newVal) => {
-    syncDataToForm(newVal);
-  },
-  { immediate: true }
-);
 
 const handleSmartPaste = (data: any) => {
   Object.assign(form, data);
 };
 
 const handleUpdate = async () => {
+  if (!form.title || !form.slug) {
+    alert("タイトルとスラッグは必須です");
+    return;
+  }
+
   saving.value = true;
   try {
+    // 1. Update Movie Info
+    const { genre_ids, ...movieData } = form;
+
+    // Đảm bảo không có type
+    const updateData = {
+      ...movieData,
+      release_date: movieData.release_date || null,
+      updated_at: new Date(),
+    };
+
     const { error } = await supabase
       .from("movies")
-      .update({
-        ...form,
-        updated_at: new Date(),
-      })
+      .update(updateData)
       .eq("id", movieId);
 
     if (error) throw error;
 
+    // 2. Sync Genres (Delete all -> Insert new)
+    // 2a. Delete old
+    await supabase.from("movie_genres").delete().eq("movie_id", movieId);
+
+    // 2b. Insert new
+    if (genre_ids && genre_ids.length > 0) {
+      const inserts = genre_ids.map((gid) => ({
+        movie_id: movieId,
+        genre_id: gid,
+      }));
+      const { error: gError } = await supabase
+        .from("movie_genres")
+        .insert(inserts);
+      if (gError) throw gError;
+    }
+
     alert("更新しました");
-    refresh();
+    // Không cần refresh() vì ta đã update trực tiếp DB và form đã có data mới nhất
   } catch (e: any) {
     alert("エラー: " + e.message);
   } finally {
+    saving.value = false;
+  }
+};
+
+const handleDelete = async () => {
+  if (!confirm("本当に削除しますか？")) return;
+  saving.value = true;
+  try {
+    const { error } = await supabase.from("movies").delete().eq("id", movieId);
+    if (error) throw error;
+    router.push("/admin/movies");
+  } catch (e: any) {
+    alert("エラー: " + e.message);
     saving.value = false;
   }
 };

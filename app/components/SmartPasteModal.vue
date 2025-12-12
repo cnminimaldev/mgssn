@@ -5,13 +5,13 @@
       
       <p class="mb-2 text-xs text-zinc-400">
         以下のフォーマットでテキストを貼り付けてください:<br>
-        <code>[title], [original_title], [kana_title], [slug], [description], [year], [duration], [date], [country], [director], [main_cast]</code>
+        <code>[title], [original_title], [kana_title], [slug], [genres], [description], [year], [duration], [date], [country], [director], [main_cast]</code>
       </p>
 
       <textarea
         v-model="rawText"
         class="h-64 w-full rounded-md border border-zinc-700 bg-black p-3 text-xs font-mono text-zinc-200 focus:border-emerald-500 focus:outline-none"
-        placeholder="[title]&#10;Tiêu đề phim&#10;&#10;[description]&#10;Nội dung phim..."
+        placeholder="[title]&#10;Tiêu đề phim&#10;&#10;[genres]&#10;ドラマ, 青春&#10;&#10;[description]&#10;Nội dung phim..."
       ></textarea>
 
       <div class="mt-4 flex justify-end gap-3">
@@ -37,7 +37,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const props = defineProps<{ show: boolean }>()
+// [CẬP NHẬT] Thêm prop genres để nhận danh sách từ trang cha
+const props = defineProps<{ 
+  show: boolean;
+  genres?: { id: number; name: string; name_ja?: string }[] 
+}>()
+
 const emit = defineEmits(['close', 'apply'])
 
 const rawText = ref('')
@@ -51,9 +56,9 @@ const handleProcess = () => {
 
   // Hàm helper để lấy giá trị từ regex
   const extract = (tag: string): string | null => {
+    // Regex tìm nội dung trong thẻ [tag]
     const regex = new RegExp(`\\[${tag}\\]\\s*([\\s\\S]*?)(?=\\n\\[|$)`, 'i')
     const match = text.match(regex)
-    // SỬA LỖI: Thêm match[1] vào điều kiện kiểm tra hoặc dùng optional chaining
     return (match && match[1]) ? match[1].trim() : null
   }
 
@@ -100,14 +105,39 @@ const handleProcess = () => {
   if (dateStr) {
     const parts = dateStr.split('/')
     if (parts.length === 3) {
-      // SỬA LỖI: Thêm ! để báo chắc chắn tồn tại
       const m = parts[0]!.padStart(2, '0')
       const d = parts[1]!.padStart(2, '0')
       const y = parts[2]!
       data.release_date = `${y}-${m}-${d}`
     } else {
-       // Fallback
+       // Fallback nếu format khác
        data.release_date = dateStr
+    }
+  }
+
+  // 4. [MỚI] Xử lý Genres
+  // Input: "ドラマ, 青春, 心理" -> Output: genre_ids: [1, 5, 8]
+  const genresStr = extract('genres')
+  if (genresStr && props.genres && props.genres.length > 0) {
+    // Tách chuỗi bằng dấu phẩy (cả tiếng Anh , và tiếng Nhật 、)
+    const inputNames = genresStr.split(/[,、]/).map(s => s.trim()).filter(Boolean)
+    const foundIds: number[] = []
+
+    inputNames.forEach(name => {
+      // Tìm trong danh sách genres (so sánh name_ja hoặc name, không phân biệt hoa thường)
+      const matched = props.genres!.find(g => 
+        (g.name_ja && g.name_ja.toLowerCase() === name.toLowerCase()) || 
+        (g.name.toLowerCase() === name.toLowerCase())
+      )
+      
+      if (matched) {
+        foundIds.push(matched.id)
+      }
+    })
+
+    if (foundIds.length > 0) {
+      // Dùng Set để loại bỏ ID trùng lặp nếu người dùng nhập trùng
+      data.genre_ids = [...new Set(foundIds)]
     }
   }
 

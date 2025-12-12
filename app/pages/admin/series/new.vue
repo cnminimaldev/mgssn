@@ -59,7 +59,7 @@
           <h2
             class="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-white/5 pb-2"
           >
-            基本情報
+            基本情報 (Basic Info)
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-4">
@@ -139,6 +139,18 @@
                   />
                 </div>
               </div>
+
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1"
+                  >公開日 (Release Date)</label
+                >
+                <input
+                  v-model="form.release_date"
+                  type="date"
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white [color-scheme:dark]"
+                />
+              </div>
+
               <div>
                 <label class="block text-xs font-medium text-zinc-400 mb-1"
                   >監督</label
@@ -171,6 +183,39 @@
               rows="4"
               class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white"
             ></textarea>
+          </div>
+        </div>
+
+        <div class="bg-zinc-900/50 border border-white/5 rounded-xl p-6">
+          <h2
+            class="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-white/5 pb-2"
+          >
+            ジャンル (Genres)
+          </h2>
+          <div v-if="genresLoading" class="text-xs text-zinc-500">
+            Loading genres...
+          </div>
+          <div
+            v-else
+            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
+          >
+            <label
+              v-for="genre in genres"
+              :key="genre.id"
+              class="flex items-center gap-2 cursor-pointer group"
+            >
+              <input
+                type="checkbox"
+                :value="genre.id"
+                v-model="form.genre_ids"
+                class="w-4 h-4 rounded border-zinc-700 bg-black text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+              />
+              <span
+                class="text-sm text-zinc-400 group-hover:text-white transition-colors"
+              >
+                {{ genre.name_ja || genre.name }}
+              </span>
+            </label>
           </div>
         </div>
 
@@ -231,6 +276,7 @@
 
       <SmartPasteModal
         :show="showSmartPaste"
+        :genres="genres"
         @close="showSmartPaste = false"
         @apply="handleSmartPaste"
       />
@@ -239,7 +285,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useRouter, definePageMeta, useSupabaseClient } from "#imports";
 import FormImageUpload from "~/components/FormImageUpload.vue";
 import SmartPasteModal from "~/components/SmartPasteModal.vue";
@@ -253,6 +299,9 @@ const supabase = useSupabaseClient<any>();
 const saving = ref(false);
 const showSmartPaste = ref(false);
 
+const genres = ref<any[]>([]);
+const genresLoading = ref(true);
+
 const form = reactive({
   title: "",
   original_title: "",
@@ -265,7 +314,25 @@ const form = reactive({
   main_cast: "",
   poster_url: "",
   banner_url: "",
-  type: "series",
+  // [QUAN TRỌNG] Không có thuộc tính 'type' ở đây
+  release_date: "",
+  genre_ids: [] as number[],
+});
+
+onMounted(async () => {
+  try {
+    const { data, error } = await supabase
+      .from("genres")
+      .select("id, name, name_ja")
+      .order("sort_order", { ascending: true });
+
+    if (error) throw error;
+    genres.value = data || [];
+  } catch (e) {
+    console.error(e);
+  } finally {
+    genresLoading.value = false;
+  }
 });
 
 const handleSmartPaste = (data: any) => {
@@ -280,20 +347,44 @@ const handleCreate = async () => {
 
   saving.value = true;
   try {
-    const { data, error } = await supabase
+    // 1. Tách genre_ids ra khỏi payload insert vào series
+    const { genre_ids, ...seriesData } = form;
+
+    const insertData = {
+      ...seriesData,
+      release_date: seriesData.release_date || null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    // 2. Insert Series (Schema không có cột 'type', nên insertData cũng không được có)
+    const { data: newVal, error } = await supabase
       .from("series")
-      .insert({
-        ...form,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
+      .insert(insertData)
       .select()
       .single();
 
     if (error) throw error;
 
+    // 3. Insert Series Genres (Bảng trung gian)
+    if (genre_ids && genre_ids.length > 0) {
+      const genreInserts = genre_ids.map((gid) => ({
+        series_id: newVal.id,
+        genre_id: gid,
+      }));
+
+      const { error: genreError } = await supabase
+        .from("series_genres")
+        .insert(genreInserts);
+
+      if (genreError) {
+        console.error("Error linking genres:", genreError);
+        alert("シリーズは作成されましたが、ジャンルの紐付けに失敗しました。");
+      }
+    }
+
     alert("シリーズを登録しました");
-    router.push(`/admin/series/${data.id}`);
+    router.push(`/admin/series/${newVal.id}`);
   } catch (e: any) {
     alert("エラー: " + e.message);
   } finally {

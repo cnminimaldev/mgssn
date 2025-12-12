@@ -107,7 +107,7 @@
               v-model="form.slug"
               type="text"
               required
-              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-pink-500 outline-none"
+              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-pink-500 outline-none text-white"
               placeholder="action"
             />
           </div>
@@ -119,7 +119,7 @@
               v-model="form.name"
               type="text"
               required
-              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-pink-500 outline-none"
+              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-pink-500 outline-none text-white"
               placeholder="Action"
             />
           </div>
@@ -131,7 +131,7 @@
               v-model="form.name_ja"
               type="text"
               required
-              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-pink-500 outline-none"
+              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-pink-500 outline-none text-white"
               placeholder="アクション"
             />
           </div>
