@@ -24,13 +24,21 @@
               >
                 PICK UP
               </span>
+              
               <span
                 v-if="heroMovie.type === 'series'"
-                class="bg-indigo-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg"
+                class="bg-indigo-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg shadow-indigo-900/50 backdrop-blur-md"
               >
                 SERIES
               </span>
-            </div>
+              <span
+                v-else
+                class="bg-orange-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg shadow-orange-900/50 backdrop-blur-md"
+              >
+                MOVIE
+              </span>
+
+              </div>
 
             <h1
               class="text-3xl font-black tracking-tight sm:text-5xl lg:text-6xl leading-tight drop-shadow-2xl text-transparent bg-clip-text bg-gradient-to-br from-white to-zinc-400"
@@ -51,6 +59,9 @@
                 class="border border-zinc-500 px-1.5 rounded text-[10px] tracking-wider"
                 >HD</span
               >
+              <span v-if="heroMovie.country" class="hidden sm:inline-block border border-zinc-600 bg-zinc-800/50 px-1.5 rounded text-[10px] text-zinc-400">
+                {{ heroMovie.country }}
+              </span>
             </div>
 
             <p
@@ -90,11 +101,12 @@
               >
                 <span
                   v-if="isInMyList(heroMovie.id, heroMovie.type)"
-                  class="text-emerald-400"
-                  >✔</span
+                  class="text-emerald-400 font-bold"
                 >
+                  ✔
+                </span>
                 <span v-else class="text-xl leading-none font-light">＋</span>
-                <span>マイリスト</span>
+                <span>{{ isInMyList(heroMovie.id, heroMovie.type) ? "追加済み" : "マイリスト" }}</span>
               </button>
             </div>
           </div>
@@ -123,10 +135,9 @@
       </section>
 
       <div class="space-y-12 pb-20">
-        
         <ClientOnly>
           <section
-            v-if="!error && hasContinueWatching"
+            v-if="!hasError && hasContinueWatching"
             class="px-4 sm:px-12 lg:px-20"
           >
             <MovieRow
@@ -139,7 +150,7 @@
         </ClientOnly>
 
         <section class="px-4 sm:px-12 lg:px-20">
-          <SkeletonMovieRow v-if="featuredPending" title="注目の作品" />
+          <SkeletonMovieRow v-if="pendingFeatured" title="注目の作品" />
           <MovieRow
             v-else-if="featuredMovies.length"
             title="注目の作品"
@@ -150,7 +161,7 @@
         </section>
 
         <section class="px-4 sm:px-12 lg:px-20">
-          <SkeletonMovieRow v-if="newMoviesPending" title="新着の作品" />
+          <SkeletonMovieRow v-if="pending" title="新着の作品" />
           <MovieRow
             v-else-if="newMovies.length"
             title="新着の作品"
@@ -172,7 +183,7 @@ import SkeletonMovieRow from "~/components/SkeletonMovieRow.vue";
 import { useContinueWatching } from "~/composables/useContinueWatching";
 import { useMyList } from "~/composables/useMyList";
 
-// -- Types --
+// -- Types (Cập nhật đủ trường) --
 type ApiMovie = {
   id: number;
   type: "movie" | "series";
@@ -184,6 +195,7 @@ type ApiMovie = {
   posterUrl?: string;
   year: number;
   genre: string;
+  country?: string; // [UPDATE] Thêm trường này
   episodeCount?: number;
 };
 
@@ -203,6 +215,7 @@ useSeoMeta({
 });
 
 // -- 1. Fetch Genres --
+// @ts-ignore
 const { data: filterData } = await useAsyncData<FiltersResponse>(
   "home-filters",
   () =>
@@ -211,36 +224,49 @@ const { data: filterData } = await useAsyncData<FiltersResponse>(
 );
 const genreList = computed(() => filterData.value?.genres || []);
 
-// -- 2. [MỚI] Fetch Featured Movies (Từ bảng riêng) --
-const { data: featuredData, pending: featuredPending } = await useFetch<any>("/api/featured/random");
-const featuredMovies = computed(() => featuredData.value?.items || []);
-
-// -- 3. Fetch New Movies (Sort by year) --
-// Lấy 50 phim mới nhất để vừa hiển thị list "New", vừa làm nguồn dữ liệu dự phòng cho Hero/ContinueWatching
+// -- 2. Fetch Movies (New Arrivals) --
 const {
-  data: newMoviesData,
-  pending: newMoviesPending,
+  data: moviesData,
+  pending,
   error,
 } = await useFetch<MoviesResponse>("/api/movies", {
   params: {
-    sort: "year_desc",
+    sort: "recommended",
     pageSize: 50,
   },
 });
 
-const newMoviesRaw = computed(() => newMoviesData.value?.items ?? []);
-const newMovies = computed(() => newMoviesRaw.value.slice(0, 12)); // Chỉ lấy 12 phim cho row New
+const hasError = computed(() => !!error.value);
+const allMovies = computed(() => moviesData.value?.items ?? []);
+
+// -- 3. [MỚI] Fetch Featured Movies (Random từ API riêng) --
+// Sử dụng lazy load để không chặn render
+const { data: featuredData, pending: pendingFeatured } = await useAsyncData<ApiMovie[]>(
+  "featured-random",
+  () => $fetch("/api/featured/random"),
+  {
+    lazy: true,
+    default: () => []
+  }
+);
+const featuredMovies = computed(() => featuredData.value || []);
+
+// New Movies: Lấy từ list chung, sắp xếp theo năm
+const newMovies = computed(() =>
+  [...allMovies.value].sort((a, b) => b.year - a.year).slice(0, 12)
+);
 
 // -- Hero Logic --
 const heroMovie = ref<ApiMovie | undefined>(undefined);
 
 onMounted(() => {
-  // Ưu tiên lấy Hero từ Featured list để quảng bá tốt hơn
-  // Nếu chưa có Featured, fallback về list New Movies
-  const source = featuredMovies.value.length > 0 ? featuredMovies.value : newMoviesRaw.value;
-
+  // Logic Hero: Ưu tiên lấy random từ Featured, nếu không có thì lấy từ New
+  const source = featuredMovies.value.length > 0 ? featuredMovies.value : allMovies.value;
+  
   if (source.length > 0) {
-    const randomIdx = Math.floor(Math.random() * Math.min(10, source.length));
+    const randomIdx = Math.floor(
+      Math.random() * Math.min(10, source.length)
+    );
     heroMovie.value = source[randomIdx];
   }
 });
@@ -265,15 +291,15 @@ const { sorted: continueList } = useContinueWatching();
 const continueMovies = computed<ApiMovie[]>(() => {
   if (!continueList.value.length) return [];
   
-  // Tạo Map từ cả Featured và New Movies để tìm thông tin phim cho Continue Watching
-  // (Lưu ý: Nếu phim quá cũ không nằm trong top 50 new hay featured thì có thể sẽ không hiện ở đây)
+  // [UPDATE] Map từ cả Featured và New Movies để tìm phim
+  // Giúp hiển thị đúng thông tin phim trong mục Continue Watching
   const map = new Map<number, ApiMovie>();
-  const combinedSource = [...newMoviesRaw.value, ...featuredMovies.value];
+  const combinedSource = [...allMovies.value, ...featuredMovies.value];
   
   for (const m of combinedSource) {
-    map.set(m.id, m);
+    if(!map.has(m.id)) map.set(m.id, m);
   }
-
+  
   return continueList.value
     .map((item) => map.get(item.movieId))
     .filter((m): m is ApiMovie => !!m);
@@ -283,7 +309,6 @@ const hasContinueWatching = computed(() => continueMovies.value.length > 0);
 </script>
 
 <style scoped>
-/* Animation Fade Up */
 .animate-fade-up {
   animation: fadeUp 1s ease-out forwards;
   opacity: 0;
