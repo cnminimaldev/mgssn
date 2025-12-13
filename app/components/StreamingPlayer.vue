@@ -6,7 +6,7 @@
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
     @keydown="handleKeydown"
-    @click="focusPlayer"
+    @click="handleWrapperClick"
     @dblclick="toggleFullscreen"
   >
     <div class="aspect-video w-full bg-black relative">
@@ -17,7 +17,6 @@
         playsinline
         crossorigin="anonymous"
         tabindex="-1"
-        @click.stop="handleVideoClick"
       >
         <track
           v-if="isIOS && activeTrackSrc"
@@ -100,7 +99,7 @@
       >
         <div
           class="group/progress pointer-events-auto relative mb-4 h-1.5 w-full cursor-pointer touch-none select-none rounded-full bg-white/20 hover:h-2 transition-all"
-          @click="handleSeek"
+          @click.stop="handleSeek"
           @mousedown="startDragging"
           @mousemove="handleProgressMove"
           @mouseleave="handleProgressLeave"
@@ -577,16 +576,13 @@ const hasCountedView = ref(false);
 const watchedDuration = ref(0);
 const lastTime = ref(0);
 
-// [THÊM MỚI] Biến kiểm tra iOS và Mobile
 const isIOS = ref(false);
 const isMobile = ref(false);
 
-// [THÊM MỚI] Tooltip State
 const isHoveringProgress = ref(false);
 const hoverProgressLeft = ref("0%");
 const hoverProgressTime = ref("00:00");
 
-// Menu States
 const showSettings = ref(false);
 const showSubsMenu = ref(false);
 
@@ -612,7 +608,6 @@ const bgOptions = [
   { val: 0.9, label: "黒" },
 ];
 
-// Computed cho Native Track (iOS)
 const activeTrackSrc = computed(() => {
   if (activeTrackIndex.value === -1 || !props.subtitles) return undefined;
   return props.subtitles[activeTrackIndex.value]?.src;
@@ -628,7 +623,6 @@ const activeTrackLang = computed(() => {
   return props.subtitles[activeTrackIndex.value]?.lang;
 });
 
-// Subtitle Style (Custom)
 const subtitleStyle = computed(() => {
   const scale = subSettings.fontSize / 100;
   return {
@@ -791,24 +785,26 @@ watch(
 
 // --- PLAYER LOGIC ---
 
-// [THÊM MỚI] Xử lý click video theo thiết bị
-const handleVideoClick = () => {
+// [THAY ĐỔI] Đổi tên thành handleWrapperClick để rõ nghĩa
+const handleWrapperClick = (e: MouseEvent) => {
   focusPlayer();
   
+  // Tránh xử lý nếu click vào các phần tử tương tác (đã có .stop rồi nhưng kiểm tra thêm cho chắc)
+  const target = e.target as HTMLElement;
+  if (['BUTTON', 'INPUT', 'A'].includes(target.tagName)) return;
+
   if (isMobile.value) {
-    // Mobile logic: Chỉ bật/tắt thanh điều khiển, KHÔNG toggle play/pause
+    // Mobile: Toggle Controls
     if (showControls.value) {
-      // Nếu đang hiện thì ẩn đi
       showControls.value = false;
       showSettings.value = false;
       showSubsMenu.value = false;
       if (controlsTimeout) clearTimeout(controlsTimeout);
     } else {
-      // Nếu đang ẩn thì hiện lên
       showControlsTemporary();
     }
   } else {
-    // Desktop logic: Toggle Play/Pause bình thường
+    // Desktop: Play/Pause
     togglePlay();
   }
 };
@@ -1049,7 +1045,6 @@ const handleDragging = (e: MouseEvent | TouchEvent) => {
   }
 };
 
-// Tooltip Handlers
 const handleProgressMove = (e: MouseEvent) => {
   if (!duration.value) return;
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -1173,7 +1168,6 @@ watch(() => props.src, initPlayer);
 onMounted(() => {
   const ua = navigator.userAgent;
   isIOS.value = /iPad|iPhone|iPod/.test(ua);
-  // [THÊM] Detect Mobile chung (Bao gồm Android)
   isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 
   const v = videoRef.value;
@@ -1189,9 +1183,6 @@ onMounted(() => {
   }
   window.addEventListener("mouseup", stopDragging);
   document.addEventListener("fullscreenchange", onFullscreenChange);
-  
-  // [ĐÃ SỬA] Xóa gán sự kiện keydown vào window để tránh double event
-  // window.addEventListener("keydown", handleKeydown);
 
   initPlayer();
 });
@@ -1210,7 +1201,6 @@ onBeforeUnmount(() => {
   }
   window.removeEventListener("mouseup", stopDragging);
   document.removeEventListener("fullscreenchange", onFullscreenChange);
-  // window.removeEventListener("keydown", handleKeydown);
   
   if (hls) hls.destroy();
   if (controlsTimeout) clearTimeout(controlsTimeout);
