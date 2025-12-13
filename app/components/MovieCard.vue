@@ -1,5 +1,54 @@
 <template>
   <div
+    v-if="isSearchPage"
+    class="group block w-full cursor-pointer"
+    @click="handleClick"
+  >
+    <div
+      class="relative aspect-video w-full overflow-hidden rounded-md bg-zinc-900"
+    >
+      <img
+        :src="item.thumbnail || '/images/fallback-poster.webp'"
+        :alt="item.title"
+        class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        loading="lazy"
+      />
+
+      <div v-if="item.type === 'series'" class="absolute right-1 top-1 z-10">
+        <span
+          class="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-white shadow-sm backdrop-blur-sm"
+        >
+          SERIES
+        </span>
+      </div>
+
+      <div
+        class="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10"
+      ></div>
+    </div>
+
+    <div class="mt-2 px-0.5">
+      <h3
+        class="text-sm font-bold text-zinc-200 leading-tight line-clamp-2 group-hover:text-emerald-400 transition-colors"
+        :title="item.title"
+      >
+        {{ item.title }}
+      </h3>
+
+      <div class="mt-1.5 flex items-center gap-2 text-xs text-zinc-500">
+        <span>{{ item.year }}</span>
+        <span
+          v-if="item.country"
+          class="border border-zinc-700 px-1 rounded text-[9px] uppercase"
+        >
+          {{ item.country }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div
+    v-else
     ref="cardRef"
     class="relative aspect-video cursor-pointer overflow-hidden rounded-md bg-zinc-900 transition-all duration-300"
     @mouseenter="handleMouseEnter"
@@ -156,7 +205,7 @@
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount } from "vue";
 import { useMyList } from "~/composables/useMyList";
-import { navigateTo } from "#imports";
+import { navigateTo, useRoute } from "#imports";
 import type { CSSProperties } from "vue";
 
 const props = defineProps<{
@@ -175,6 +224,10 @@ const props = defineProps<{
   };
 }>();
 
+// [THÊM] Kiểm tra xem có phải đang ở trang Search không
+const route = useRoute();
+const isSearchPage = computed(() => route.path === "/search");
+
 const linkTo = computed(() =>
   props.item.type === "series"
     ? `/series/${props.item.slug}`
@@ -192,7 +245,7 @@ const handleToggleList = () => {
   toggleMyList(props.item.id, props.item.type);
 };
 
-// --- Logic Hover & Popup Position ---
+// --- Logic Hover & Popup Position (Chỉ chạy khi không phải Search Page) ---
 const isHovered = ref(false);
 const showPopup = ref(false);
 const cardRef = ref<HTMLElement | null>(null);
@@ -201,6 +254,7 @@ const timer = ref<any>(null);
 const coords = ref({ top: 0, left: 0, width: 0 });
 
 const calculatePosition = () => {
+  // Nếu ở trang search thì không bật popup (hoặc do v-if đã ẩn cardRef)
   if (!cardRef.value) return;
   const rect = cardRef.value.getBoundingClientRect();
 
@@ -248,6 +302,9 @@ const popupStyle = computed<CSSProperties>(() => ({
 }));
 
 const handleMouseEnter = () => {
+  // [THÊM] Không hiện popup ở trang search
+  if (isSearchPage.value) return;
+
   timer.value = setTimeout(() => {
     calculatePosition();
     showPopup.value = true;
