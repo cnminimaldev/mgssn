@@ -6,13 +6,11 @@
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
     @keydown="handleKeydown"
-    @click="handleWrapperClick"
-    @dblclick="toggleFullscreen"
   >
-    <div class="aspect-video w-full bg-black relative">
+    <div class="aspect-video w-full bg-black relative z-0">
       <video
         ref="videoRef"
-        class="h-full w-full bg-black cursor-pointer outline-none"
+        class="h-full w-full bg-black outline-none"
         :poster="poster"
         playsinline
         crossorigin="anonymous"
@@ -40,6 +38,12 @@
         ></span>
       </div>
     </div>
+
+    <div
+      class="absolute inset-0 z-10 cursor-pointer w-full h-full"
+      @click="handleWrapperClick"
+      @dblclick="toggleFullscreen"
+    ></div>
 
     <div
       v-if="isBuffering"
@@ -107,7 +111,7 @@
           @touchmove="handleDragging"
           @touchend="stopDragging"
         >
-          <div 
+          <div
             v-if="isHoveringProgress"
             class="absolute bottom-4 -translate-x-1/2 rounded bg-black/80 px-2 py-1 text-xs font-bold text-white shadow-sm border border-white/10 whitespace-nowrap pointer-events-none z-50"
             :style="{ left: hoverProgressLeft }"
@@ -309,7 +313,6 @@
                   />
                 </svg>
               </button>
-
               <div
                 v-if="showSettings"
                 class="absolute bottom-full right-0 mb-3 w-48 overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
@@ -362,7 +365,6 @@
                   />
                 </svg>
               </button>
-
               <div
                 v-if="showSubsMenu"
                 class="absolute bottom-full right-0 mb-3 w-64 overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
@@ -785,16 +787,14 @@ watch(
 
 // --- PLAYER LOGIC ---
 
-// [THAY ĐỔI] Đổi tên thành handleWrapperClick để rõ nghĩa
 const handleWrapperClick = (e: MouseEvent) => {
   focusPlayer();
-  
+
   // Tránh xử lý nếu click vào các phần tử tương tác (đã có .stop rồi nhưng kiểm tra thêm cho chắc)
   const target = e.target as HTMLElement;
-  if (['BUTTON', 'INPUT', 'A'].includes(target.tagName)) return;
+  if (["BUTTON", "INPUT", "A"].includes(target.tagName)) return;
 
   if (isMobile.value) {
-    // Mobile: Toggle Controls
     if (showControls.value) {
       showControls.value = false;
       showSettings.value = false;
@@ -804,7 +804,6 @@ const handleWrapperClick = (e: MouseEvent) => {
       showControlsTemporary();
     }
   } else {
-    // Desktop: Play/Pause
     togglePlay();
   }
 };
@@ -1045,12 +1044,13 @@ const handleDragging = (e: MouseEvent | TouchEvent) => {
   }
 };
 
+// Tooltip Handlers
 const handleProgressMove = (e: MouseEvent) => {
   if (!duration.value) return;
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
   const offsetX = e.clientX - rect.left;
   const percent = Math.max(0, Math.min(1, offsetX / rect.width));
-  
+
   hoverProgressLeft.value = `${percent * 100}%`;
   hoverProgressTime.value = formatTime(percent * duration.value);
   isHoveringProgress.value = true;
@@ -1168,7 +1168,8 @@ watch(() => props.src, initPlayer);
 onMounted(() => {
   const ua = navigator.userAgent;
   isIOS.value = /iPad|iPhone|iPod/.test(ua);
-  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  isMobile.value =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 
   const v = videoRef.value;
   if (v) {
@@ -1201,7 +1202,7 @@ onBeforeUnmount(() => {
   }
   window.removeEventListener("mouseup", stopDragging);
   document.removeEventListener("fullscreenchange", onFullscreenChange);
-  
+
   if (hls) hls.destroy();
   if (controlsTimeout) clearTimeout(controlsTimeout);
   if (mouseMoveTimeout) clearTimeout(mouseMoveTimeout);
