@@ -6,15 +6,18 @@
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
     @keydown="handleKeydown"
+    @click="focusPlayer"
+    @dblclick="toggleFullscreen"
   >
-    <div class="aspect-video w-full bg-black relative z-0">
+    <div class="aspect-video w-full bg-black relative">
       <video
         ref="videoRef"
-        class="h-full w-full bg-black outline-none"
+        class="h-full w-full bg-black cursor-pointer outline-none"
         :poster="poster"
         playsinline
         crossorigin="anonymous"
         tabindex="-1"
+        @click.stop="togglePlay"
       >
         <track
           v-if="isIOS && activeTrackSrc"
@@ -38,12 +41,6 @@
         ></span>
       </div>
     </div>
-
-    <div
-      class="absolute inset-0 z-10 cursor-pointer w-full h-full"
-      @click="handleWrapperClick"
-      @dblclick="toggleFullscreen"
-    ></div>
 
     <div
       v-if="isBuffering"
@@ -103,7 +100,7 @@
       >
         <div
           class="group/progress pointer-events-auto relative mb-4 h-1.5 w-full cursor-pointer touch-none select-none rounded-full bg-white/20 hover:h-2 transition-all"
-          @click.stop="handleSeek"
+          @click="handleSeek"
           @mousedown="startDragging"
           @mousemove="handleProgressMove"
           @mouseleave="handleProgressLeave"
@@ -111,7 +108,7 @@
           @touchmove="handleDragging"
           @touchend="stopDragging"
         >
-          <div
+          <div 
             v-if="isHoveringProgress"
             class="absolute bottom-4 -translate-x-1/2 rounded bg-black/80 px-2 py-1 text-xs font-bold text-white shadow-sm border border-white/10 whitespace-nowrap pointer-events-none z-50"
             :style="{ left: hoverProgressLeft }"
@@ -313,6 +310,7 @@
                   />
                 </svg>
               </button>
+
               <div
                 v-if="showSettings"
                 class="absolute bottom-full right-0 mb-3 w-48 overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
@@ -365,6 +363,7 @@
                   />
                 </svg>
               </button>
+
               <div
                 v-if="showSubsMenu"
                 class="absolute bottom-full right-0 mb-3 w-64 overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
@@ -578,13 +577,15 @@ const hasCountedView = ref(false);
 const watchedDuration = ref(0);
 const lastTime = ref(0);
 
+// [THÊM MỚI] Biến kiểm tra iOS
 const isIOS = ref(false);
-const isMobile = ref(false);
 
+// [THÊM MỚI] Tooltip State
 const isHoveringProgress = ref(false);
 const hoverProgressLeft = ref("0%");
 const hoverProgressTime = ref("00:00");
 
+// Menu States
 const showSettings = ref(false);
 const showSubsMenu = ref(false);
 
@@ -610,6 +611,7 @@ const bgOptions = [
   { val: 0.9, label: "黒" },
 ];
 
+// [THÊM MỚI] Computed cho Native Track (iOS)
 const activeTrackSrc = computed(() => {
   if (activeTrackIndex.value === -1 || !props.subtitles) return undefined;
   return props.subtitles[activeTrackIndex.value]?.src;
@@ -625,6 +627,7 @@ const activeTrackLang = computed(() => {
   return props.subtitles[activeTrackIndex.value]?.lang;
 });
 
+// Subtitle Style (Custom)
 const subtitleStyle = computed(() => {
   const scale = subSettings.fontSize / 100;
   return {
@@ -786,27 +789,6 @@ watch(
 );
 
 // --- PLAYER LOGIC ---
-
-const handleWrapperClick = (e: MouseEvent) => {
-  focusPlayer();
-
-  // Tránh xử lý nếu click vào các phần tử tương tác (đã có .stop rồi nhưng kiểm tra thêm cho chắc)
-  const target = e.target as HTMLElement;
-  if (["BUTTON", "INPUT", "A"].includes(target.tagName)) return;
-
-  if (isMobile.value) {
-    if (showControls.value) {
-      showControls.value = false;
-      showSettings.value = false;
-      showSubsMenu.value = false;
-      if (controlsTimeout) clearTimeout(controlsTimeout);
-    } else {
-      showControlsTemporary();
-    }
-  } else {
-    togglePlay();
-  }
-};
 
 const toggleSettings = () => {
   showSettings.value = !showSettings.value;
@@ -1044,13 +1026,13 @@ const handleDragging = (e: MouseEvent | TouchEvent) => {
   }
 };
 
-// Tooltip Handlers
+// [THÊM MỚI] Tooltip Handlers
 const handleProgressMove = (e: MouseEvent) => {
   if (!duration.value) return;
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
   const offsetX = e.clientX - rect.left;
   const percent = Math.max(0, Math.min(1, offsetX / rect.width));
-
+  
   hoverProgressLeft.value = `${percent * 100}%`;
   hoverProgressTime.value = formatTime(percent * duration.value);
   isHoveringProgress.value = true;
@@ -1168,8 +1150,6 @@ watch(() => props.src, initPlayer);
 onMounted(() => {
   const ua = navigator.userAgent;
   isIOS.value = /iPad|iPhone|iPod/.test(ua);
-  isMobile.value =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 
   const v = videoRef.value;
   if (v) {
@@ -1184,6 +1164,9 @@ onMounted(() => {
   }
   window.addEventListener("mouseup", stopDragging);
   document.addEventListener("fullscreenchange", onFullscreenChange);
+  
+  // [SỬA LỖI] Xóa việc gán handleKeydown vào window để tránh double-event
+  // window.addEventListener("keydown", handleKeydown);
 
   initPlayer();
 });
@@ -1202,7 +1185,8 @@ onBeforeUnmount(() => {
   }
   window.removeEventListener("mouseup", stopDragging);
   document.removeEventListener("fullscreenchange", onFullscreenChange);
-
+  // window.removeEventListener("keydown", handleKeydown);
+  
   if (hls) hls.destroy();
   if (controlsTimeout) clearTimeout(controlsTimeout);
   if (mouseMoveTimeout) clearTimeout(mouseMoveTimeout);
