@@ -17,7 +17,7 @@
         playsinline
         crossorigin="anonymous"
         tabindex="-1"
-        @click.stop="togglePlay"
+        @click.stop="handleVideoClick"
       >
         <track
           v-if="isIOS && activeTrackSrc"
@@ -577,8 +577,9 @@ const hasCountedView = ref(false);
 const watchedDuration = ref(0);
 const lastTime = ref(0);
 
-// [THÊM MỚI] Biến kiểm tra iOS
+// [THÊM MỚI] Biến kiểm tra iOS và Mobile
 const isIOS = ref(false);
+const isMobile = ref(false);
 
 // [THÊM MỚI] Tooltip State
 const isHoveringProgress = ref(false);
@@ -611,7 +612,7 @@ const bgOptions = [
   { val: 0.9, label: "黒" },
 ];
 
-// [THÊM MỚI] Computed cho Native Track (iOS)
+// Computed cho Native Track (iOS)
 const activeTrackSrc = computed(() => {
   if (activeTrackIndex.value === -1 || !props.subtitles) return undefined;
   return props.subtitles[activeTrackIndex.value]?.src;
@@ -789,6 +790,28 @@ watch(
 );
 
 // --- PLAYER LOGIC ---
+
+// [THÊM MỚI] Xử lý click video theo thiết bị
+const handleVideoClick = () => {
+  focusPlayer();
+  
+  if (isMobile.value) {
+    // Mobile logic: Chỉ bật/tắt thanh điều khiển, KHÔNG toggle play/pause
+    if (showControls.value) {
+      // Nếu đang hiện thì ẩn đi
+      showControls.value = false;
+      showSettings.value = false;
+      showSubsMenu.value = false;
+      if (controlsTimeout) clearTimeout(controlsTimeout);
+    } else {
+      // Nếu đang ẩn thì hiện lên
+      showControlsTemporary();
+    }
+  } else {
+    // Desktop logic: Toggle Play/Pause bình thường
+    togglePlay();
+  }
+};
 
 const toggleSettings = () => {
   showSettings.value = !showSettings.value;
@@ -1026,7 +1049,7 @@ const handleDragging = (e: MouseEvent | TouchEvent) => {
   }
 };
 
-// [THÊM MỚI] Tooltip Handlers
+// Tooltip Handlers
 const handleProgressMove = (e: MouseEvent) => {
   if (!duration.value) return;
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -1150,6 +1173,8 @@ watch(() => props.src, initPlayer);
 onMounted(() => {
   const ua = navigator.userAgent;
   isIOS.value = /iPad|iPhone|iPod/.test(ua);
+  // [THÊM] Detect Mobile chung (Bao gồm Android)
+  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 
   const v = videoRef.value;
   if (v) {
@@ -1165,7 +1190,7 @@ onMounted(() => {
   window.addEventListener("mouseup", stopDragging);
   document.addEventListener("fullscreenchange", onFullscreenChange);
   
-  // [SỬA LỖI] Xóa việc gán handleKeydown vào window để tránh double-event
+  // [ĐÃ SỬA] Xóa gán sự kiện keydown vào window để tránh double event
   // window.addEventListener("keydown", handleKeydown);
 
   initPlayer();
