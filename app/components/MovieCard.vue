@@ -1,12 +1,13 @@
 <template>
   <div
     v-if="isSearchPage"
-    class="group block w-full cursor-pointer"
+    ref="cardRef"
+    class="group block w-full cursor-pointer transition-all duration-300"
     @click="handleClick"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
   >
-    <div
-      class="relative aspect-video w-full overflow-hidden rounded-md bg-zinc-900"
-    >
+    <div class="relative aspect-video w-full overflow-hidden rounded-md bg-zinc-900">
       <img
         :src="item.thumbnail || '/images/fallback-poster.webp'"
         :alt="item.title"
@@ -21,10 +22,8 @@
           SERIES
         </span>
       </div>
-
-      <div
-        class="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10"
-      ></div>
+      
+      <div class="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10"></div>
     </div>
 
     <div class="mt-2 px-0.5">
@@ -37,10 +36,7 @@
 
       <div class="mt-1.5 flex items-center gap-2 text-xs text-zinc-500">
         <span>{{ item.year }}</span>
-        <span
-          v-if="item.country"
-          class="border border-zinc-700 px-1 rounded text-[9px] uppercase"
-        >
+        <span v-if="item.country" class="border border-zinc-700 px-1 rounded text-[9px] uppercase">
           {{ item.country }}
         </span>
       </div>
@@ -77,129 +73,129 @@
         {{ item.title }}
       </p>
     </div>
+  </div>
 
-    <Teleport to="body">
+  <Teleport to="body">
+    <div
+      v-if="showPopup"
+      ref="popupRef"
+      class="fixed z-[9999] overflow-hidden rounded-lg bg-[#141414] shadow-2xl ring-1 ring-white/10 transition-all duration-300 ease-out"
+      :style="popupStyle"
+      @mouseenter="handlePopupEnter"
+      @mouseleave="handleMouseLeave"
+    >
       <div
-        v-if="showPopup"
-        ref="popupRef"
-        class="fixed z-[9999] overflow-hidden rounded-lg bg-[#141414] shadow-2xl ring-1 ring-white/10 transition-all duration-300 ease-out"
-        :style="popupStyle"
-        @mouseenter="handlePopupEnter"
-        @mouseleave="handleMouseLeave"
+        class="relative aspect-video w-full cursor-pointer"
+        @click="handleClick"
       >
+        <img
+          :src="item.thumbnail || '/images/fallback-poster.webp'"
+          :alt="item.title"
+          class="h-full w-full object-cover"
+        />
         <div
-          class="relative aspect-video w-full cursor-pointer"
-          @click="handleClick"
-        >
-          <img
-            :src="item.thumbnail || '/images/fallback-poster.webp'"
-            :alt="item.title"
-            class="h-full w-full object-cover"
-          />
-          <div
-            class="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent opacity-60"
-          ></div>
+          class="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent opacity-60"
+        ></div>
 
-          <div class="absolute bottom-3 left-3 right-3">
-            <h3
-              class="line-clamp-1 text-base font-bold text-white drop-shadow-lg sm:text-lg"
-            >
-              {{ item.title }}
-            </h3>
-          </div>
-        </div>
-
-        <div class="p-3">
-          <div class="mb-3 flex items-center gap-2">
-            <NuxtLink
-              :to="linkTo"
-              class="flex items-center gap-1 rounded bg-white px-4 py-1.5 text-xs font-bold text-black hover:bg-zinc-200 transition"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                class="w-3 h-3"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              再生
-            </NuxtLink>
-
-            <button
-              type="button"
-              class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-zinc-500 text-zinc-300 hover:border-white hover:text-white transition"
-              :class="{
-                'border-emerald-500 text-emerald-500 hover:border-emerald-400 hover:text-emerald-400':
-                  inMyList,
-              }"
-              title="マイリスト"
-              @click.stop="handleToggleList"
-            >
-              <span v-if="inMyList" class="text-xs font-bold">✔</span>
-              <span v-else class="text-lg leading-none mb-0.5">＋</span>
-            </button>
-
-            <NuxtLink
-              :to="linkTo"
-              class="ml-auto flex h-8 w-8 items-center justify-center rounded-full border-2 border-zinc-500 text-zinc-300 hover:border-white hover:text-white transition"
-              title="詳細情報"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="w-4 h-4"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-                />
-              </svg>
-            </NuxtLink>
-          </div>
-
-          <div
-            class="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-medium text-zinc-400"
+        <div class="absolute bottom-3 left-3 right-3">
+          <h3
+            class="line-clamp-1 text-base font-bold text-white drop-shadow-lg sm:text-lg"
           >
-            <span class="text-emerald-400 font-bold">{{ item.year }}</span>
-            <span v-if="item.episodeCount" class="text-zinc-300"
-              >{{ item.episodeCount }}エピソード</span
-            >
-            <span
-              class="rounded border border-zinc-600 px-1 py-0.5 text-[9px] tracking-wider text-zinc-400"
-              >HD</span
-            >
-          </div>
-
-          <div class="mb-2 flex flex-wrap gap-x-2 text-[10px] text-zinc-300">
-            <span v-if="item.genre" class="flex items-center gap-1">
-              <span class="w-1 h-1 rounded-full bg-zinc-500"></span>
-              {{ item.genre }}
-            </span>
-            <span v-if="item.country" class="flex items-center gap-1">
-              <span class="w-1 h-1 rounded-full bg-zinc-500"></span>
-              {{ item.country }}
-            </span>
-          </div>
-
-          <p
-            v-if="item.description"
-            class="mt-2 line-clamp-3 text-[10px] leading-relaxed text-zinc-400"
-          >
-            {{ item.description }}
-          </p>
+            {{ item.title }}
+          </h3>
         </div>
       </div>
-    </Teleport>
-  </div>
+
+      <div class="p-3">
+        <div class="mb-3 flex items-center gap-2">
+          <NuxtLink
+            :to="linkTo"
+            class="flex items-center gap-1 rounded bg-white px-4 py-1.5 text-xs font-bold text-black hover:bg-zinc-200 transition"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              class="w-3 h-3"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            再生
+          </NuxtLink>
+
+          <button
+            type="button"
+            class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-zinc-500 text-zinc-300 hover:border-white hover:text-white transition"
+            :class="{
+              'border-emerald-500 text-emerald-500 hover:border-emerald-400 hover:text-emerald-400':
+                inMyList,
+            }"
+            title="マイリスト"
+            @click.stop="handleToggleList"
+          >
+            <span v-if="inMyList" class="text-xs font-bold">✔</span>
+            <span v-else class="text-lg leading-none mb-0.5">＋</span>
+          </button>
+
+          <NuxtLink
+            :to="linkTo"
+            class="ml-auto flex h-8 w-8 items-center justify-center rounded-full border-2 border-zinc-500 text-zinc-300 hover:border-white hover:text-white transition"
+            title="詳細情報"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="w-4 h-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+              />
+            </svg>
+          </NuxtLink>
+        </div>
+
+        <div
+          class="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-medium text-zinc-400"
+        >
+          <span class="text-emerald-400 font-bold">{{ item.year }}</span>
+          <span v-if="item.episodeCount" class="text-zinc-300"
+            >{{ item.episodeCount }}エピソード</span
+          >
+          <span
+            class="rounded border border-zinc-600 px-1 py-0.5 text-[9px] tracking-wider text-zinc-400"
+            >HD</span
+          >
+        </div>
+
+        <div class="mb-2 flex flex-wrap gap-x-2 text-[10px] text-zinc-300">
+          <span v-if="item.genre" class="flex items-center gap-1">
+            <span class="w-1 h-1 rounded-full bg-zinc-500"></span>
+            {{ item.genre }}
+          </span>
+          <span v-if="item.country" class="flex items-center gap-1">
+            <span class="w-1 h-1 rounded-full bg-zinc-500"></span>
+            {{ item.country }}
+          </span>
+        </div>
+
+        <p
+          v-if="item.description"
+          class="mt-2 line-clamp-3 text-[10px] leading-relaxed text-zinc-400"
+        >
+          {{ item.description }}
+        </p>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -224,9 +220,9 @@ const props = defineProps<{
   };
 }>();
 
-// [THÊM] Kiểm tra xem có phải đang ở trang Search không
+// Kiểm tra trang hiện tại
 const route = useRoute();
-const isSearchPage = computed(() => route.path === "/search");
+const isSearchPage = computed(() => route.path === '/search');
 
 const linkTo = computed(() =>
   props.item.type === "series"
@@ -245,7 +241,7 @@ const handleToggleList = () => {
   toggleMyList(props.item.id, props.item.type);
 };
 
-// --- Logic Hover & Popup Position (Chỉ chạy khi không phải Search Page) ---
+// --- Logic Hover & Popup Position ---
 const isHovered = ref(false);
 const showPopup = ref(false);
 const cardRef = ref<HTMLElement | null>(null);
@@ -254,7 +250,6 @@ const timer = ref<any>(null);
 const coords = ref({ top: 0, left: 0, width: 0 });
 
 const calculatePosition = () => {
-  // Nếu ở trang search thì không bật popup (hoặc do v-if đã ẩn cardRef)
   if (!cardRef.value) return;
   const rect = cardRef.value.getBoundingClientRect();
 
@@ -273,6 +268,8 @@ const calculatePosition = () => {
     left = viewportWidth - popupWidth - margin;
 
   // TOP
+  // Điều chỉnh một chút cho trang search (do chiều cao thẻ lớn hơn vì có text)
+  // Logic này vẫn hoạt động tốt vì rect.height sẽ tự động bao gồm cả phần text
   let top = rect.top - (rect.height * (scale - 1)) / 2;
 
   // Ước lượng chiều cao popup (Ảnh + Info ~ 150px)
@@ -302,9 +299,7 @@ const popupStyle = computed<CSSProperties>(() => ({
 }));
 
 const handleMouseEnter = () => {
-  // [THÊM] Không hiện popup ở trang search
-  if (isSearchPage.value) return;
-
+  // [ĐÃ SỬA] Cho phép Popup hiện ở mọi trang, kể cả search
   timer.value = setTimeout(() => {
     calculatePosition();
     showPopup.value = true;
