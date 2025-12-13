@@ -123,9 +123,10 @@
       </section>
 
       <div class="space-y-12 pb-20">
+        
         <ClientOnly>
           <section
-            v-if="!hasError && hasContinueWatching"
+            v-if="!error && hasContinueWatching"
             class="px-4 sm:px-12 lg:px-20"
           >
             <MovieRow
@@ -138,7 +139,7 @@
         </ClientOnly>
 
         <section class="px-4 sm:px-12 lg:px-20">
-          <SkeletonMovieRow v-if="pending" title="注目の作品" />
+          <SkeletonMovieRow v-if="featuredPending" title="注目の作品" />
           <MovieRow
             v-else-if="featuredMovies.length"
             title="注目の作品"
@@ -149,7 +150,7 @@
         </section>
 
         <section class="px-4 sm:px-12 lg:px-20">
-          <SkeletonMovieRow v-if="pending" title="新着の作品" />
+          <SkeletonMovieRow v-if="newMoviesPending" title="新着の作品" />
           <MovieRow
             v-else-if="newMovies.length"
             title="新着の作品"
@@ -202,7 +203,6 @@ useSeoMeta({
 });
 
 // -- 1. Fetch Genres --
-// [FIX] Sử dụng @ts-ignore để vô hiệu hóa kiểm tra type đệ quy của Nuxt cho route này
 const { data: filterData } = await useAsyncData<FiltersResponse>(
   "home-filters",
   () =>
@@ -211,35 +211,37 @@ const { data: filterData } = await useAsyncData<FiltersResponse>(
 );
 const genreList = computed(() => filterData.value?.genres || []);
 
-// -- 2. Fetch Movies --
+// -- 2. [MỚI] Fetch Featured Movies (Từ bảng riêng) --
+const { data: featuredData, pending: featuredPending } = await useFetch<any>("/api/featured/random");
+const featuredMovies = computed(() => featuredData.value?.items || []);
+
+// -- 3. Fetch New Movies (Sort by year) --
+// Lấy 50 phim mới nhất để vừa hiển thị list "New", vừa làm nguồn dữ liệu dự phòng cho Hero/ContinueWatching
 const {
-  data: moviesData,
-  pending,
+  data: newMoviesData,
+  pending: newMoviesPending,
   error,
 } = await useFetch<MoviesResponse>("/api/movies", {
   params: {
-    sort: "recommended",
+    sort: "year_desc",
     pageSize: 50,
   },
 });
 
-const hasError = computed(() => !!error.value);
-const allMovies = computed(() => moviesData.value?.items ?? []);
-
-const featuredMovies = computed(() => allMovies.value.slice(0, 12));
-const newMovies = computed(() =>
-  [...allMovies.value].sort((a, b) => b.year - a.year).slice(0, 12)
-);
+const newMoviesRaw = computed(() => newMoviesData.value?.items ?? []);
+const newMovies = computed(() => newMoviesRaw.value.slice(0, 12)); // Chỉ lấy 12 phim cho row New
 
 // -- Hero Logic --
 const heroMovie = ref<ApiMovie | undefined>(undefined);
 
 onMounted(() => {
-  if (allMovies.value.length > 0) {
-    const randomIdx = Math.floor(
-      Math.random() * Math.min(10, allMovies.value.length)
-    );
-    heroMovie.value = allMovies.value[randomIdx];
+  // Ưu tiên lấy Hero từ Featured list để quảng bá tốt hơn
+  // Nếu chưa có Featured, fallback về list New Movies
+  const source = featuredMovies.value.length > 0 ? featuredMovies.value : newMoviesRaw.value;
+
+  if (source.length > 0) {
+    const randomIdx = Math.floor(Math.random() * Math.min(10, source.length));
+    heroMovie.value = source[randomIdx];
   }
 });
 
@@ -261,11 +263,17 @@ const toggleHeroList = () => {
 // -- Continue Watching Logic --
 const { sorted: continueList } = useContinueWatching();
 const continueMovies = computed<ApiMovie[]>(() => {
-  if (!continueList.value.length || !allMovies.value.length) return [];
+  if (!continueList.value.length) return [];
+  
+  // Tạo Map từ cả Featured và New Movies để tìm thông tin phim cho Continue Watching
+  // (Lưu ý: Nếu phim quá cũ không nằm trong top 50 new hay featured thì có thể sẽ không hiện ở đây)
   const map = new Map<number, ApiMovie>();
-  for (const m of allMovies.value) {
+  const combinedSource = [...newMoviesRaw.value, ...featuredMovies.value];
+  
+  for (const m of combinedSource) {
     map.set(m.id, m);
   }
+
   return continueList.value
     .map((item) => map.get(item.movieId))
     .filter((m): m is ApiMovie => !!m);
