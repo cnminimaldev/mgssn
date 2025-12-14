@@ -689,6 +689,20 @@ END;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.get_random_related_content(filter_genre_slugs text[], exclude_id bigint, limit_count integer)
+ RETURNS SETOF public.all_contents
+ LANGUAGE sql
+AS $function$
+  select *
+  from all_contents
+  where 
+    genre_slugs && filter_genre_slugs -- Toán tử && kiểm tra có trùng ít nhất 1 thể loại
+    and id != exclude_id              -- Loại trừ phim hiện tại
+  order by random()                   -- Sắp xếp ngẫu nhiên (Mấu chốt là đây)
+  limit limit_count;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.get_ranking(period text, limit_count integer DEFAULT 30)
  RETURNS TABLE(id bigint, type text, title text, slug text, poster_url text, banner_url text, view_count bigint, year integer, origin_country text)
  LANGUAGE plpgsql

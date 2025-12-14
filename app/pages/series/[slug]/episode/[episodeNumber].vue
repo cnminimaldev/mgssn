@@ -811,20 +811,34 @@ const {
         ?.map((sg: any) => sg.genre?.slug)
         .filter(Boolean) || [];
 
-    let relatedQuery = supabase
-      .from("all_contents")
-      .select(
-        "id, slug, title, poster_url, banner_url, type, year, origin_country, genre_label, description, episode_count"
-      )
-      .neq("id", result.series.id);
+    // [UPDATE] Sử dụng RPC get_random_related_content
+    let relData: any[] = [];
 
     if (currentGenreSlugs.length > 0) {
-      relatedQuery = relatedQuery.overlaps("genre_slugs", currentGenreSlugs);
-    }
+      const { data } = await supabase
+        .rpc("get_random_related_content", {
+          filter_genre_slugs: currentGenreSlugs,
+          exclude_id: result.series.id,
+          limit_count: 12,
+        })
+        .select(
+          "id, slug, title, poster_url, banner_url, type, year, origin_country, genre_label, description, episode_count"
+        );
 
-    const { data: relData } = await relatedQuery
-      .order("created_at", { ascending: false })
-      .limit(12);
+      // SỬA LỖI Ở ĐÂY: Ép kiểu data thành mảng
+      relData = (data as any[]) || [];
+    } else {
+      const { data } = await supabase
+        .from("all_contents")
+        .select(
+          "id, slug, title, poster_url, banner_url, type, year, origin_country, genre_label, description, episode_count"
+        )
+        .neq("id", result.series.id)
+        .order("created_at", { ascending: false })
+        .limit(12);
+
+      relData = (data as any[]) || [];
+    }
 
     result.relatedSeries = (relData ?? []) as RelatedItem[];
 

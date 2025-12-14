@@ -708,21 +708,34 @@ const {
       movieData.movie_genres
         ?.map((mg: any) => mg.genre?.slug)
         .filter(Boolean) || [];
-
-    let relatedQuery = supabase
-      .from("all_contents")
-      .select(
-        "id, slug, title, poster_url, banner_url, type, year, origin_country, genre_label, description, episode_count"
-      )
-      .neq("id", movieId);
+    let relData: any[] = [];
 
     if (currentGenreSlugs.length > 0) {
-      relatedQuery = relatedQuery.overlaps("genre_slugs", currentGenreSlugs);
+      // Nếu phim có thể loại, dùng RPC để lấy ngẫu nhiên
+      const { data } = await supabase
+        .rpc("get_random_related_content", {
+          filter_genre_slugs: currentGenreSlugs,
+          exclude_id: movieId,
+          limit_count: 12,
+        })
+        .select(
+          "id, slug, title, poster_url, banner_url, type, year, origin_country, genre_label, description, episode_count"
+        );
+        
+      relData = (data as any[]) || [];
+    } else {
+      // Fallback: Nếu phim không có thể loại nào (hiếm gặp), lấy phim mới nhất như cũ
+      const { data } = await supabase
+        .from("all_contents")
+        .select(
+          "id, slug, title, poster_url, banner_url, type, year, origin_country, genre_label, description, episode_count"
+        )
+        .neq("id", movieId)
+        .order("created_at", { ascending: false })
+        .limit(12);
+        
+      relData = (data as any[]) || [];
     }
-
-    const { data: relData } = await relatedQuery
-      .order("created_at", { ascending: false })
-      .limit(12);
 
     result.relatedMovies = (relData ?? []) as RelatedItem[];
 
