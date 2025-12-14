@@ -242,10 +242,13 @@ const handleToggleList = () => {
 };
 
 // --- Logic Hover & Popup Position ---
-const isHovered = ref(false);
-const showPopup = ref(false);
+// Tách biệt các biến Timer để quản lý chặt chẽ hơn
+const isHovered = ref(false);     // Điều khiển opacity/scale animation bên trong popup
+const showPopup = ref(false);     // Điều khiển v-if (render DOM)
 const cardRef = ref<HTMLElement | null>(null);
-const timer = ref<any>(null);
+
+const hoverTimeout = ref<NodeJS.Timeout | null>(null); // Timer để hiện popup
+const closeTimeout = ref<NodeJS.Timeout | null>(null); // Timer để ẩn popup
 
 const coords = ref({ top: 0, left: 0, width: 0 });
 
@@ -268,8 +271,6 @@ const calculatePosition = () => {
     left = viewportWidth - popupWidth - margin;
 
   // TOP
-  // Điều chỉnh một chút cho trang search (do chiều cao thẻ lớn hơn vì có text)
-  // Logic này vẫn hoạt động tốt vì rect.height sẽ tự động bao gồm cả phần text
   let top = rect.top - (rect.height * (scale - 1)) / 2;
 
   // Ước lượng chiều cao popup (Ảnh + Info ~ 150px)
@@ -298,35 +299,71 @@ const popupStyle = computed<CSSProperties>(() => ({
   transformOrigin: "center center",
 }));
 
+// Xử lý khi chuột VÀO thẻ
 const handleMouseEnter = () => {
-  // [ĐÃ SỬA] Cho phép Popup hiện ở mọi trang, kể cả search
-  timer.value = setTimeout(() => {
+  // 1. Xóa timer đóng (nếu có) để ngăn popup biến mất nếu user quay lại nhanh
+  if (closeTimeout.value) {
+    clearTimeout(closeTimeout.value);
+    closeTimeout.value = null;
+  }
+
+  // 2. Xóa timer mở cũ (nếu có) để đếm lại từ đầu
+  if (hoverTimeout.value) {
+    clearTimeout(hoverTimeout.value);
+  }
+
+  // 3. Đặt timer mới: Chờ 500ms (debounce) mới hiện popup
+  // Tăng lên 500ms để tránh trigger khi lướt nhanh (drag slider)
+  hoverTimeout.value = setTimeout(() => {
     calculatePosition();
     showPopup.value = true;
+    
+    // Animation fade-in nhẹ nhàng
     requestAnimationFrame(() => {
       isHovered.value = true;
     });
-  }, 400);
+  }, 500); 
 };
 
+// Xử lý khi chuột chuyển từ Card sang Popup (giữ popup mở)
 const handlePopupEnter = () => {
-  if (timer.value) clearTimeout(timer.value);
+  // Hủy các lệnh đóng/mở đang chờ, giữ nguyên trạng thái hiển thị
+  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
+  if (closeTimeout.value) clearTimeout(closeTimeout.value);
+  
   isHovered.value = true;
   showPopup.value = true;
 };
 
+// Xử lý khi chuột RỜI KHỎI thẻ (hoặc Popup)
 const handleMouseLeave = () => {
-  if (timer.value) clearTimeout(timer.value);
-  isHovered.value = false;
-  setTimeout(() => {
-    if (!isHovered.value) showPopup.value = false;
-  }, 300);
+  // 1. QUAN TRỌNG: Hủy ngay timer mở popup
+  // Nếu user lướt qua nhanh (< 500ms), dòng này sẽ ngăn popup xuất hiện
+  if (hoverTimeout.value) {
+    clearTimeout(hoverTimeout.value);
+    hoverTimeout.value = null;
+  }
+
+  // 2. Bắt đầu quy trình đóng
+  isHovered.value = false; // Trigger animation fade-out trước
+
+  // 3. Chờ animation CSS (300ms) chạy xong mới gỡ khỏi DOM (v-if=false)
+  if (closeTimeout.value) clearTimeout(closeTimeout.value);
+  
+  closeTimeout.value = setTimeout(() => {
+    if (!isHovered.value) {
+      showPopup.value = false;
+    }
+  }, 300); // Khớp với duration-300 trong class CSS
 };
 
 const closeOnScroll = () => {
-  if (isHovered.value) {
+  if (isHovered.value || showPopup.value) {
     isHovered.value = false;
     showPopup.value = false;
+    // Xóa sạch các timer
+    if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
+    if (closeTimeout.value) clearTimeout(closeTimeout.value);
   }
 };
 
@@ -338,5 +375,8 @@ onBeforeUnmount(() => {
   if (typeof window !== "undefined") {
     window.removeEventListener("scroll", closeOnScroll);
   }
+  // Cleanup timer khi component unmount
+  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
+  if (closeTimeout.value) clearTimeout(closeTimeout.value);
 });
 </script>
