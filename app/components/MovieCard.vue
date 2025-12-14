@@ -208,7 +208,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, watch } from "vue";
+import { ref, computed, onBeforeUnmount } from "vue";
 import { useMyList } from "~/composables/useMyList";
 import { navigateTo, useRoute } from "#imports";
 import type { CSSProperties } from "vue";
@@ -238,17 +238,19 @@ const linkTo = computed(() =>
     : `/movie/${props.item.slug}`
 );
 
-// --- Cờ đánh dấu Long Press ---
-const isLongPress = ref(false);
+// --- Cờ trạng thái cho Mobile ---
+const isTouchOpened = ref(false);   // Popup đang mở ở chế độ Touch
+const ignoreNextClick = ref(false); // Chặn click "oan" ngay sau khi thả tay
 
 const handleClick = (e: MouseEvent) => {
-  // Nếu vừa thực hiện Long Press (popup hiện lên), chặn click để không chuyển trang ngay.
-  if (isLongPress.value) {
+  // Nếu cờ chặn đang bật (do vừa thả tay sau long-press)
+  if (ignoreNextClick.value) {
     e.preventDefault();
     e.stopPropagation();
-    isLongPress.value = false; // Reset cờ để lần tap tiếp theo sẽ chuyển trang
+    ignoreNextClick.value = false; // Reset cờ để lần click sau (chủ động) sẽ ăn
     return;
   }
+  // Nếu không bị chặn thì navigate bình thường
   navigateTo(linkTo.value);
 };
 
@@ -263,7 +265,7 @@ const handleToggleList = () => {
 const isHovered = ref(false);     
 const showPopup = ref(false);     
 const cardRef = ref<HTMLElement | null>(null);
-const popupRef = ref<HTMLElement | null>(null); // Thêm ref cho popup
+const popupRef = ref<HTMLElement | null>(null);
 
 const hoverTimeout = ref<NodeJS.Timeout | null>(null);
 const closeTimeout = ref<NodeJS.Timeout | null>(null);
@@ -312,6 +314,9 @@ const popupStyle = computed<CSSProperties>(() => ({
 // --- MOUSE HANDLERS (Desktop) ---
 
 const handleHoverLogic = (e: MouseEvent) => {
+  // Nếu đang ở chế độ Touch mở, bỏ qua sự kiện chuột (để tránh xung đột)
+  if (isTouchOpened.value) return;
+
   if (e.buttons > 0) {
     if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
     return;
@@ -342,6 +347,10 @@ const handlePopupEnter = () => {
 };
 
 const handleMouseLeave = () => {
+  // [QUAN TRỌNG] Nếu Popup mở bằng Touch, TUYỆT ĐỐI KHÔNG đóng khi mouseleave
+  // Vì trên mobile, sau khi thả tay trình duyệt có thể giả lập sự kiện này
+  if (isTouchOpened.value) return;
+
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
@@ -360,14 +369,16 @@ const handleMouseLeave = () => {
 // --- TOUCH HANDLERS (Mobile) ---
 
 const handleTouchStart = () => {
-  isLongPress.value = false; 
-
+  // Reset trạng thái
+  ignoreNextClick.value = false;
+  // Không reset isTouchOpened ở đây vội để tránh nhấp nháy nếu tap liên tiếp
+  
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
   if (closeTimeout.value) clearTimeout(closeTimeout.value);
 
   // Bắt đầu đếm 500ms
   hoverTimeout.value = setTimeout(() => {
-    isLongPress.value = true;
+    isTouchOpened.value = true; // Đánh dấu là mở bằng Touch
     calculatePosition();
     showPopup.value = true;
     isHovered.value = true;
@@ -375,51 +386,57 @@ const handleTouchStart = () => {
 };
 
 const handleTouchMove = () => {
+  // Nếu di chuyển (scroll), hủy timer ngay
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
-  }
-  if (!showPopup.value) {
-    isLongPress.value = false;
   }
 };
 
 const handleTouchEnd = () => {
+  // Hủy timer nếu chưa đủ 500ms (chưa kịp hiện popup)
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
   }
 
-  // [SỬA LỖI] Nếu là Long Press, KHÔNG gọi handleMouseLeave để giữ popup mở
-  if (isLongPress.value) {
-    return; 
+  // Nếu Popup ĐÃ mở bằng touch (tức là đã giữ đủ 500ms)
+  if (isTouchOpened.value) {
+    // Đánh dấu để chặn sự kiện click (giả lập) sắp xảy ra ngay sau đây
+    ignoreNextClick.value = true;
+    
+    // [QUAN TRỌNG] KHÔNG gọi handleMouseLeave() -> Popup sẽ giữ nguyên
+    return;
   }
 
-  // Nếu chỉ là tap bình thường mà popup lỡ hiện (hiếm), thì đóng nó
-  if (showPopup.value) {
+  // Nếu popup lỡ hiện (trường hợp hiếm) mà không phải mode touch open thì đóng
+  if (showPopup.value && !isTouchOpened.value) {
     handleMouseLeave();
   }
 };
 
 // --- GLOBAL EVENT: CLICK OUTSIDE (Mobile UX) ---
-// Giúp đóng popup khi chạm ra ngoài
 const handleGlobalTouch = (event: Event) => {
   if (!showPopup.value) return;
 
   const target = event.target as Node;
   
-  // Kiểm tra xem điểm chạm có nằm trong Popup hay Card gốc không
   const isInsidePopup = popupRef.value?.contains(target);
   const isInsideCard = cardRef.value?.contains(target);
 
+  // Nếu chạm ra ngoài cả Popup và Card
   if (!isInsidePopup && !isInsideCard) {
-    handleMouseLeave(); // Đóng popup nếu chạm ra ngoài
+    // Tắt chế độ Touch Open để cho phép đóng
+    isTouchOpened.value = false;
+    handleMouseLeave();
   }
 };
 
 // --- SCROLL HANDLER ---
 const closeOnScroll = () => {
   if (isHovered.value || showPopup.value) {
+    // Reset mọi trạng thái
+    isTouchOpened.value = false;
     isHovered.value = false;
     showPopup.value = false;
     if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
@@ -429,14 +446,16 @@ const closeOnScroll = () => {
 
 if (typeof window !== "undefined") {
   window.addEventListener("scroll", closeOnScroll);
-  // Thêm sự kiện touchstart toàn cục để bắt click outside
+  // Sử dụng sự kiện click cho desktop và touchstart cho mobile để bắt "click outside"
   window.addEventListener("touchstart", handleGlobalTouch, { passive: true });
+  window.addEventListener("mousedown", handleGlobalTouch);
 }
 
 onBeforeUnmount(() => {
   if (typeof window !== "undefined") {
     window.removeEventListener("scroll", closeOnScroll);
     window.removeEventListener("touchstart", handleGlobalTouch);
+    window.removeEventListener("mousedown", handleGlobalTouch);
   }
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
   if (closeTimeout.value) clearTimeout(closeTimeout.value);
