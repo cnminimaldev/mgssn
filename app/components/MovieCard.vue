@@ -238,19 +238,18 @@ const linkTo = computed(() =>
     : `/movie/${props.item.slug}`
 );
 
-// --- Cờ trạng thái cho Mobile ---
-const isTouchOpened = ref(false);   // Popup đang mở ở chế độ Touch
-const ignoreNextClick = ref(false); // Chặn click "oan" ngay sau khi thả tay
+// --- Biến cờ xử lý click sau khi long-press ---
+const preventNextClick = ref(false);
 
 const handleClick = (e: MouseEvent) => {
-  // Nếu cờ chặn đang bật (do vừa thả tay sau long-press)
-  if (ignoreNextClick.value) {
+  // Nếu cờ chặn đang bật (do vừa thả tay sau khi long-press thành công)
+  if (preventNextClick.value) {
     e.preventDefault();
     e.stopPropagation();
-    ignoreNextClick.value = false; // Reset cờ để lần click sau (chủ động) sẽ ăn
+    preventNextClick.value = false; // Reset để lần click sau hoạt động bình thường
     return;
   }
-  // Nếu không bị chặn thì navigate bình thường
+  // Nếu không bị chặn thì chuyển trang
   navigateTo(linkTo.value);
 };
 
@@ -271,6 +270,9 @@ const hoverTimeout = ref<NodeJS.Timeout | null>(null);
 const closeTimeout = ref<NodeJS.Timeout | null>(null);
 
 const coords = ref({ top: 0, left: 0, width: 0 });
+
+// Biến cờ xác định trạng thái Long Press
+const isLongPressTriggered = ref(false);
 
 const calculatePosition = () => {
   if (!cardRef.value) return;
@@ -311,17 +313,12 @@ const popupStyle = computed<CSSProperties>(() => ({
   transformOrigin: "center center",
 }));
 
-// --- MOUSE HANDLERS (Desktop) ---
-
+// --- DESKTOP HOVER ---
 const handleHoverLogic = (e: MouseEvent) => {
-  // Nếu đang ở chế độ Touch mở, bỏ qua sự kiện chuột (để tránh xung đột)
-  if (isTouchOpened.value) return;
-
-  if (e.buttons > 0) {
+  if (e.buttons > 0) { // Đang kéo (drag)
     if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
     return;
   }
-
   if (closeTimeout.value) {
     clearTimeout(closeTimeout.value);
     closeTimeout.value = null;
@@ -330,6 +327,7 @@ const handleHoverLogic = (e: MouseEvent) => {
 
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
 
+  // Debounce 500ms
   hoverTimeout.value = setTimeout(() => {
     calculatePosition();
     showPopup.value = true;
@@ -347,10 +345,7 @@ const handlePopupEnter = () => {
 };
 
 const handleMouseLeave = () => {
-  // [QUAN TRỌNG] Nếu Popup mở bằng Touch, TUYỆT ĐỐI KHÔNG đóng khi mouseleave
-  // Vì trên mobile, sau khi thả tay trình duyệt có thể giả lập sự kiện này
-  if (isTouchOpened.value) return;
-
+  // Reset timer mở
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
@@ -366,19 +361,19 @@ const handleMouseLeave = () => {
   }, 300);
 };
 
-// --- TOUCH HANDLERS (Mobile) ---
+// --- MOBILE TOUCH ---
 
 const handleTouchStart = () => {
-  // Reset trạng thái
-  ignoreNextClick.value = false;
-  // Không reset isTouchOpened ở đây vội để tránh nhấp nháy nếu tap liên tiếp
-  
+  isLongPressTriggered.value = false;
+  preventNextClick.value = false;
+
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
   if (closeTimeout.value) clearTimeout(closeTimeout.value);
 
   // Bắt đầu đếm 500ms
   hoverTimeout.value = setTimeout(() => {
-    isTouchOpened.value = true; // Đánh dấu là mở bằng Touch
+    // Đã giữ đủ lâu -> Mở Popup
+    isLongPressTriggered.value = true; 
     calculatePosition();
     showPopup.value = true;
     isHovered.value = true;
@@ -386,57 +381,54 @@ const handleTouchStart = () => {
 };
 
 const handleTouchMove = () => {
-  // Nếu di chuyển (scroll), hủy timer ngay
+  // Nếu di chuyển tay (scroll), hủy Long Press
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
   }
+  isLongPressTriggered.value = false;
 };
 
 const handleTouchEnd = () => {
-  // Hủy timer nếu chưa đủ 500ms (chưa kịp hiện popup)
+  // Xóa timer đang đếm (nếu chưa đủ 500ms)
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
   }
 
-  // Nếu Popup ĐÃ mở bằng touch (tức là đã giữ đủ 500ms)
-  if (isTouchOpened.value) {
-    // Đánh dấu để chặn sự kiện click (giả lập) sắp xảy ra ngay sau đây
-    ignoreNextClick.value = true;
+  // [SỬA LỖI QUAN TRỌNG]
+  // Nếu Popup vừa được mở bằng Long Press:
+  if (isLongPressTriggered.value) {
+    // 1. Đánh dấu để chặn sự kiện Click chuyển trang sắp xảy ra
+    preventNextClick.value = true;
     
-    // [QUAN TRỌNG] KHÔNG gọi handleMouseLeave() -> Popup sẽ giữ nguyên
-    return;
+    // 2. KHÔNG gọi handleMouseLeave(). Giữ popup ở lại.
+    return; 
   }
 
-  // Nếu popup lỡ hiện (trường hợp hiếm) mà không phải mode touch open thì đóng
-  if (showPopup.value && !isTouchOpened.value) {
+  // Nếu là tap ngắn (chưa đủ 500ms) thì popup chưa hiện.
+  // Sự kiện Click sẽ xảy ra sau đây và kích hoạt navigateTo().
+  // (Trừ trường hợp hiếm hoi popup đang hiện sẵn, thì đóng nó)
+  if (showPopup.value && !isLongPressTriggered.value) {
     handleMouseLeave();
   }
 };
 
-// --- GLOBAL EVENT: CLICK OUTSIDE (Mobile UX) ---
+// Global Click/Touch Outside để đóng Popup
 const handleGlobalTouch = (event: Event) => {
   if (!showPopup.value) return;
 
   const target = event.target as Node;
-  
   const isInsidePopup = popupRef.value?.contains(target);
   const isInsideCard = cardRef.value?.contains(target);
 
-  // Nếu chạm ra ngoài cả Popup và Card
   if (!isInsidePopup && !isInsideCard) {
-    // Tắt chế độ Touch Open để cho phép đóng
-    isTouchOpened.value = false;
     handleMouseLeave();
   }
 };
 
-// --- SCROLL HANDLER ---
 const closeOnScroll = () => {
   if (isHovered.value || showPopup.value) {
-    // Reset mọi trạng thái
-    isTouchOpened.value = false;
     isHovered.value = false;
     showPopup.value = false;
     if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
@@ -446,7 +438,6 @@ const closeOnScroll = () => {
 
 if (typeof window !== "undefined") {
   window.addEventListener("scroll", closeOnScroll);
-  // Sử dụng sự kiện click cho desktop và touchstart cho mobile để bắt "click outside"
   window.addEventListener("touchstart", handleGlobalTouch, { passive: true });
   window.addEventListener("mousedown", handleGlobalTouch);
 }
