@@ -2,20 +2,23 @@
   <div
     v-if="isSearchPage"
     ref="cardRef"
-    class="group block w-full cursor-pointer transition-all duration-300"
+    class="group block w-full cursor-pointer transition-all duration-300 select-none touch-callout-none"
     @click="handleClick"
     @mouseenter="handleHoverLogic"
     @mousemove="handleHoverLogic"
     @mouseleave="handleMouseLeave"
+    @touchstart.passive="handleTouchStart"
+    @touchend="handleTouchEnd"
+    @touchmove="handleTouchMove"
+    @contextmenu.prevent
   >
     <div class="relative aspect-video w-full overflow-hidden rounded-md bg-zinc-900">
       <img
         :src="item.thumbnail || '/images/fallback-poster.webp'"
         :alt="item.title"
-        class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 pointer-events-none"
         loading="lazy"
       />
-
       <div v-if="item.type === 'series'" class="absolute right-1 top-1 z-10">
         <span
           class="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-white shadow-sm backdrop-blur-sm"
@@ -47,16 +50,20 @@
   <div
     v-else
     ref="cardRef"
-    class="relative aspect-video cursor-pointer overflow-hidden rounded-md bg-zinc-900 transition-all duration-300"
+    class="relative aspect-video cursor-pointer overflow-hidden rounded-md bg-zinc-900 transition-all duration-300 select-none touch-callout-none"
     @mouseenter="handleHoverLogic"
     @mousemove="handleHoverLogic"
     @mouseleave="handleMouseLeave"
+    @touchstart.passive="handleTouchStart"
+    @touchend="handleTouchEnd"
+    @touchmove="handleTouchMove"
+    @contextmenu.prevent
     @click="handleClick"
   >
     <img
       :src="item.thumbnail || '/images/fallback-poster.webp'"
       :alt="item.title"
-      class="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+      class="h-full w-full object-cover transition-transform duration-500 hover:scale-105 pointer-events-none"
       loading="lazy"
     />
 
@@ -231,7 +238,18 @@ const linkTo = computed(() =>
     : `/movie/${props.item.slug}`
 );
 
-const handleClick = () => {
+// [UPDATE] Cờ đánh dấu Long Press
+const isLongPress = ref(false);
+
+const handleClick = (e: MouseEvent) => {
+  // Nếu vừa thực hiện Long Press (nhấn giữ để xem popup),
+  // thì chặn click để không chuyển trang.
+  if (isLongPress.value) {
+    e.preventDefault();
+    e.stopPropagation();
+    isLongPress.value = false; // Reset sau khi chặn
+    return;
+  }
   navigateTo(linkTo.value);
 };
 
@@ -291,30 +309,22 @@ const popupStyle = computed<CSSProperties>(() => ({
   transformOrigin: "center center",
 }));
 
-// [UPDATE] Hàm xử lý Hover thông minh
-// Kết hợp cả Mouse Enter và Mouse Move
+// --- MOUSE HANDLERS (Desktop) ---
+
 const handleHoverLogic = (e: MouseEvent) => {
-  // 1. Nếu đang giữ chuột (kéo slider), e.buttons sẽ > 0 (1=Left Click)
-  // Ngừng ngay lập tức, không hiện popup
   if (e.buttons > 0) {
     if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
     return;
   }
 
-  // 2. Nếu Popup đã hiện rồi thì giữ nguyên, không cần tính toán lại
-  // Nhưng nhớ xóa timer đóng nếu người dùng quay lại thẻ
   if (closeTimeout.value) {
     clearTimeout(closeTimeout.value);
     closeTimeout.value = null;
   }
   if (isHovered.value || showPopup.value) return;
 
-  // 3. Cơ chế Reset-on-Move:
-  // Hủy timer cũ mỗi khi chuột di chuyển
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
 
-  // 4. Bắt đầu đếm lại 500ms
-  // Popup chỉ hiện khi chuột DỪNG LẠI (hoặc di chuyển cực chậm)
   hoverTimeout.value = setTimeout(() => {
     calculatePosition();
     showPopup.value = true;
@@ -332,7 +342,6 @@ const handlePopupEnter = () => {
 };
 
 const handleMouseLeave = () => {
-  // Hủy timer mở popup ngay lập tức
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
@@ -346,6 +355,56 @@ const handleMouseLeave = () => {
       showPopup.value = false;
     }
   }, 300);
+};
+
+// --- TOUCH HANDLERS (Mobile) ---
+
+// Khi bắt đầu chạm
+const handleTouchStart = () => {
+  isLongPress.value = false; // Reset cờ
+
+  // Xóa các timer cũ
+  if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
+  if (closeTimeout.value) clearTimeout(closeTimeout.value);
+
+  // Bắt đầu đếm giờ Long Press (500ms)
+  hoverTimeout.value = setTimeout(() => {
+    // Nếu giữ đủ 500ms:
+    isLongPress.value = true; // Đánh dấu là long press
+    calculatePosition();
+    showPopup.value = true;
+    isHovered.value = true;
+  }, 500);
+};
+
+// Khi di chuyển ngón tay
+const handleTouchMove = () => {
+  // Nếu người dùng cuộn trang (scroll), hủy ngay long press
+  if (hoverTimeout.value) {
+    clearTimeout(hoverTimeout.value);
+    hoverTimeout.value = null;
+  }
+  // Nếu popup chưa hiện thì hủy cờ
+  if (!showPopup.value) {
+    isLongPress.value = false;
+  }
+};
+
+// Khi nhấc ngón tay ra
+const handleTouchEnd = () => {
+  // Hủy timer nếu chưa kịp hiện popup
+  if (hoverTimeout.value) {
+    clearTimeout(hoverTimeout.value);
+    hoverTimeout.value = null;
+  }
+
+  // Nếu popup đang hiện, tiến hành đóng nó (giống mouse leave)
+  if (showPopup.value) {
+    handleMouseLeave();
+  }
+  
+  // Lưu ý: Cờ isLongPress sẽ được dùng ở sự kiện @click (xảy ra ngay sau touchend)
+  // để quyết định có navigate hay không.
 };
 
 const closeOnScroll = () => {
@@ -369,3 +428,15 @@ onBeforeUnmount(() => {
   if (closeTimeout.value) clearTimeout(closeTimeout.value);
 });
 </script>
+
+<style scoped>
+/* Class tiện ích để chặn Context Menu trên iOS */
+.touch-callout-none {
+  -webkit-touch-callout: none;
+}
+/* Class tiện ích để chặn bôi đen/chọn text */
+.select-none {
+  user-select: none;
+  -webkit-user-select: none;
+}
+</style>
