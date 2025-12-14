@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Chặn bot vào trang Admin quản trị
+Disallow: /admin/
+
+# Chặn bot vào các trang cá nhân/đăng nhập
+Disallow: /my-list
+Disallow: /login
+Disallow: /profile
+
+# Chặn bot gọi trực tiếp vào API
+Disallow: /api/
+
+# Đường dẫn đến Sitemap (Thay thế bằng domain thật của bạn)
+Sitemap: https://mugentv.com/sitemap.xml
