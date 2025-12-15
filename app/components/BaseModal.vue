@@ -11,11 +11,12 @@
         ></div>
 
         <div 
-          class="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 text-left align-middle shadow-2xl transition-all"
+          class="relative w-full transform overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 text-left align-middle shadow-2xl transition-all flex flex-col max-h-[90vh]"
+          :class="widthClass || 'max-w-md'"
           role="dialog"
           aria-modal="true"
         >
-          <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center justify-between mb-5 shrink-0">
             <h3 class="text-lg font-bold leading-6 text-white">
               {{ title }}
             </h3>
@@ -29,11 +30,11 @@
             </button>
           </div>
 
-          <div class="mt-2">
+          <div class="mt-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
             <slot></slot>
           </div>
 
-          <div class="mt-6 flex justify-end gap-3" v-if="$slots.footer">
+          <div class="mt-6 flex justify-end gap-3 shrink-0" v-if="$slots.footer">
             <slot name="footer"></slot>
           </div>
         </div>
@@ -46,13 +47,13 @@
 defineProps<{
   modelValue: boolean
   title?: string
+  widthClass?: string // [MỚI] Cho phép truyền độ rộng vào
 }>()
 
 defineEmits(['update:modelValue'])
 </script>
 
 <style scoped>
-/* Animation */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -73,5 +74,16 @@ defineEmits(['update:modelValue'])
 }
 .fade-leave-to > div:last-child {
   transform: scale(0.95);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
 }
 </style>

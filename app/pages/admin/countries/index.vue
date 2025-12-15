@@ -1,78 +1,129 @@
 <template>
-  <div class="min-h-screen bg-[#05060a] text-zinc-300 p-6 sm:p-10">
+  <div class="min-h-screen bg-black text-zinc-50 px-4 py-8">
     <div class="mx-auto max-w-4xl">
-      <div class="flex items-center justify-between mb-8">
+      <div class="mb-6 flex items-center justify-between">
         <div>
+          <h1 class="text-2xl font-semibold">国・地域管理 (Countries)</h1>
+          <p class="mt-1 text-xs text-zinc-400">
+            映画やシリーズの製作国を管理します
+          </p>
+        </div>
+        <div class="flex gap-2">
           <NuxtLink
             to="/admin"
-            class="text-xs text-emerald-400 hover:underline mb-2 block"
-            >&larr; 管理画面に戻る</NuxtLink
+            class="rounded-md border border-zinc-700 px-3 py-2 text-xs hover:bg-zinc-800 text-zinc-300"
           >
-          <h1 class="text-2xl font-bold text-white">
-            国・地域管理 (Countries)
-          </h1>
+            &larr; Admin Top
+          </NuxtLink>
         </div>
-        <button
-          @click="openCreateModal"
-          class="flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-bold text-white hover:bg-orange-500 transition shadow-lg shadow-orange-900/20"
-        >
-          <span>＋</span> 新規作成
-        </button>
       </div>
 
-      <div
-        class="overflow-hidden rounded-xl border border-white/10 bg-zinc-900/50"
-      >
-        <table class="w-full text-left text-sm">
-          <thead class="bg-white/5 text-xs uppercase text-zinc-400">
-            <tr>
-              <th class="px-6 py-4 font-medium">Code</th>
-              <th class="px-6 py-4 font-medium">Name (EN)</th>
-              <th class="px-6 py-4 font-medium">Name (JA)</th>
-              <th class="px-6 py-4 font-medium text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-white/5">
-            <tr v-if="pending" class="bg-black/20">
-              <td colspan="4" class="px-6 py-8 text-center text-zinc-500">
-                Loading...
-              </td>
-            </tr>
-            <tr
-              v-else
-              v-for="c in countries"
-              :key="c.code"
-              class="hover:bg-white/5 transition-colors"
+      <div class="mb-8 rounded-lg border border-white/5 bg-zinc-950/70 p-5">
+        <h2
+          class="mb-4 text-xs font-bold text-emerald-400 uppercase tracking-wider"
+        >
+          新規登録 (Add New)
+        </h2>
+
+        <form
+          class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
+          @submit.prevent="handleAdd"
+        >
+          <div class="md:col-span-2">
+            <label
+              class="mb-1 block text-[10px] text-zinc-500 uppercase font-bold"
+              >Code (ISO)</label
             >
-              <td class="px-6 py-3 font-mono text-xs text-orange-400">
-                {{ c.code }}
-              </td>
-              <td class="px-6 py-3 text-white">{{ c.name }}</td>
-              <td class="px-6 py-3 text-zinc-300">{{ c.name_ja }}</td>
-              <td class="px-6 py-3 text-right">
-                <div class="flex items-center justify-end gap-2">
+            <input
+              v-model="form.code"
+              type="text"
+              required
+              placeholder="US, JP..."
+              class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none uppercase font-mono"
+              maxlength="3"
+            />
+          </div>
+
+          <div class="md:col-span-4">
+            <label
+              class="mb-1 block text-[10px] text-zinc-500 uppercase font-bold"
+              >名前 (English)</label
+            >
+            <input
+              v-model="form.name"
+              type="text"
+              required
+              placeholder="United States"
+              class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
+
+          <div class="md:col-span-4">
+            <label
+              class="mb-1 block text-[10px] text-zinc-500 uppercase font-bold"
+              >名前 (日本語)</label
+            >
+            <input
+              v-model="form.name_ja"
+              type="text"
+              required
+              placeholder="アメリカ"
+              class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
+
+          <div class="md:col-span-2">
+            <button
+              type="submit"
+              :disabled="loading"
+              class="w-full rounded bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50 transition shadow-lg shadow-emerald-900/20"
+            >
+              <span v-if="loading">...</span>
+              <span v-else>追加</span>
+            </button>
+          </div>
+        </form>
+
+        <p v-if="errorMsg" class="mt-2 text-xs text-red-400">{{ errorMsg }}</p>
+      </div>
+
+      <div v-if="pending" class="py-10 text-center text-sm text-zinc-500">
+        読み込み中...
+      </div>
+
+      <div v-else>
+        <div
+          class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl"
+        >
+          <table class="w-full text-left text-sm text-zinc-400">
+            <thead
+              class="bg-zinc-950 text-zinc-200 uppercase text-xs font-semibold tracking-wider"
+            >
+              <tr>
+                <th class="px-4 py-3 w-16 text-center">Code</th>
+                <th class="px-4 py-3">名前 (EN)</th>
+                <th class="px-4 py-3">名前 (JA)</th>
+                <th class="px-4 py-3 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800">
+              <tr
+                v-for="c in countries"
+                :key="c.code"
+                class="hover:bg-zinc-800/50 transition-colors"
+              >
+                <td
+                  class="px-4 py-3 text-center font-mono text-emerald-500 font-bold"
+                >
+                  {{ c.code }}
+                </td>
+                <td class="px-4 py-3 text-zinc-200">{{ c.name }}</td>
+                <td class="px-4 py-3 text-zinc-300">{{ c.name_ja }}</td>
+                <td class="px-4 py-3 text-right">
                   <button
-                    @click="openEditModal(c)"
-                    class="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke-width="1.5"
-                      stroke="currentColor"
-                      class="w-4 h-4"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    @click="deleteCountry(c)"
-                    class="p-1.5 rounded text-red-400 hover:text-white hover:bg-red-500/80 transition"
+                    @click="deleteCountry(c.code)"
+                    class="text-zinc-500 hover:text-red-400 transition px-2 py-1 rounded hover:bg-zinc-800"
+                    title="削除"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -89,105 +140,30 @@
                       />
                     </svg>
                   </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+              </tr>
+              <tr v-if="countries?.length === 0">
+                <td colspan="4" class="px-4 py-8 text-center text-zinc-600">
+                  データがありません
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-
-      <BaseModal
-        v-model="showModal"
-        :title="isEditing ? '国・地域編集 (Edit)' : '新規登録 (New)'"
-      >
-        <form @submit.prevent="handleSave" class="space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-zinc-400 mb-1"
-              >Code (2 letters) <span class="text-red-500">*</span></label
-            >
-            <input
-              v-model="form.code"
-              type="text"
-              maxlength="2"
-              required
-              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-orange-500 outline-none uppercase"
-              placeholder="JP"
-              :disabled="isEditing"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-zinc-400 mb-1"
-              >English Name <span class="text-red-500">*</span></label
-            >
-            <input
-              v-model="form.name"
-              type="text"
-              required
-              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-orange-500 outline-none"
-              placeholder="Japan"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-zinc-400 mb-1"
-              >Japanese Name <span class="text-red-500">*</span></label
-            >
-            <input
-              v-model="form.name_ja"
-              type="text"
-              required
-              class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-orange-500 outline-none"
-              placeholder="日本"
-            />
-          </div>
-        </form>
-        <template #footer>
-          <button
-            @click="showModal = false"
-            class="px-4 py-2 rounded text-sm text-zinc-400 hover:text-white transition"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handleSave"
-            :disabled="saving"
-            class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition flex items-center gap-2"
-          >
-            <span
-              v-if="saving"
-              class="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"
-            ></span>
-            <span>Save</span>
-          </button>
-        </template>
-      </BaseModal>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
+import { ref, reactive } from "vue";
 import { useSupabaseClient, useAsyncData, definePageMeta } from "#imports";
-import BaseModal from "~/components/BaseModal.vue";
 
 definePageMeta({ middleware: "admin" });
+
 const supabase = useSupabaseClient<any>();
-
-const {
-  data: countriesData,
-  pending,
-  refresh,
-} = await useAsyncData("admin-countries", async () => {
-  const { data } = await supabase
-    .from("countries")
-    .select("*")
-    .order("sort_order");
-  return data;
-});
-const countries = computed(() => countriesData.value || []);
-
-const showModal = ref(false);
-const isEditing = ref(false);
-const saving = ref(false);
+const loading = ref(false);
+const errorMsg = ref("");
 
 const form = reactive({
   code: "",
@@ -195,46 +171,62 @@ const form = reactive({
   name_ja: "",
 });
 
-const openCreateModal = () => {
-  isEditing.value = false;
-  Object.assign(form, { code: "", name: "", name_ja: "" });
-  showModal.value = true;
-};
+// Fetch Data
+const {
+  data: countries,
+  pending,
+  refresh,
+} = await useAsyncData("admin-countries", async () => {
+  const { data, error } = await supabase
+    .from("countries")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
 
-const openEditModal = (item: any) => {
-  isEditing.value = true;
-  Object.assign(form, {
-    code: item.code,
-    name: item.name,
-    name_ja: item.name_ja,
-  });
-  showModal.value = true;
-};
+  if (error) throw error;
+  return data || [];
+});
 
-const handleSave = async () => {
-  if (!form.code || !form.name) return;
-  saving.value = true;
+// Add Country
+const handleAdd = async () => {
+  loading.value = true;
+  errorMsg.value = "";
+
   try {
-    if (isEditing.value) {
-      await supabase
-        .from("countries")
-        .update({ name: form.name, name_ja: form.name_ja })
-        .eq("code", form.code);
-    } else {
-      await supabase.from("countries").insert({ ...form });
-    }
-    await refresh();
-    showModal.value = false;
+    const { error } = await supabase.from("countries").insert({
+      code: form.code.toUpperCase(),
+      name: form.name,
+      name_ja: form.name_ja,
+    });
+
+    if (error) throw error;
+
+    // Reset & Refresh
+    form.code = "";
+    form.name = "";
+    form.name_ja = "";
+    refresh();
   } catch (e: any) {
-    alert("Error: " + e.message);
+    errorMsg.value = "Error: " + e.message;
   } finally {
-    saving.value = false;
+    loading.value = false;
   }
 };
 
-const deleteCountry = async (c: any) => {
-  if (!confirm(`Delete "${c.name}"?`)) return;
-  await supabase.from("countries").delete().eq("code", c.code);
-  refresh();
+// Delete Country
+const deleteCountry = async (code: string) => {
+  if (!confirm(`国コード「${code}」を削除しますか？`)) return;
+
+  try {
+    const { error } = await supabase
+      .from("countries")
+      .delete()
+      .eq("code", code);
+
+    if (error) throw error;
+    refresh();
+  } catch (e: any) {
+    alert(e.message);
+  }
 };
 </script>

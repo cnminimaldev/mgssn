@@ -48,23 +48,43 @@
             <li
               v-for="p in parts"
               :key="p.id"
-              class="flex items-center justify-between gap-3 py-2.5"
+              class="flex items-center justify-between gap-3 py-3"
             >
-              <div class="flex flex-1 flex-col">
+              <div class="flex flex-1 flex-col gap-1.5">
                 <div class="flex items-center gap-2">
-                  <span class="rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-200">
+                  <span class="rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-200 border border-zinc-700">
                     パート {{ p.part_number }}
                   </span>
-                  <span class="truncate text-sm text-zinc-50">
+                  <span class="truncate text-sm text-zinc-50 font-medium">
                     {{ p.title }}
                   </span>
                 </div>
-                <div class="mt-0.5 flex flex-wrap items-center gap-3 text-[11px] text-zinc-400">
-                  <span v-if="p.duration_minutes">
-                    {{ p.duration_minutes }}分
+
+                <div class="flex items-center gap-2">
+                  <div 
+                    class="font-mono text-xs text-emerald-500/80 bg-black/30 px-2 py-0.5 rounded select-all truncate max-w-md border border-white/5" 
+                    :title="p.video_path || ''"
+                  >
+                    {{ p.video_path || 'No Video Source' }}
+                  </div>
+
+                  <div v-if="p.subtitles && p.subtitles.length > 0" class="flex gap-1 shrink-0">
+                    <span 
+                      v-for="(sub, sIdx) in p.subtitles" 
+                      :key="sIdx" 
+                      class="text-[10px] font-bold bg-yellow-900/30 text-yellow-500 px-1.5 py-0.5 rounded border border-yellow-900/50 uppercase tracking-wider"
+                    >
+                      {{ sub.lang || 'sub' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
+                  <span v-if="p.duration_minutes" class="flex items-center gap-1">
+                    ⏱ {{ p.duration_minutes }}分
                   </span>
-                  <span v-if="p.release_date">
-                    公開日: {{ p.release_date }}
+                  <span v-if="p.release_date" class="flex items-center gap-1">
+                    📅 {{ p.release_date }}
                   </span>
                 </div>
               </div>
@@ -72,7 +92,7 @@
               <div class="flex flex-col items-end gap-1 text-xs">
                 <NuxtLink
                   :to="`/admin/movies/${movieId}/collections/${collectionId}/parts/${p.id}`"
-                  class="text-emerald-300 hover:text-emerald-200"
+                  class="rounded bg-zinc-800 border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:text-white hover:bg-zinc-700 transition"
                 >
                   編集
                 </NuxtLink>
@@ -97,6 +117,8 @@ type PartRow = {
   title: string
   duration_minutes: number | null
   release_date: string | null
+  video_path: string | null // [ADDED]
+  subtitles: any[]          // [ADDED]
 }
 
 const route = useRoute()
@@ -147,10 +169,10 @@ const loadData = async () => {
     }
     collectionName.value = col.name
 
-    // Parts
+    // Parts - [UPDATED] Select subtitles & video_path
     const { data: pData, error: pError } = await supabase
       .from('movie_parts')
-      .select('id, part_number, title, duration_minutes, release_date')
+      .select('id, part_number, title, duration_minutes, release_date, video_path, subtitles')
       .eq('collection_id', collectionId.value)
       .order('part_number', { ascending: true })
 
