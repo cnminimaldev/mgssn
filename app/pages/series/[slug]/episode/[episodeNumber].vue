@@ -108,9 +108,15 @@
                 </button>
               </div>
             </div>
-            <div v-if="activeCollectionInfo" class="text-[11px] text-zinc-400">
+            <div v-if="activeCollectionInfo" class="flex items-center gap-2 text-[11px] text-zinc-400">
               <span v-if="activeCollectionInfo.providerName">
                 Source: {{ activeCollectionInfo.providerName }}
+              </span>
+              <span 
+                v-if="activeProvider?.player_type === 'embed'"
+                class="rounded border border-yellow-800/50 bg-yellow-900/20 px-1 text-[10px] text-yellow-500 uppercase"
+              >
+                External
               </span>
               <span v-if="activeCollectionInfo.languages">
                 ・{{ activeCollectionInfo.languages }}
@@ -122,7 +128,7 @@
             class="overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-2xl aspect-video"
           >
             <ClientOnly>
-              <StreamingPlayer
+              <UniversalPlayer
                 v-if="playerSrc"
                 :key="playerKey"
                 :src="playerSrc"
@@ -130,8 +136,9 @@
                 :title="playerTitle"
                 :startTime="episodeStartTime"
                 :subtitles="activeEpisodeSubtitles"
-                :content-id="series?.id"
+                :content-id="activeEpisode?.id"
                 content-type="series"
+                :provider="activeProvider"
                 @timeupdate="handlePlayerTimeUpdate"
                 @ended="handlePlayerEnded"
               />
@@ -158,9 +165,14 @@
                 <span>マイリスト</span>
               </button>
               <button
+                type="button"
+                @click="handleShare"
                 class="inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-4 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 transition"
               >
-                <span>↗</span> 共有
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                </svg>
+                <span>共有</span>
               </button>
             </div>
           </div>
@@ -383,7 +395,8 @@ import {
   useRequestURL,
   useAsyncData,
 } from "#imports";
-import StreamingPlayer from "~/components/StreamingPlayer.vue";
+// [CHANGE] Import UniversalPlayer thay vì StreamingPlayer
+import UniversalPlayer from "~/components/UniversalPlayer.vue";
 import MovieRow from "~/components/MovieRow.vue";
 import { useContinueWatching } from "~/composables/useContinueWatching";
 import { useMyList } from "~/composables/useMyList";
@@ -439,10 +452,13 @@ type EpisodeRow = {
   created_at?: string;
 };
 
+// [CHANGE] Update ProviderRow type
 type ProviderRow = {
   id: number;
   name: string;
   website_url: string | null;
+  player_type: string;
+  embed_pattern: string | null;
 };
 
 type RelatedItem = {
@@ -475,6 +491,33 @@ const relatedSeries = ref<RelatedItem[]>([]);
 const selectedCollectionId = ref<number | null>(null);
 const selectedSeason = ref<number | null>(null);
 const isInitializing = ref(true);
+
+const showShareModal = ref(false)
+const shareTitle = computed(() => seoTitle.value)
+const shareUrl = computed(() => {
+  if (import.meta.client) return window.location.href
+  return ''
+})
+
+const handleShare = async () => {
+  // 1. Nếu là Mobile và hỗ trợ Native Share -> Dùng Native Share
+  if (import.meta.client && navigator.share) {
+    try {
+      await navigator.share({
+        title: shareTitle.value,
+        text: seoDescription.value,
+        url: shareUrl.value,
+      })
+      return
+    } catch (err) {
+      // Nếu user huỷ share hoặc lỗi, fall back về Modal hoặc bỏ qua
+      console.log('Share canceled or failed, falling back to modal')
+    }
+  }
+  
+  // 2. Nếu là PC hoặc Share API lỗi -> Mở Modal thủ công
+  showShareModal.value = true
+}
 
 const { setProgress, clearProgressForMovie, getEntry } = useContinueWatching();
 const { isInMyList, toggleMyList } = useMyList();
@@ -645,6 +688,14 @@ const activeCollectionInfo = computed(() => {
   };
 });
 
+// [CHANGE] Computed tìm activeProvider để truyền vào UniversalPlayer
+const activeProvider = computed(() => {
+  if (selectedCollectionId.value == null) return null;
+  const c = collections.value.find((cc) => cc.id === selectedCollectionId.value);
+  if (!c || !c.provider_id) return null;
+  return providers.value.find((p) => p.id === c.provider_id) || null;
+});
+
 const playerSrc = computed(() => activeEpisode.value?.video_path || "");
 const playerPoster = computed(() => {
   if (activeEpisode.value?.thumbnail_url) {
@@ -674,6 +725,7 @@ const playerKey = computed(() => {
 const episodeStartTime = computed(() => {
   const ep = activeEpisode.value;
   if (!ep) return 0;
+  // Key lưu trữ progress cho Series: dùng ID tập phim
   const entry = getEntry(ep.id);
   if (!entry) return 0;
   if (!entry.duration || entry.duration < 60) return 0;
@@ -693,6 +745,7 @@ const handlePlayerTimeUpdate = (payload: {
   const now = performance.now();
   if (now - lastSavedAt.value < 2000) return;
   lastSavedAt.value = now;
+  // Lưu progress
   setProgress(ep.id, payload.currentTime, payload.duration);
 };
 
@@ -788,9 +841,10 @@ const {
       .order("created_at", { ascending: true });
     result.collections = (colData ?? []) as EpisodeCollectionRow[];
 
+    // [CHANGE] Lấy thêm player_type và embed_pattern
     const { data: provData } = await supabase
       .from("collection_providers")
-      .select("id, name, website_url")
+      .select("id, name, website_url, player_type, embed_pattern")
       .order("name", { ascending: true });
     result.providers = (provData ?? []) as ProviderRow[];
 
@@ -811,7 +865,6 @@ const {
         ?.map((sg: any) => sg.genre?.slug)
         .filter(Boolean) || [];
 
-    // [UPDATE] Sử dụng RPC get_random_related_content
     let relData: any[] = [];
 
     if (currentGenreSlugs.length > 0) {
@@ -825,7 +878,6 @@ const {
           "id, slug, title, poster_url, banner_url, type, year, origin_country, genre_label, description, episode_count"
         );
 
-      // SỬA LỖI Ở ĐÂY: Ép kiểu data thành mảng
       relData = (data as any[]) || [];
     } else {
       const { data } = await supabase

@@ -55,6 +55,20 @@
         </div>
       </div>
 
+      <div 
+        v-if="playbackAnimation"
+        class="absolute inset-0 z-20 flex items-center justify-center pointer-events-none animate-ping-short"
+      >
+        <div class="bg-black/60 rounded-full p-6 backdrop-blur-sm flex items-center justify-center shadow-lg">
+          <svg v-if="playbackAnimation === 'play'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10">
+            <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+          </svg>
+          <svg v-if="playbackAnimation === 'pause'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10">
+            <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
+          </svg>
+        </div>
+      </div>
+
       <div
         v-if="currentSubtitleText && !isIOS"
         class="pointer-events-none absolute left-0 right-0 z-20 flex justify-center px-[5%] text-center transition-all duration-300"
@@ -121,7 +135,8 @@
       </div>
 
       <div
-        class="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pb-4 pt-12"
+        class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pb-4 pt-12"
+        @click.stop
       >
         <div
           class="group/progress pointer-events-auto relative mb-4 h-1.5 w-full cursor-pointer touch-none select-none hover:h-2 transition-all py-2 -my-2 px-2 flex items-center"
@@ -475,30 +490,61 @@ const edgeOptions = [
   { val: 'outline', label: '縁取り' }
 ];
 
-// [MỚI] Hàm xử lý Click trên vùng Gesture
+// [NEW] Play/Pause Animation State
+const playbackAnimation = ref<'play' | 'pause' | null>(null);
+let playbackAnimTimeout: any = null;
+
+const triggerPlaybackAnim = (type: 'play' | 'pause') => {
+  playbackAnimation.value = type;
+  if (playbackAnimTimeout) clearTimeout(playbackAnimTimeout);
+  
+  // Reset sau 600ms (bằng thời gian animation css)
+  playbackAnimTimeout = setTimeout(() => {
+    playbackAnimation.value = null;
+  }, 600);
+};
+
+// [CẬP NHẬT] Xử lý Click mượt mà hơn (Instant Response)
 const handleContainerClick = (e: MouseEvent) => {
-  // Bỏ qua nếu click vào controls (do z-index)
   const target = e.target as HTMLElement;
   const zone = target.getAttribute('data-zone');
   const now = Date.now();
   const timeDiff = now - lastTapTime;
+  
+  // Kiểm tra thiết bị (Mobile hay PC)
+  const isMobile = window.matchMedia('(hover: none)').matches;
 
+  // --- 1. XỬ LÝ DOUBLE TAP ---
   if (timeDiff < 300 && timeDiff > 0) {
-    // DOUBLE TAP
     clearTimeout(doubleTapTimeout);
-    
+    lastTapTime = 0; // Reset
+
+    // Logic Double Tap
     if (zone === 'left') triggerDoubleTap('rewind');
     else if (zone === 'right') triggerDoubleTap('forward');
-    else togglePlay(); // Center double tap -> Play/Pause hoặc Fullscreen tuỳ ý
-    
-    lastTapTime = 0;
+    else {
+      // Double tap ở giữa -> Fullscreen (Chuẩn UX) hoặc Play/Pause tuỳ ý
+      toggleFullscreen(); 
+    }
+    return;
+  }
+
+  // --- 2. XỬ LÝ SINGLE TAP ---
+  lastTapTime = now;
+
+  if (zone === 'center') {
+    // [QUAN TRỌNG] Vùng giữa: Thực thi NGAY, không chờ!
+    if (isMobile) {
+      // Mobile: Tap vào giữa -> Chỉ hiện/ẩn controls (Không Play/Pause để tránh loạn)
+      showControlsTemporary();
+    } else {
+      // Desktop: Click vào giữa -> Play/Pause ngay lập tức (Zero Latency)
+      togglePlay();
+    }
   } else {
-    // SINGLE TAP
-    lastTapTime = now;
-    // Delay một chút để chờ xem có double tap không
+    // Vùng cạnh (Left/Right): Bắt buộc chờ 300ms để xem có Double Tap (Tua) không
     doubleTapTimeout = setTimeout(() => {
-      // Logic Single Tap: Mobile thì hiện controls, PC thì play/pause
-      if (window.matchMedia('(hover: none)').matches) {
+      if (isMobile) {
         showControlsTemporary();
       } else {
         togglePlay();
@@ -868,16 +914,21 @@ const seekBy = (seconds: number) => {
   if (videoRef.value) lastTime.value = videoRef.value.currentTime;
 };
 
+// [UPDATED] Hàm togglePlay cập nhật thêm trigger animation
 const togglePlay = () => {
   focusPlayer();
   if (!videoRef.value) return;
+  
   if (videoRef.value.paused) {
     videoRef.value.play().catch(() => {});
     isPlaying.value = true;
+    triggerPlaybackAnim('play'); // <--- Thêm dòng này
   } else {
     videoRef.value.pause();
     isPlaying.value = false;
+    triggerPlaybackAnim('pause'); // <--- Thêm dòng này
   }
+  
   showSettings.value = false;
   showSubsMenu.value = false;
   showControlsTemporary();

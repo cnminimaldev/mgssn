@@ -169,6 +169,28 @@
                     <span v-else>＋</span>
                     マイリスト
                   </button>
+
+                  <button
+                    type="button"
+                    class="rounded-full bg-zinc-800 p-2.5 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+                    title="共有"
+                    @click="handleShare"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="w-5 h-5"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
+                      />
+                    </svg>
+                  </button>
                 </div>
 
                 <div v-if="movie?.id" class="mt-1">
@@ -207,9 +229,15 @@
               </button>
             </div>
           </div>
-          <div v-if="activeCollectionInfo" class="text-[11px] text-zinc-400">
+          <div v-if="activeCollectionInfo" class="flex items-center gap-2 text-[11px] text-zinc-400">
             <span v-if="activeCollectionInfo.providerName">
               Provider: {{ activeCollectionInfo.providerName }}
+            </span>
+            <span 
+              v-if="activeProvider?.player_type === 'embed'"
+              class="rounded border border-yellow-800/50 bg-yellow-900/20 px-1 text-[10px] text-yellow-500 uppercase"
+            >
+              External
             </span>
             <span v-if="activeCollectionInfo.languages">
               ・{{ activeCollectionInfo.languages }}
@@ -244,7 +272,7 @@
         <div
           class="overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-2xl"
         >
-          <StreamingPlayer
+          <UniversalPlayer
             v-if="playerSrc"
             :key="activePart ? activePart.id : playerSrc"
             :src="playerSrc"
@@ -254,6 +282,7 @@
             :subtitles="activePartSubtitles"
             :content-id="movie?.id"
             content-type="movie"
+            :provider="activeProvider"
             @timeupdate="handlePlayerTimeUpdate"
             @ended="handlePlayerEnded"
           />
@@ -275,6 +304,12 @@
         />
       </section>
     </div>
+
+    <ShareModal 
+      v-model="showShareModal" 
+      :title="shareTitle"
+      :url="shareUrl"
+    />
   </div>
 </template>
 
@@ -290,10 +325,13 @@ import {
   useRequestURL,
   useAsyncData,
 } from "#imports";
-import StreamingPlayer from "~/components/StreamingPlayer.vue";
+import UniversalPlayer from "~/components/UniversalPlayer.vue"; 
 import MovieRow from "~/components/MovieRow.vue";
+import StarRating from "~/components/StarRating.vue";
+import ShareModal from "~/components/ShareModal.vue"; // [NEW]
 import { useMyList } from "~/composables/useMyList";
 import { useContinueWatching } from "~/composables/useContinueWatching";
+import { getResizedUrl } from "~/utils/image";
 
 type SubtitleItem = { src: string; label: string; lang: string };
 
@@ -351,6 +389,8 @@ type ProviderRow = {
   id: number;
   name: string;
   website_url: string | null;
+  player_type: string;
+  embed_pattern: string | null;
 };
 
 type RelatedItem = {
@@ -360,6 +400,11 @@ type RelatedItem = {
   poster_url: string | null;
   banner_url: string | null;
   type: "movie" | "series";
+  episode_count: number;
+  genre_label?: string;
+  year?: number;
+  origin_country?: string;
+  description?: string;
 };
 
 const route = useRoute();
@@ -386,6 +431,30 @@ const inMyList = computed(() =>
 const handleToggleMyList = () => {
   if (!movie.value) return;
   toggleMyList(movie.value.id, "movie");
+};
+
+// [NEW] Share Logic
+const showShareModal = ref(false);
+const shareUrl = computed(() => {
+  if (import.meta.client) return window.location.href;
+  return '';
+});
+// shareTitle dùng lại seoTitle ở phía dưới
+
+const handleShare = async () => {
+  if (import.meta.client && navigator.share) {
+    try {
+      await navigator.share({
+        title: seoTitle.value,
+        text: seoDescription.value,
+        url: shareUrl.value,
+      });
+      return;
+    } catch (err) {
+      console.log('Share canceled or failed, falling back to modal');
+    }
+  }
+  showShareModal.value = true;
 };
 
 const { setProgress, clearProgressForMovie, getEntry } = useContinueWatching();
@@ -553,6 +622,13 @@ const activeCollectionInfo = computed(() => {
   };
 });
 
+const activeProvider = computed(() => {
+  if (selectedCollectionId.value == null) return null;
+  const c = collections.value.find((cc) => cc.id === selectedCollectionId.value);
+  if (!c || !c.provider_id) return null;
+  return providers.value.find((p) => p.id === c.provider_id) || null;
+});
+
 const playerSrc = computed(() => activePart.value?.video_path || "");
 const playerPoster = computed(() => {
   if (activePart.value?.thumbnail_url) {
@@ -697,7 +773,7 @@ const {
 
     const { data: provData } = await supabase
       .from("collection_providers")
-      .select("id, name, website_url")
+      .select("id, name, website_url, player_type, embed_pattern")
       .order("name", { ascending: true });
 
     result.providers = (provData ?? []) as ProviderRow[];
@@ -711,7 +787,6 @@ const {
     let relData: any[] = [];
 
     if (currentGenreSlugs.length > 0) {
-      // Nếu phim có thể loại, dùng RPC để lấy ngẫu nhiên
       const { data } = await supabase
         .rpc("get_random_related_content", {
           filter_genre_slugs: currentGenreSlugs,
@@ -724,7 +799,6 @@ const {
         
       relData = (data as any[]) || [];
     } else {
-      // Fallback: Nếu phim không có thể loại nào (hiếm gặp), lấy phim mới nhất như cũ
       const { data } = await supabase
         .from("all_contents")
         .select(
@@ -824,6 +898,9 @@ const seoTitle = computed(() =>
     ? `${movie.value.title} 無料動画 | MugenTV`
     : "無料動画 | MugenTV"
 );
+
+// shareTitle dùng chung với seoTitle
+const shareTitle = computed(() => seoTitle.value);
 
 const seoDescription = computed(
   () =>
@@ -942,23 +1019,18 @@ useHead({
 });
 
 useSeoMeta({
-  // Cơ bản
   title: seoTitle,
   description: seoDescription,
-
-  // Open Graph (Facebook, LINE, Zalo)
   ogTitle: seoTitle,
   ogDescription: seoDescription,
-  ogImage: seoImage, // Bắt buộc phải là Absolute URL
+  ogImage: seoImage,
   ogUrl: canonicalUrl,
   ogType: 'video.movie',
   ogSiteName: 'MugenTV',
-  ogLocale: 'ja_JP', // Quan trọng cho thị trường Nhật
-
-  // Twitter / X Card
-  twitterCard: "summary_large_image", // Để hiển thị ảnh to
+  ogLocale: 'ja_JP',
+  twitterCard: "summary_large_image",
   twitterTitle: seoTitle,
   twitterDescription: seoDescription,
-  twitterImage: seoImage, // Bắt buộc phải là Absolute URL
+  twitterImage: seoImage,
 });
 </script>

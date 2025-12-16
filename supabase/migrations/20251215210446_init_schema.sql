@@ -23,7 +23,9 @@ create sequence "public"."series_id_seq";
     "note" text,
     "is_active" boolean default true,
     "created_at" timestamp with time zone default now(),
-    "updated_at" timestamp with time zone default now()
+    "updated_at" timestamp with time zone default now(),
+    "player_type" text not null default 'direct'::text,
+    "embed_pattern" text
       );
 
 
@@ -484,6 +486,10 @@ alter table "public"."series_slug_history" add constraint "series_slug_history_p
 alter table "public"."user_movie_list" add constraint "user_movie_list_pkey" PRIMARY KEY using index "user_movie_list_pkey";
 
 alter table "public"."user_series_list" add constraint "user_series_list_pkey" PRIMARY KEY using index "user_series_list_pkey";
+
+alter table "public"."collection_providers" add constraint "check_player_type" CHECK ((player_type = ANY (ARRAY['direct'::text, 'embed'::text]))) not valid;
+
+alter table "public"."collection_providers" validate constraint "check_player_type";
 
 alter table "public"."collection_providers" add constraint "collection_providers_code_key" UNIQUE using index "collection_providers_code_key";
 
