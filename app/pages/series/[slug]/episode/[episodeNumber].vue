@@ -1024,6 +1024,13 @@ const seoImage = computed(
     series.value?.banner_url || series.value?.poster_url || "/images/banner.jpg"
 );
 
+// [FIX] Hàm helper
+const toAbsoluteUrl = (path: string | null | undefined) => {
+  if (!path) return undefined;
+  if (path.startsWith('http')) return path;
+  return `${url.origin}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
 useHead({
   link: [{ rel: "canonical", href: canonicalUrl }],
   title: seoTitle,
@@ -1031,6 +1038,12 @@ useHead({
     {
       type: "application/ld+json",
       innerHTML: computed(() => {
+        const absThumbnail = toAbsoluteUrl(playerPoster.value);
+        const absVideoSrc = toAbsoluteUrl(playerSrc.value);
+        const isoDate = activeEpisode.value?.created_at 
+          ? new Date(activeEpisode.value.created_at).toISOString() 
+          : new Date().toISOString();
+
         // 1. Breadcrumb List
         const schemaBreadcrumb = {
           "@context": "https://schema.org",
@@ -1087,14 +1100,14 @@ useHead({
           "@context": "https://schema.org",
           "@type": "VideoObject",
           name: `${series.value?.title} - Episode ${currentEpisodeNumber.value}`,
-          description: series.value?.description,
-          thumbnailUrl: [playerPoster.value],
-          uploadDate: activeEpisode.value?.created_at,
+          description: series.value?.description || 'No description',
+          thumbnailUrl: [absThumbnail],
+          uploadDate: isoDate,
           duration: activeEpisode.value?.duration_minutes
             ? `PT${activeEpisode.value.duration_minutes}M`
             : undefined,
-          contentUrl: playerSrc.value,
-          embedUrl: canonicalUrl.value,
+            
+          contentUrl: absVideoSrc,
         };
 
         return JSON.stringify([schemaBreadcrumb, schemaEpisode, schemaVideo]);

@@ -911,37 +911,44 @@ const seoImage = computed(
     movie.value?.banner_url || movie.value?.poster_url || "/images/banner.jpg"
 );
 
+// [FIX] Hàm helper
+const toAbsoluteUrl = (path: string | null | undefined) => {
+  if (!path) return undefined;
+  if (path.startsWith('http')) return path;
+  return `${url.origin}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
 useHead({
-  link: [
-    {
-      rel: "canonical",
-      href: canonicalUrl,
-    },
-  ],
+  link: [{ rel: "canonical", href: canonicalUrl }],
   title: seoTitle,
   script: [
     {
       type: "application/ld+json",
       innerHTML: computed(() => {
+        if (!movie.value) return "";
+
+        const absPosterUrl = toAbsoluteUrl(posterUrl.value);
+        const absVideoUrl = toAbsoluteUrl(playerSrc.value);
+        const isoDate = movie.value.created_at 
+          ? new Date(movie.value.created_at).toISOString() 
+          : new Date().toISOString();
+
         const schemaMovie = {
           "@context": "https://schema.org",
           "@type": "Movie",
-          name: movie.value?.title,
-          alternateName: movie.value?.original_title,
-          description: movie.value?.description,
-          image: posterUrl.value,
-          datePublished: movie.value?.year?.toString(),
+          name: movie.value.title,
+          alternateName: movie.value.original_title,
+          description: movie.value.description || movie.value.title,
+          image: absPosterUrl,
+          datePublished: movie.value.year?.toString(),
           countryOfOrigin: {
             "@type": "Country",
-            name: movie.value?.origin_country,
+            name: movie.value.origin_country,
           },
-          director: movie.value?.director
-            ? {
-                "@type": "Person",
-                name: movie.value.director,
-              }
+          director: movie.value.director
+            ? { "@type": "Person", name: movie.value.director }
             : undefined,
-          actor: movie.value?.main_cast
+          actor: movie.value.main_cast
             ? movie.value.main_cast.split(",").map((name) => ({
                 "@type": "Person",
                 name: name.trim(),
@@ -954,61 +961,50 @@ useHead({
             availability: "https://schema.org/InStock",
           },
         };
-
-        if (movie.value?.ratingInfo && movie.value.ratingInfo.total_votes > 0) {
-          // @ts-ignore
-          schemaMovie.aggregateRating = {
-            "@type": "AggregateRating",
-            ratingValue: movie.value.ratingInfo.avg_rating,
-            ratingCount: movie.value.ratingInfo.total_votes,
-            bestRating: "5",
-            worstRating: "1",
-          };
+        
+        if (movie.value.ratingInfo && movie.value.ratingInfo.total_votes > 0) {
+            // @ts-ignore
+            schemaMovie.aggregateRating = {
+              "@type": "AggregateRating",
+              ratingValue: movie.value.ratingInfo.avg_rating,
+              ratingCount: movie.value.ratingInfo.total_votes,
+              bestRating: "5",
+              worstRating: "1",
+            };
         }
 
         // VideoObject Schema
         const schemaVideo = {
           "@context": "https://schema.org",
           "@type": "VideoObject",
-          name: movie.value?.title,
-          description: movie.value?.description,
-          thumbnailUrl: [posterUrl.value],
-          uploadDate: movie.value?.created_at,
-          duration: movie.value?.duration_minutes
+          name: movie.value.title,
+          description: movie.value.description || movie.value.title,
+          thumbnailUrl: [absPosterUrl], 
+          uploadDate: isoDate,
+          duration: movie.value.duration_minutes
             ? `PT${movie.value.duration_minutes}M`
             : undefined,
-          contentUrl: playerSrc.value,
-          embedUrl: canonicalUrl.value,
+          
+          // [QUAN TRỌNG] Chỉ dùng contentUrl cho file .m3u8/.mp4
+          contentUrl: absVideoUrl, 
+          
+          // [FIX] XOÁ BỎ embedUrl vì bạn đang play trực tiếp, không dùng iframe player riêng biệt
+          // embedUrl: canonicalUrl.value, <--- Dòng gây lỗi
+          
           interactionStatistic: {
             "@type": "InteractionCounter",
             interactionType: { "@type": "WatchAction" },
-            userInteractionCount: movie.value?.ratingInfo?.total_votes || 0,
+            userInteractionCount: movie.value.ratingInfo?.total_votes || 0,
           },
         };
 
-        // Breadcrumb Schema
         const schemaBreadcrumb = {
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           itemListElement: [
-            {
-              "@type": "ListItem",
-              position: 1,
-              name: "Home",
-              item: url.origin,
-            },
-            {
-              "@type": "ListItem",
-              position: 2,
-              name: "Movies",
-              item: `${url.origin}/search?type=movie`,
-            },
-            {
-              "@type": "ListItem",
-              position: 3,
-              name: movie.value?.title,
-              item: canonicalUrl.value,
-            },
+            { "@type": "ListItem", position: 1, name: "Home", item: url.origin },
+            { "@type": "ListItem", position: 2, name: "Movies", item: `${url.origin}/search?type=movie` },
+            { "@type": "ListItem", position: 3, name: movie.value.title, item: canonicalUrl.value },
           ],
         };
 
