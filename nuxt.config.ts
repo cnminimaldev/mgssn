@@ -15,15 +15,13 @@ export default defineNuxtConfig({
 
   vite: {
     esbuild: {
-      // Tự động xóa console và debugger khi build production
-      drop: process.env.NODE_ENV === 'debugger' ? ['console', 'production'] : [],
+      // Đã sửa lại lỗi logic để tự động xóa console và debugger khi build production
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
     },
   },
 
   // 1. Cấu hình Domain chính thức (Sửa lỗi URL localhost)
   site: {
-    // Thay bằng domain thật của bạn (VD: https://mugenstream.com)
-    // Khi chạy local dev, nó vẫn có thể hiện localhost, nhưng khi build/deploy nó sẽ dùng link này
     url: process.env.NUXT_PUBLIC_SITE_URL || 'https://mugentv.com',
   },
 
@@ -35,22 +33,40 @@ export default defineNuxtConfig({
     }
   },
 
+  // ==========================================
+  // CẤU HÌNH CACHE (TĂNG TỐC ĐỘ TẢI TRANG)
+  // ==========================================
+  routeRules: {
+    // Cache trang chủ trong 60 giây
+    '/': { swr: 60 },
+    
+    // Cache các trang danh sách, tìm kiếm, bảng xếp hạng trong 5 phút
+    '/search': { swr: 300 },
+    '/ranking': { swr: 300 },
+    '/genres/**': { swr: 300 },
+
+    // Cache trang chi tiết phim trong 1 giờ (giảm tối đa request lên Supabase)
+    '/movie/**': { swr: 3600 },
+    '/series/**': { swr: 3600 },
+    
+    // Bỏ qua cache hoàn toàn, ép load client-side cho các trang riêng tư/quản trị
+    '/admin/**': { ssr: false }, 
+    '/admin': { ssr: false },
+    '/my-list': { swr: false, cache: false },
+    '/login': { swr: false, cache: false },
+  },
+
   // 2. Cấu hình Sitemap
   sitemap: {
-    // Nạp link động từ API bạn vừa viết
     sources: ['/api/sitemap/urls'],
-
-    // Chặn các trang không muốn Google index (Sửa lỗi hiện admin)
     exclude: [
-      '/admin/**',       // Chặn toàn bộ thư mục admin
-      '/admin',          // Chặn trang chủ admin
-      '/my-list',        // Trang cá nhân (cần login mới xem được -> không index)
-      '/login',          // Trang đăng nhập
-      '/confirm',        // Trang xác thực
-      '/secret-page'     // Các trang ẩn khác...
+      '/admin/**',
+      '/admin',
+      '/my-list',
+      '/login',
+      '/confirm',
+      '/secret-page'
     ],
-    
-    // Tùy chọn: Tần suất quét mặc định cho các trang tĩnh (như home)
     defaults: {
       changefreq: 'daily',
       priority: 1,
@@ -58,7 +74,6 @@ export default defineNuxtConfig({
     },
   },
 
-  // Các cấu hình cũ của bạn (Giữ nguyên)
   supabase: {
     redirect: false,
   },
