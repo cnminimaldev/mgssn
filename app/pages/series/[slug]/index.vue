@@ -111,12 +111,20 @@
                 <div class="mt-1 space-y-1 text-xs text-zinc-400">
                   <p v-if="series.director">
                     <span class="opacity-70">監督：</span>
-                    <NuxtLink
-                      :to="`/person/${encodeURIComponent(series.director)}`"
-                      class="text-zinc-300 hover:text-white hover:underline"
-                    >
-                      {{ series.director }}
-                    </NuxtLink>
+                    <span class="text-zinc-300">
+                      <template v-for="(dir, idx) in directorList" :key="idx">
+                        <NuxtLink
+                          :to="`/person/${encodeURIComponent(dir)}`"
+                          class="hover:text-white hover:underline"
+                          >{{ dir }}</NuxtLink
+                        >
+                        <span
+                          v-if="idx < directorList.length - 1"
+                          class="text-zinc-600"
+                          >,
+                        </span>
+                      </template>
+                    </span>
                   </p>
                   <p v-if="series.main_cast">
                     <span class="opacity-70">出演：</span>
@@ -370,6 +378,14 @@ const countryLabel = computed(() => {
 const castList = computed(() => {
   if (!series.value?.main_cast) return [];
   return series.value.main_cast
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+});
+
+const directorList = computed(() => {
+  if (!series.value?.director) return [];
+  return series.value.director
     .split(",")
     .map((c) => c.trim())
     .filter(Boolean);

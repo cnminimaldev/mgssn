@@ -276,12 +276,17 @@
 
               <div v-if="series?.director">
                 <span class="text-zinc-500 block mb-1">監督</span>
-                <NuxtLink
-                  :to="`/search?q=${series.director}`"
-                  class="text-zinc-300 hover:text-white hover:underline"
-                >
-                  {{ series.director }}
-                </NuxtLink>
+                <div class="flex flex-wrap gap-1 text-zinc-300">
+                  <template v-for="(dir, idx) in directorList" :key="idx">
+                    <NuxtLink
+                      :to="`/search?q=${dir}`"
+                      class="hover:text-white hover:underline"
+                    >
+                      {{ dir }}
+                    </NuxtLink>
+                    <span v-if="idx < directorList.length - 1" class="text-zinc-600">,</span>
+                  </template>
+                </div>
               </div>
 
               <div>
@@ -569,6 +574,14 @@ const genres = computed(() => {
 const castList = computed(() => {
   if (!series.value?.main_cast) return [];
   return series.value.main_cast.split(",").map((c) => c.trim());
+});
+
+const directorList = computed(() => {
+  if (!series.value?.director) return [];
+  return series.value.director
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
 });
 
 const collectionFromQuery = computed<number | null>(() => {

@@ -111,12 +111,20 @@
                 <div class="mt-1 space-y-1 text-xs text-zinc-400">
                   <p v-if="movie?.director">
                     <span class="opacity-70">監督：</span>
-                    <NuxtLink
-                      :to="`/person/${encodeURIComponent(movie?.director)}`"
-                      class="text-zinc-300 hover:text-white hover:underline"
-                    >
-                      {{ movie?.director }}
-                    </NuxtLink>
+                    <span class="text-zinc-300">
+                      <template v-for="(dir, idx) in directorList" :key="idx">
+                        <NuxtLink
+                          :to="`/person/${encodeURIComponent(dir)}`"
+                          class="hover:text-white hover:underline"
+                          >{{ dir }}</NuxtLink
+                        >
+                        <span
+                          v-if="idx < directorList.length - 1"
+                          class="text-zinc-600"
+                          >,
+                        </span>
+                      </template>
+                    </span>
                   </p>
 
                   <p v-if="castList.length">
@@ -523,6 +531,14 @@ const countryLabel = computed(() => {
 const castList = computed(() => {
   if (!movie.value?.main_cast) return [];
   return movie.value.main_cast
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+});
+
+const directorList = computed(() => {
+  if (!movie.value?.director) return [];
+  return movie.value.director
     .split(",")
     .map((c) => c.trim())
     .filter(Boolean);
