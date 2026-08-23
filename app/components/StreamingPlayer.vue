@@ -871,9 +871,15 @@ const startDragging = (e: MouseEvent | TouchEvent) => {
   isSeeking.value = true;
   handleDragging(e); // Gọi hàm tính toán để video nhảy ngay trong mili-giây đầu tiên chạm vào
 };
+// Hàm khi nhả ngón tay ra
 const stopDragging = () => {
   if (isDragging.value) {
     isSeeking.value = true;
+    
+    // KHI NHẢ TAY RA, BÂY GIỜ MỚI RA LỆNH CHO VIDEO LOAD
+    if (videoRef.value) {
+      videoRef.value.currentTime = currentTime.value;
+    }
   }
   isDragging.value = false;
 };
@@ -892,8 +898,8 @@ const handleDragging = (e: MouseEvent | TouchEvent) => {
     const newTime = percentage * duration.value;
     
     isSeeking.value = true;
-    currentTime.value = newTime; // Cập nhật UI ngay lập tức (Optimistic)
-    videoRef.value.currentTime = newTime; // Ra lệnh cho thẻ video tải dữ liệu
+    currentTime.value = newTime; // CHỈ CẬP NHẬT GIAO DIỆN UI (thanh progress và số thời gian)
+    // ĐÃ XÓA: videoRef.value.currentTime = newTime;
   }
 };
 
