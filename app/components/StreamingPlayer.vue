@@ -492,7 +492,7 @@ const startControlsTimer = () => {
   if (isPlaying.value) {
     controlsTimeout = setTimeout(() => {
       // Không ẩn nếu đang mở menu cài đặt, menu phụ đề, hoặc đang giữ tay kéo thanh tua
-      if (!showSettings.value && !showSubsMenu.value && !isDragging) {
+      if (!showSettings.value && !showSubsMenu.value && !isDragging.value) {
         showControls.value = false;
       }
     }, 3000);
@@ -732,7 +732,11 @@ const initPlayer = () => {
     hls.attachMedia(video);
 
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      if (props.startTime) video.currentTime = props.startTime;
+      if (props.startTime) {
+        video.currentTime = props.startTime;
+        currentTime.value = props.startTime; // Đồng bộ UI ngay lập tức
+        lastTime.value = props.startTime;    // Đồng bộ biến tracking
+      }
       if (hls && hls.levels.length > 0) {
         const levels = hls.levels.map((lvl, index) => ({
           id: index,
@@ -757,7 +761,11 @@ const initPlayer = () => {
     });
   } else {
     video.src = props.src;
-    if (props.startTime) video.currentTime = props.startTime;
+    if (props.startTime) {
+      video.currentTime = props.startTime;
+      currentTime.value = props.startTime; // Đồng bộ UI ngay lập tức
+      lastTime.value = props.startTime;    // Đồng bộ biến tracking
+    }
   }
 };
 
@@ -950,8 +958,8 @@ const changeQuality = (levelId: number) => {
 };
 
 const onTimeUpdate = () => {
-  // Thêm điều kiện isSeeking.value vào dòng if này
-  if (!videoRef.value || isDragging || isSeeking.value) return; 
+  // Thêm .value vào isDragging
+  if (!videoRef.value || isDragging.value || isSeeking.value) return;
   
   const now = videoRef.value.currentTime;
   const delta = now - lastTime.value;
