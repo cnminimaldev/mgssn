@@ -29,6 +29,7 @@
 
       <div
         class="absolute inset-0 z-10"
+        @pointerdown="handlePointerDown"
         @pointerup="handlePointerUp"
         @dblclick="handleDoubleClickDesktop"
       ></div>
@@ -714,42 +715,65 @@ const triggerPlaybackAnim = (type: "play" | "pause") => {
   }, 600);
 };
 
-// --- SMART INTERACTION (YOUTUBE STYLE UX) ---
+// Các biến tracking để phân biệt Tap, Double Tap và Vuốt (Swipe)
+let pointerDownX = 0;
+let pointerDownY = 0;
+let pointerDownTime = 0;
+let lastTapTime = 0;
+let tapTimeout: ReturnType<typeof setTimeout> | null = null;
+const DOUBLE_TAP_DELAY = 300; // Thời gian tối đa giữa 2 lần chạm để tính là double tap (ms)
 
-const startControlsTimer = () => {
-  showControls.value = true;
-  if (controlsTimeout) clearTimeout(controlsTimeout);
-
-  if (isPlaying.value) {
-    controlsTimeout = setTimeout(() => {
-      if (!showSettings.value && !showSubsMenu.value && !isDragging) {
-        showControls.value = false;
-      }
-    }, 3000); // Tự ẩn sau 3 giây
-  }
+const handlePointerDown = (e: PointerEvent) => {
+  pointerDownX = e.clientX;
+  pointerDownY = e.clientY;
+  pointerDownTime = Date.now();
 };
 
 const handlePointerUp = (e: PointerEvent) => {
-  // Nhận diện chuẩn Desktop hay Mobile/Touch
-  const isMobileDevice = window.matchMedia(
-    "(hover: none), (pointer: coarse)",
-  ).matches;
+  // Tính toán độ lệch vị trí và thời gian chạm
+  const moveX = Math.abs(e.clientX - pointerDownX);
+  const moveY = Math.abs(e.clientY - pointerDownY);
+  const timeElapsed = Date.now() - pointerDownTime;
+
+  // Bỏ qua nếu người dùng vuốt/kéo (di chuyển > 15px) hoặc giữ ngón tay quá lâu (>500ms)
+  if (moveX > 15 || moveY > 15 || timeElapsed > 500) {
+    return;
+  }
+
+  const isMobileDevice = window.matchMedia("(hover: none), (pointer: coarse)").matches;
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
   const relativeX = e.clientX - rect.left;
   const width = rect.width;
 
   if (!isMobileDevice) {
-    // DESKTOP: Click 1 cái là Play/Pause TỨC THÌ (Zero latency)
+    // DESKTOP: Click 1 cái là Play/Pause tức thì
     togglePlay();
     return;
   }
 
-  // MOBILE: Chờ 250ms để xác định là chạm 1 lần hay chạm đúp
-  clickCount++;
-  if (clickCount === 1) {
-    clickTimer = setTimeout(() => {
-      clickCount = 0; // Reset
-      // Hành động Tap 1 lần (Mobile): Tắt mở Controls Overlay
+  // MOBILE: Logic Tap & Double Tap
+  const now = Date.now();
+
+  if (now - lastTapTime < DOUBLE_TAP_DELAY) {
+    // >> LÀ DOUBLE TAP <<
+    if (tapTimeout) clearTimeout(tapTimeout);
+    lastTapTime = 0; // Reset lại để tránh lỗi chạm 3 lần (triple-tap) kích hoạt liên tiếp
+
+    // Xác định vị trí chạm đúp
+    if (relativeX < width * 0.35) {
+      triggerDoubleTap("rewind");
+    } else if (relativeX > width * 0.65) {
+      triggerDoubleTap("forward");
+    } else {
+      toggleFullscreen(); // Chạm đúp ở giữa
+    }
+  } else {
+    // >> LÀ SINGLE TAP (Tạm thời) <<
+    lastTapTime = now;
+
+    // Chờ xem người dùng có chạm lần 2 không, nếu không thì mới thực thi Single Tap
+    tapTimeout = setTimeout(() => {
+      // Toggle ẩn/hiện bảng điều khiển
       if (showControls.value) {
         showControls.value = false;
         if (controlsTimeout) clearTimeout(controlsTimeout);
@@ -758,26 +782,12 @@ const handlePointerUp = (e: PointerEvent) => {
       } else {
         startControlsTimer();
       }
-    }, 250);
-  } else if (clickCount === 2) {
-    clearTimeout(clickTimer);
-    clickCount = 0; // Reset
-
-    // Hành động Double Tap (Mobile): Tua video
-    if (relativeX < width * 0.35) {
-      triggerDoubleTap("rewind");
-    } else if (relativeX > width * 0.65) {
-      triggerDoubleTap("forward");
-    } else {
-      toggleFullscreen(); // Double tap ở giữa -> Fullscreen
-    }
+    }, DOUBLE_TAP_DELAY);
   }
 };
 
 const handleDoubleClickDesktop = () => {
-  const isMobileDevice = window.matchMedia(
-    "(hover: none), (pointer: coarse)",
-  ).matches;
+  const isMobileDevice = window.matchMedia("(hover: none), (pointer: coarse)").matches;
   if (!isMobileDevice) {
     toggleFullscreen(); // Desktop: Double click để Fullscreen
   }
@@ -791,13 +801,13 @@ const triggerDoubleTap = (action: "rewind" | "forward") => {
   setTimeout(() => {
     doubleTapAction.value = null;
   }, 600);
-  startControlsTimer(); // Giữ UI sáng khi tua
+  
+  // Reset lại timer để giữ controls luôn hiện lúc đang tua
+  startControlsTimer(); 
 };
 
 const handleMouseMove = () => {
-  const isMobileDevice = window.matchMedia(
-    "(hover: none), (pointer: coarse)",
-  ).matches;
+  const isMobileDevice = window.matchMedia("(hover: none), (pointer: coarse)").matches;
   if (!isMobileDevice && isPlaying.value) {
     startControlsTimer();
   }
@@ -808,6 +818,21 @@ const handleMouseLeave = () => {
     showControls.value = false;
     showSettings.value = false;
     showSubsMenu.value = false;
+  }
+};
+
+const startControlsTimer = () => {
+  showControls.value = true;
+  if (controlsTimeout) clearTimeout(controlsTimeout);
+
+  // Chỉ tự động ẩn controls nếu video ĐANG CHẠY
+  if (isPlaying.value) {
+    controlsTimeout = setTimeout(() => {
+      // Không ẩn nếu đang mở menu cài đặt, menu phụ đề, hoặc đang giữ tay kéo thanh tua
+      if (!showSettings.value && !showSubsMenu.value && !isDragging) {
+        showControls.value = false;
+      }
+    }, 3000);
   }
 };
 
@@ -1208,13 +1233,21 @@ const handleProgressLeave = () => (isHoveringProgress.value = false);
 
 const toggleFullscreen = () => {
   if (!containerRef.value) return;
+  
   if (isIOS.value && videoRef.value) {
-    // @ts-ignore
-    if (videoRef.value.webkitEnterFullscreen)
-      videoRef.value.webkitEnterFullscreen();
+    // Ép kiểu (Type Casting) mở rộng để báo cho TypeScript biết về phương thức WebKit
+    const videoElement = videoRef.value as HTMLVideoElement & { 
+      webkitEnterFullscreen?: () => void 
+    };
+    
+    // Kiểm tra an toàn trước khi gọi
+    if (typeof videoElement.webkitEnterFullscreen === 'function') {
+      videoElement.webkitEnterFullscreen();
+    }
   } else {
+    // Logic cho Desktop và Android
     if (!document.fullscreenElement) {
-      containerRef.value.requestFullscreen();
+      containerRef.value.requestFullscreen().catch(() => {});
       isFullscreen.value = true;
     } else {
       document.exitFullscreen();
@@ -1321,6 +1354,7 @@ onBeforeUnmount(() => {
   if (hls) hls.destroy();
   if (controlsTimeout) clearTimeout(controlsTimeout);
   if (clickTimer) clearTimeout(clickTimer);
+  if (tapTimeout) clearTimeout(tapTimeout);
 });
 </script>
 
