@@ -331,6 +331,7 @@ const showSubsMenu = ref(false);
 
 let controlsTimeout: any = null;
 let isDragging = false;
+const isSeeking = ref(false); // Thêm cờ theo dõi tiến trình tua
 
 // Subtitle State
 const activeTrackIndex = ref(-1);
@@ -780,6 +781,9 @@ const seekBy = (seconds: number) => {
     Math.max(videoRef.value.currentTime + seconds, 0),
     duration.value,
   );
+  
+  isSeeking.value = true;
+  
   currentTime.value = newTime;
   videoRef.value.currentTime = newTime;
   currentCueIndex.value = 0;
@@ -846,6 +850,8 @@ const handleSeek = (e: MouseEvent | TouchEvent) => {
   const percentage = Math.max(0, Math.min(1, clickX / rect.width));
   const newTime = percentage * duration.value;
 
+  isSeeking.value = true; // THÊM DÒNG NÀY
+
   currentTime.value = newTime;
   videoRef.value.currentTime = newTime;
   currentCueIndex.value = 0;
@@ -858,6 +864,9 @@ const startDragging = () => {
   isDragging = true;
 };
 const stopDragging = () => {
+  if (isDragging) {
+    isSeeking.value = true; // THÊM DÒNG NÀY
+  }
   isDragging = false;
 };
 
@@ -922,7 +931,9 @@ const changeQuality = (levelId: number) => {
 };
 
 const onTimeUpdate = () => {
-  if (!videoRef.value || isDragging) return; // Không update time nếu user đang giữ ngón tay/chuột kéo thanh tua
+  // Thêm điều kiện isSeeking.value vào dòng if này
+  if (!videoRef.value || isDragging || isSeeking.value) return; 
+  
   const now = videoRef.value.currentTime;
   const delta = now - lastTime.value;
   lastTime.value = now;
@@ -957,6 +968,7 @@ const onWaiting = () => (isBuffering.value = true);
 const onPlaying = () => {
   isBuffering.value = false;
   isPlaying.value = true;
+  isSeeking.value = false; // THÊM DÒNG NÀY (Bảo hiểm khi video phát lại)
   if (videoRef.value) lastTime.value = videoRef.value.currentTime;
 };
 const onPause = () => {
@@ -964,6 +976,7 @@ const onPause = () => {
   showControls.value = true;
 };
 const onSeeked = () => {
+  isSeeking.value = false; // THÊM DÒNG NÀY (Video đã tua xong)
   if (videoRef.value) lastTime.value = videoRef.value.currentTime;
 };
 const onEnded = () => {
