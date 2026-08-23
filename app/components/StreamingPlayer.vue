@@ -133,7 +133,6 @@
         <!-- Progress Bar (Đã gỡ pointer-events-auto cứng, ăn theo container cha) -->
         <div
           class="group/progress relative mb-4 h-1.5 w-full cursor-pointer touch-none select-none hover:h-2 transition-all py-2 -my-2 px-2 flex items-center"
-          @click="handleSeek"
           @mousedown="startDragging"
           @mousemove="handleProgressMove"
           @mouseleave="handleProgressLeave"
@@ -152,7 +151,13 @@
           <div class="relative h-1.5 w-full rounded-full bg-white/20 group-hover/progress:h-2 transition-all">
             <div class="absolute h-full rounded-full bg-white/30 transition-all duration-300" :style="{ width: `${bufferedPercentage}%` }"></div>
             <div class="absolute h-full rounded-full bg-emerald-500 transition-all duration-100" :style="{ width: `${progressPercentage}%` }"></div>
-            <div class="absolute top-1/2 -mt-2 h-4 w-4 -translate-x-1/2 scale-0 rounded-full bg-white shadow-lg transition-transform group-hover/progress:scale-100" :style="{ left: `${progressPercentage}%` }"></div>
+            
+            <!-- Tay nắm tròn (Thumb) đã được sửa lại class -->
+            <div 
+              class="absolute top-1/2 -mt-2 h-4 w-4 -translate-x-1/2 rounded-full bg-white shadow-lg transition-transform"
+              :class="isDragging ? 'scale-100' : 'scale-0 group-hover/progress:scale-100'"
+              :style="{ left: `${progressPercentage}%` }">
+            </div>
           </div>
         </div>
 
@@ -330,8 +335,8 @@ const showSettings = ref(false);
 const showSubsMenu = ref(false);
 
 let controlsTimeout: any = null;
-let isDragging = false;
-const isSeeking = ref(false); // Thêm cờ theo dõi tiến trình tua
+const isDragging = ref(false); 
+const isSeeking = ref(false);
 
 // Subtitle State
 const activeTrackIndex = ref(-1);
@@ -860,19 +865,23 @@ const handleSeek = (e: MouseEvent | TouchEvent) => {
   lastTime.value = newTime;
 };
 
-const startDragging = () => {
-  isDragging = true;
+// Hàm bắt đầu chạm: Kích hoạt Drag và ép cập nhật vị trí ngay lập tức
+const startDragging = (e: MouseEvent | TouchEvent) => {
+  isDragging.value = true;
+  isSeeking.value = true;
+  handleDragging(e); // Gọi hàm tính toán để video nhảy ngay trong mili-giây đầu tiên chạm vào
 };
 const stopDragging = () => {
-  if (isDragging) {
-    isSeeking.value = true; // THÊM DÒNG NÀY
+  if (isDragging.value) {
+    isSeeking.value = true;
   }
-  isDragging = false;
+  isDragging.value = false;
 };
 
+// Hàm xử lý khi ngón tay lướt hoặc chuột kéo
 const handleDragging = (e: MouseEvent | TouchEvent) => {
-  if (isDragging && videoRef.value && duration.value) {
-    startControlsTimer(); // Giữ cho control luôn hiện khi đang vuốt tay kéo
+  if (isDragging.value && videoRef.value && duration.value) {
+    startControlsTimer();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const clientX =
       window.TouchEvent && e instanceof TouchEvent
@@ -880,7 +889,11 @@ const handleDragging = (e: MouseEvent | TouchEvent) => {
         : (e as MouseEvent).clientX;
     const clickX = clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-    videoRef.value.currentTime = percentage * duration.value;
+    const newTime = percentage * duration.value;
+    
+    isSeeking.value = true;
+    currentTime.value = newTime; // Cập nhật UI ngay lập tức (Optimistic)
+    videoRef.value.currentTime = newTime; // Ra lệnh cho thẻ video tải dữ liệu
   }
 };
 
