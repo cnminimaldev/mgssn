@@ -45,15 +45,17 @@ import MovieCard from '~/components/MovieCard.vue'
 const route = useRoute()
 const url = useRequestURL()
 
+// Kiểm tra xem trang này đang xem với tư cách là đạo diễn hay diễn viên
+const isDirector = route.query.role === 'director'
+
 // Decode tên từ URL (vd: Tom%20Cruise -> Tom Cruise)
 const personName = computed(() => decodeURIComponent(String(route.params.name)))
 
-// Gọi API
-// Sử dụng tham số 'q' để tìm kiếm tổng quát (bao gồm cả Cast và Director như đã cấu hình ở Backend)
-// Nếu muốn chính xác tuyệt đối là diễn viên, bạn có thể đổi thành: params: { cast: personName.value }
+// Gọi API linh hoạt tùy theo vai trò
 const { data: moviesData, pending } = await useFetch('/api/movies', {
   params: {
-    cast: personName.value, // Đổi từ q sang cast
+    // Nếu là đạo diễn thì truyền param 'director', nếu không thì truyền 'cast'
+    ...(isDirector ? { director: personName.value } : { cast: personName.value }),
     pageSize: 50,
     sort: 'year_desc'
   }

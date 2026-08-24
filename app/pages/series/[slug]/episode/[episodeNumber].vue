@@ -279,7 +279,7 @@
                 <div class="flex flex-wrap gap-1 text-zinc-300">
                   <template v-for="(dir, idx) in directorList" :key="idx">
                     <NuxtLink
-                      :to="`/search?q=${dir}`"
+                      :to="`/person/${encodeURIComponent(dir)}?role=director`"
                       class="hover:text-white hover:underline"
                     >
                       {{ dir }}

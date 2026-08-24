@@ -114,7 +114,7 @@
                     <span class="text-zinc-300">
                       <template v-for="(dir, idx) in directorList" :key="idx">
                         <NuxtLink
-                          :to="`/person/${encodeURIComponent(dir)}`"
+                          :to="`/person/${encodeURIComponent(dir)}?role=director`"
                           class="hover:text-white hover:underline"
                           >{{ dir }}</NuxtLink
                         >
