@@ -28,9 +28,23 @@
         関連作品は見つかりませんでした。
       </div>
 
+      <!-- Danh sách phim -->
       <div v-else>
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           <MovieCard v-for="movie in movies" :key="movie.id" :item="movie" />
+        </div>
+
+        <!-- [THÊM MỚI] Khu vực hiển thị nút phân trang nếu tổng số trang > 1 -->
+        <div v-if="totalPages > 1" class="mt-10 flex justify-center gap-2">
+          <NuxtLink
+            v-for="p in totalPages"
+            :key="p"
+            :to="{ query: { ...route.query, page: p } }"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            :class="p === currentPage ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'"
+          >
+            {{ p }}
+          </NuxtLink>
         </div>
       </div>
     </div>
@@ -51,17 +65,28 @@ const isDirector = route.query.role === 'director'
 // Decode tên từ URL (vd: Tom%20Cruise -> Tom Cruise)
 const personName = computed(() => decodeURIComponent(String(route.params.name)))
 
-// Gọi API linh hoạt tùy theo vai trò
+// Lấy số trang hiện tại từ URL query (mặc định là 1)
+const currentPage = computed(() => {
+  const p = Number(route.query.page)
+  return Number.isFinite(p) && p > 0 ? p : 1
+})
+
+const pageSize = 24 // Đồng bộ pageSize giống các trang khác cho đẹp mắt
+
+// Gọi API có truyền page và pageSize động
 const { data: moviesData, pending } = await useFetch('/api/movies', {
   params: {
-    // Nếu là đạo diễn thì truyền param 'director', nếu không thì truyền 'cast'
     ...(isDirector ? { director: personName.value } : { cast: personName.value }),
-    pageSize: 50,
+    page: currentPage.value,
+    pageSize: pageSize,
     sort: 'year_desc'
-  }
+  },
+  watch: [currentPage] // Tự động gọi lại API khi người dùng đổi trang
 })
 
 const movies = computed(() => moviesData.value?.items || [])
+const totalItems = computed(() => moviesData.value?.total || 0)
+const totalPages = computed(() => Math.ceil(totalItems.value / pageSize))
 
 // SEO Meta & Schema
 const title = computed(() => `${personName.value} 出演・監督作品 (映画・ドラマ) | MugenTV`)
