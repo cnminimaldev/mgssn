@@ -456,11 +456,12 @@ onBeforeUnmount(() => {
   -webkit-user-select: none;
 }
 
-/* [SỬA ĐỔI 5]: CSS cho phần Highlight của thẻ <mark> */
-:deep(mark.pgroonga-highlight) {
-  background-color: rgba(16, 185, 129, 0.2); /* Emerald 500 w/ 20% opacity */
-  color: #34d399; /* Emerald 400 */
+/* SỬA ĐỔI: Nhắm thẳng vào class thay vì thẻ mark */
+:deep(.pgroonga-highlight) {
+  background-color: rgba(16, 185, 129, 0.25); /* Tăng chút độ đậm để dễ nhìn hơn */
+  color: #34d399; 
+  font-weight: 900; /* Cho chữ in đậm hẳn lên */
   border-radius: 2px;
-  padding: 0 1px;
+  padding: 0 2px;
 }
 </style>
