@@ -27,20 +27,6 @@
         >
           <div class="flex flex-1 flex-col gap-2 sm:flex-row">
             <div class="flex-1 flex gap-2">
-              <!-- Dropdown lựa chọn chế độ -->
-              <div class="w-32 sm:w-40">
-                <label class="mb-1 block text-[11px] text-zinc-400 sm:text-xs">
-                  検索対象
-                </label>
-                <select
-                  v-model="searchTypeMode"
-                  class="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-2 text-xs text-zinc-50 focus:outline-none focus:ring-1 focus:ring-emerald-500 sm:text-sm"
-                >
-                  <option value="all">タイトル全体</option>
-                  <option value="cast">出演者 (diễn viên)</option>
-                  <option value="director">監督 (đạo diễn)</option>
-                </select>
-              </div>
               <!-- Ô nhập từ khóa hiện tại của bạn -->
               <div class="flex-1">
                 <label class="mb-1 block text-[11px] text-zinc-400 sm:text-xs">
@@ -53,6 +39,20 @@
                   :placeholder="searchPlaceholder"
                   @keydown.enter="triggerSearch"
                 />
+              </div>
+              <!-- Dropdown lựa chọn chế độ -->
+              <div class="w-32 sm:w-40">
+                <label class="mb-1 block text-[11px] text-zinc-400 sm:text-xs">
+                  検索対象
+                </label>
+                <select
+                  v-model="searchTypeMode"
+                  class="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-2 text-xs text-zinc-50 focus:outline-none focus:ring-1 focus:ring-emerald-500 sm:text-sm"
+                >
+                  <option value="all">タイトル</option>
+                  <option value="cast">出演者</option>
+                  <option value="director">監督</option>
+                </select>
               </div>
             </div>
 
