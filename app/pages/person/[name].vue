@@ -53,9 +53,9 @@ const personName = computed(() => decodeURIComponent(String(route.params.name)))
 // Nếu muốn chính xác tuyệt đối là diễn viên, bạn có thể đổi thành: params: { cast: personName.value }
 const { data: moviesData, pending } = await useFetch('/api/movies', {
   params: {
-    q: personName.value, 
+    cast: personName.value, // Đổi từ q sang cast
     pageSize: 50,
-    sort: 'year_desc' // Sắp xếp phim mới nhất lên đầu
+    sort: 'year_desc'
   }
 })
 
