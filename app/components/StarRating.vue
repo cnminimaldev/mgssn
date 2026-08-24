@@ -114,7 +114,7 @@ const submitRating = async (star: number) => {
 
   // 3. Nếu vẫn không có ID -> Bắt buộc đăng nhập
   if (!userId) {
-    alert('ログインしてください (Vui lòng đăng nhập).')
+    alert('ログインしてください')
     return
   }
 
