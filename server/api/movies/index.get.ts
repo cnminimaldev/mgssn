@@ -73,38 +73,49 @@ export default defineEventHandler(async (event) => {
     dbQuery = dbQuery.overlaps('genre_slugs', genreSlugs)
   }
 
-  // [TÍCH HỢP PGROONGA]
+  // [TÍCH HỢP PGROONGA VÀ PHÂN TRANG TẠI DB]
   if (search) {
+    // Tính toán offset từ phân trang hiện tại
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
     const { data: searchResults, error: searchError } = await client
-      .rpc('search_japanese_media', { search_term: search })
+      .rpc('search_japanese_media', { 
+        search_term: search,
+        p_limit: pageSize,      // Truyền giới hạn số lượng của trang hiện tại (24)
+        p_offset: from          // Truyền vị trí bắt đầu
+      })
     
     if (searchError) {
       throw createError({ statusCode: 500, statusMessage: searchError.message })
     }
 
     if (!searchResults || searchResults.length === 0) {
-      // Tìm không thấy -> Trả về rỗng ngay lập tức
       return { items: [], total: 0, page, pageSize }
     }
+
+    // Lấy tổng số lượng thực tế từ cột total_count của dòng đầu tiên do SQL trả về
+    const totalCount = Number(searchResults[0]?.total_count || 0)
 
     const movieIds: number[] = []
     const seriesIds: number[] = []
     
-    searchResults.forEach((item: any, index: number) => {
+    searchResults.forEach((item: any) => {
       const key = `${item.type}-${item.id}`
       highlightMap[key] = item.highlighted_title
-      recommendedOrder[key] = index // Lưu lại vị trí để sort relevance
       
       if (item.type === 'movie') movieIds.push(item.id)
       if (item.type === 'series') seriesIds.push(item.id)
     })
 
-    // Ép dbQuery chỉ lấy những phim nằm trong kết quả PGroonga
     const orFilters = []
     if (movieIds.length > 0) orFilters.push(`and(type.eq.movie,id.in.(${movieIds.join(',')}))`)
     if (seriesIds.length > 0) orFilters.push(`and(type.eq.series,id.in.(${seriesIds.join(',')}))`)
     
     dbQuery = dbQuery.or(orFilters.join(','))
+    
+    // Gán luôn tổng số lượng tìm được để trả về client
+    // (Bỏ qua đoạn tự slice bằng JS ở bên dưới cho nhánh search)
   }
 
   if (castParam) {
