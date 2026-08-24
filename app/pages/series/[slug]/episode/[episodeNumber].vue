@@ -263,7 +263,7 @@
                 <div class="flex flex-wrap gap-1 text-zinc-300">
                   <template v-for="(actor, idx) in castList" :key="idx">
                     <NuxtLink
-                      :to="`/search?q=${actor}`"
+                      :to="`/person/${encodeURIComponent(actor)}`"
                       class="hover:text-white hover:underline"
                       >{{ actor }}</NuxtLink
                     >
