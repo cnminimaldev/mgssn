@@ -74,16 +74,17 @@ export default defineEventHandler(async (event) => {
   }
 
   // [TÍCH HỢP PGROONGA VÀ PHÂN TRANG TẠI DB]
-  if (search) {
-    // Tính toán offset từ phân trang hiện tại
-    const from = (page - 1) * pageSize
-    const to = from + pageSize - 1
+  let totalSearchResults = 0
 
+  if (search) {
+    const from = (page - 1) * pageSize
+
+    // TRUYỀN ĐỦ THAM SỐ P_LIMIT VÀ P_OFFSET VÀO RPC
     const { data: searchResults, error: searchError } = await client
       .rpc('search_japanese_media', { 
         search_term: search,
-        p_limit: pageSize,      // Truyền giới hạn số lượng của trang hiện tại (24)
-        p_offset: from          // Truyền vị trí bắt đầu
+        p_limit: pageSize,
+        p_offset: from
       })
     
     if (searchError) {
@@ -94,8 +95,8 @@ export default defineEventHandler(async (event) => {
       return { items: [], total: 0, page, pageSize }
     }
 
-    // Lấy tổng số lượng thực tế từ cột total_count của dòng đầu tiên do SQL trả về
-    const totalCount = Number(searchResults[0]?.total_count || 0)
+    // LẤY TRỰC TIẾP TỔNG SỐ LƯỢNG THỰC TẾ (>1000 KẾT QUẢ) TỪ CỘT TOTAL_COUNT CỦA DB
+    totalSearchResults = Number(searchResults[0]?.total_count || 0)
 
     const movieIds: number[] = []
     const seriesIds: number[] = []
@@ -113,9 +114,6 @@ export default defineEventHandler(async (event) => {
     if (seriesIds.length > 0) orFilters.push(`and(type.eq.series,id.in.(${seriesIds.join(',')}))`)
     
     dbQuery = dbQuery.or(orFilters.join(','))
-    
-    // Gán luôn tổng số lượng tìm được để trả về client
-    // (Bỏ qua đoạn tự slice bằng JS ở bên dưới cho nhánh search)
   }
 
   if (castParam) {
@@ -190,9 +188,9 @@ export default defineEventHandler(async (event) => {
   })
 
   // --- 7. Sắp xếp và Phân trang Bằng Javascript (Cho trường hợp Relevance) ---
-  let finalTotal = count ?? 0
+  let finalTotal = search ? totalSearchResults : (count ?? 0)
 
-  if (isCustomRelevanceSort) {
+  if (isCustomRelevanceSort && !search) {
     // Xếp theo đúng thứ tự mảng trả về của PGroonga
     items.sort((a, b) => {
       const orderA = recommendedOrder[`${a.type}-${a.id}`] ?? 9999
