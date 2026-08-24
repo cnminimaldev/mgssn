@@ -457,10 +457,10 @@ onBeforeUnmount(() => {
 }
 
 /* SỬA ĐỔI: Nhắm thẳng vào class thay vì thẻ mark */
-:deep(.pgroonga-highlight) {
-  background-color: rgba(16, 185, 129, 0.25); /* Tăng chút độ đậm để dễ nhìn hơn */
+:deep(.keyword) {
+  background-color: rgba(16, 185, 129, 0.25);
   color: #34d399; 
-  font-weight: 900; /* Cho chữ in đậm hẳn lên */
+  font-weight: 900; 
   border-radius: 2px;
   padding: 0 2px;
 }
