@@ -1,7 +1,7 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { getQuery, createError } from 'h3'
 
-// Helper chuyển đổi Katakana sang Hiragana (vẫn giữ lại cho các bộ lọc cũ nếu cần)
+// Helper chuyển đổi toàn bộ Katakana sang Hiragana
 function toHiragana(input: string) {
   return input.replace(/[\u30A1-\u30F6]/g, (ch) =>
     String.fromCharCode(ch.charCodeAt(0) - 0x60),
@@ -33,7 +33,8 @@ export default defineEventHandler(async (event) => {
 
   // --- 1. Params ---
   const searchRaw = typeof query.q === 'string' ? query.q.trim() : ''
-  const search = searchRaw || ''
+  // Ép toàn bộ từ khóa tìm kiếm (dù là Hiragana hay Katakana) về chung một chuẩn Hiragana
+  const search = searchRaw ? toHiragana(searchRaw) : ''
 
   const castParam = typeof query.cast === 'string' ? query.cast.trim() : ''
   const directorParam = typeof query.director === 'string' ? query.director.trim() : ''
