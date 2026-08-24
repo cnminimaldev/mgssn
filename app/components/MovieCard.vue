@@ -31,11 +31,12 @@
     </div>
 
     <div class="mt-2 px-0.5">
+      <!-- [SỬA ĐỔI 1]: Dùng v-html để render thẻ <mark> của highlightedTitle, nếu không có thì fallback về title -->
       <h3
         class="text-sm font-bold text-zinc-200 leading-tight line-clamp-2 group-hover:text-emerald-400 transition-colors"
         :title="item.title"
+        v-html="item.highlightedTitle || item.title"
       >
-        {{ item.title }}
       </h3>
 
       <div class="mt-1.5 flex items-center gap-2 text-xs text-zinc-500">
@@ -78,8 +79,11 @@
     <div
       class="absolute inset-0 flex items-end bg-gradient-to-t from-black/90 via-transparent to-transparent p-2 opacity-100 transition-opacity duration-300 group-hover:opacity-0"
     >
-      <p class="line-clamp-1 text-xs font-medium text-zinc-100 drop-shadow-md">
-        {{ item.title }}
+      <!-- [SỬA ĐỔI 2]: Áp dụng v-html cho card ở trạng thái bình thường (không phải trang search) -->
+      <p 
+        class="line-clamp-1 text-xs font-medium text-zinc-100 drop-shadow-md"
+        v-html="item.highlightedTitle || item.title"
+      >
       </p>
     </div>
   </div>
@@ -107,10 +111,11 @@
         ></div>
 
         <div class="absolute bottom-3 left-3 right-3">
+          <!-- [SỬA ĐỔI 3]: Áp dụng v-html cho tiêu đề trong Popup khi Hover/Long-press -->
           <h3
             class="line-clamp-1 text-base font-bold text-white drop-shadow-lg sm:text-lg"
+            v-html="item.highlightedTitle || item.title"
           >
-            {{ item.title }}
           </h3>
         </div>
       </div>
@@ -219,6 +224,7 @@ const props = defineProps<{
     type: "movie" | "series";
     slug: string;
     title: string;
+    highlightedTitle?: string; // [SỬA ĐỔI 4]: Khai báo thêm thuộc tính này
     thumbnail?: string;
     posterUrl?: string;
     year?: number;
@@ -242,18 +248,15 @@ const linkTo = computed(() =>
 const preventNextClick = ref(false);
 
 const handleClick = (e: MouseEvent) => {
-  // [MỚI] Hủy mọi timer ngay lập tức khi click để tránh popup hiện khi đang loading
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
   if (closeTimeout.value) clearTimeout(closeTimeout.value);
 
-  // Nếu cờ chặn đang bật (do vừa thả tay sau khi long-press thành công)
   if (preventNextClick.value) {
     e.preventDefault();
     e.stopPropagation();
-    preventNextClick.value = false; // Reset để lần click sau hoạt động bình thường
+    preventNextClick.value = false;
     return;
   }
-  // Nếu không bị chặn thì chuyển trang
   navigateTo(linkTo.value);
 };
 
@@ -275,9 +278,7 @@ const closeTimeout = ref<NodeJS.Timeout | null>(null);
 
 const coords = ref({ top: 0, left: 0, width: 0 });
 
-// Biến cờ xác định trạng thái Long Press
 const isLongPressTriggered = ref(false);
-// [MỚI] Biến cờ xác định đang thao tác bằng cảm ứng
 const isTouch = ref(false);
 
 const calculatePosition = () => {
@@ -321,10 +322,9 @@ const popupStyle = computed<CSSProperties>(() => ({
 
 // --- DESKTOP HOVER ---
 const handleHoverLogic = (e: MouseEvent) => {
-  // [MỚI] Nếu là touch, bỏ qua sự kiện chuột giả lập
   if (isTouch.value) return;
 
-  if (e.buttons > 0) { // Đang kéo (drag)
+  if (e.buttons > 0) { 
     if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
     return;
   }
@@ -336,7 +336,6 @@ const handleHoverLogic = (e: MouseEvent) => {
 
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
 
-  // Debounce 500ms
   hoverTimeout.value = setTimeout(() => {
     calculatePosition();
     showPopup.value = true;
@@ -354,7 +353,6 @@ const handlePopupEnter = () => {
 };
 
 const handleMouseLeave = () => {
-  // Reset timer mở
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
@@ -371,18 +369,15 @@ const handleMouseLeave = () => {
 };
 
 // --- MOBILE TOUCH ---
-
 const handleTouchStart = () => {
-  isTouch.value = true; // [MỚI] Đánh dấu touch
+  isTouch.value = true;
   isLongPressTriggered.value = false;
   preventNextClick.value = false;
 
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
   if (closeTimeout.value) clearTimeout(closeTimeout.value);
 
-  // Bắt đầu đếm 500ms
   hoverTimeout.value = setTimeout(() => {
-    // Đã giữ đủ lâu -> Mở Popup
     isLongPressTriggered.value = true; 
     calculatePosition();
     showPopup.value = true;
@@ -391,7 +386,6 @@ const handleTouchStart = () => {
 };
 
 const handleTouchMove = () => {
-  // Nếu di chuyển tay (scroll), hủy Long Press
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
@@ -400,29 +394,21 @@ const handleTouchMove = () => {
 };
 
 const handleTouchEnd = () => {
-  // Xóa timer đang đếm (nếu chưa đủ 500ms)
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
   }
 
-  // Nếu Popup vừa được mở bằng Long Press:
   if (isLongPressTriggered.value) {
-    // 1. Đánh dấu để chặn sự kiện Click chuyển trang sắp xảy ra
     preventNextClick.value = true;
-    
-    // 2. KHÔNG gọi handleMouseLeave(). Giữ popup ở lại.
     return; 
   }
 
-  // Nếu là tap ngắn (chưa đủ 500ms) thì popup chưa hiện.
-  // Sự kiện Click sẽ xảy ra sau đây và kích hoạt navigateTo().
   if (showPopup.value && !isLongPressTriggered.value) {
     handleMouseLeave();
   }
 };
 
-// Global Click/Touch Outside để đóng Popup
 const handleGlobalTouch = (event: Event) => {
   if (!showPopup.value) return;
 
@@ -468,5 +454,13 @@ onBeforeUnmount(() => {
 .select-none {
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* [SỬA ĐỔI 5]: CSS cho phần Highlight của thẻ <mark> */
+:deep(mark.pgroonga-highlight) {
+  background-color: rgba(16, 185, 129, 0.2); /* Emerald 500 w/ 20% opacity */
+  color: #34d399; /* Emerald 400 */
+  border-radius: 2px;
+  padding: 0 1px;
 }
 </style>
