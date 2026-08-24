@@ -26,17 +26,34 @@
           class="flex flex-col gap-3 border-b border-white/5 pb-4 sm:flex-row sm:items-end sm:justify-between"
         >
           <div class="flex flex-1 flex-col gap-2 sm:flex-row">
-            <div class="flex-1">
-              <label class="mb-1 block text-[11px] text-zinc-400 sm:text-xs">
-                キーワード
-              </label>
-              <input
-                v-model="keyword"
-                type="text"
-                class="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-50 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 sm:text-sm"
-                placeholder="例: Frozen / アナと雪の女王"
-                @keydown.enter="triggerSearch"
-              />
+            <div class="flex-1 flex gap-2">
+              <!-- Dropdown lựa chọn chế độ -->
+              <div class="w-32 sm:w-40">
+                <label class="mb-1 block text-[11px] text-zinc-400 sm:text-xs">
+                  検索対象
+                </label>
+                <select
+                  v-model="searchTypeMode"
+                  class="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-2 text-xs text-zinc-50 focus:outline-none focus:ring-1 focus:ring-emerald-500 sm:text-sm"
+                >
+                  <option value="all">タイトル全体</option>
+                  <option value="cast">出演者 (diễn viên)</option>
+                  <option value="director">監督 (đạo diễn)</option>
+                </select>
+              </div>
+              <!-- Ô nhập từ khóa hiện tại của bạn -->
+              <div class="flex-1">
+                <label class="mb-1 block text-[11px] text-zinc-400 sm:text-xs">
+                  キーワード
+                </label>
+                <input
+                  v-model="keyword"
+                  type="text"
+                  class="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-50 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 sm:text-sm"
+                  :placeholder="searchPlaceholder"
+                  @keydown.enter="triggerSearch"
+                />
+              </div>
             </div>
 
             <div class="flex gap-2 sm:w-auto">
@@ -312,8 +329,23 @@ const route = useRoute();
 const router = useRouter();
 
 // --- 1. LOCAL STATE (DRAFT) ---
-// Khởi tạo từ URL
-const keyword = ref(route.query.q?.toString() || "");
+const keyword = ref(route.query.q?.toString() || route.query.cast?.toString() || route.query.director?.toString() || "");
+
+// Xác định chế độ tìm kiếm hiện tại từ URL query
+const getInitialSearchMode = () => {
+  if (route.query.cast) return "cast";
+  if (route.query.director) return "director";
+  return "all";
+};
+const searchTypeMode = ref(getInitialSearchMode());
+
+// Gợi ý placeholder linh hoạt theo chế độ
+const searchPlaceholder = computed(() => {
+  if (searchTypeMode.value === "cast") return "例: 南沙良";
+  if (searchTypeMode.value === "director") return "例: 是枝裕和";
+  return "例: Frozen / アナと雪の女王";
+});
+
 const selectedType = ref(route.query.type?.toString() || "");
 const selectedGenres = ref<string[]>(getQueryArray(route.query.genres));
 const selectedCountries = ref<string[]>(getQueryArray(route.query.countries));
@@ -329,15 +361,16 @@ const url = useRequestURL();
 const canonicalUrl = computed(() => {
   const u = new URL(`${url.origin}/search`);
   if (route.query.q) u.searchParams.set("q", String(route.query.q));
+  if (route.query.cast) u.searchParams.set("cast", String(route.query.cast));
+  if (route.query.director) u.searchParams.set("director", String(route.query.director));
   if (route.query.type) u.searchParams.set("type", String(route.query.type));
-  // ... (các param khác tự động được xử lý khi query change)
   return u.toString();
 });
 
 useSeoMeta({
   title: "検索 - MugenTV",
   description: "映画やドラマを検索・視聴",
-  robots: route.query.q ? "noindex, follow" : "index, follow",
+  robots: route.query.q || route.query.cast || route.query.director ? "noindex, follow" : "index, follow",
   ogUrl: canonicalUrl,
 });
 
@@ -355,9 +388,10 @@ const countryOptions = computed(() => filtersData.value?.countries ?? []);
 const yearOptions = computed(() => filtersData.value?.years ?? []);
 
 // --- 4. API FETCHING (Source of Truth = URL) ---
-// Tính toán Params dựa trên route.query để đảm bảo API chỉ gọi khi URL thay đổi
 const apiParams = computed(() => ({
   q: route.query.q,
+  cast: route.query.cast,
+  director: route.query.director,
   type: route.query.type,
   sort: route.query.sort || "recommended",
   page: route.query.page || 1,
@@ -372,7 +406,7 @@ const { data, pending, error } = await useAsyncData<MoviesResponse>(
   "search-movies",
   () => $fetch("/api/movies", { params: apiParams.value }),
   {
-    watch: [apiParams], // Tự động fetch khi URL thay đổi
+    watch: [apiParams],
   }
 );
 
@@ -389,7 +423,17 @@ const totalPages = computed(() => {
 const triggerSearch = () => {
   const query: any = {};
 
-  if (keyword.value) query.q = keyword.value;
+  // Gán từ khóa vào param tương ứng dựa vào dropdown đang chọn
+  if (keyword.value) {
+    if (searchTypeMode.value === "cast") {
+      query.cast = keyword.value;
+    } else if (searchTypeMode.value === "director") {
+      query.director = keyword.value;
+    } else {
+      query.q = keyword.value;
+    }
+  }
+
   if (selectedType.value) query.type = selectedType.value;
   if (selectedGenres.value.length)
     query.genres = selectedGenres.value.join(",");
@@ -405,6 +449,7 @@ const triggerSearch = () => {
 
 const resetFilters = () => {
   keyword.value = "";
+  searchTypeMode.value = "all";
   selectedType.value = "";
   selectedGenres.value = [];
   selectedCountries.value = [];
@@ -435,7 +480,17 @@ const toggleCountry = (c: string) => {
 watch(
   () => route.query,
   (newQuery) => {
-    keyword.value = newQuery.q?.toString() || "";
+    if (newQuery.cast) {
+      keyword.value = newQuery.cast.toString();
+      searchTypeMode.value = "cast";
+    } else if (newQuery.director) {
+      keyword.value = newQuery.director.toString();
+      searchTypeMode.value = "director";
+    } else {
+      keyword.value = newQuery.q?.toString() || "";
+      searchTypeMode.value = "all";
+    }
+
     selectedType.value = newQuery.type?.toString() || "";
     selectedGenres.value = getQueryArray(newQuery.genres);
     selectedCountries.value = getQueryArray(newQuery.countries);
