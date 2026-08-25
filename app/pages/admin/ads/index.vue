@@ -1,76 +1,136 @@
 <template>
-  <div class="admin-ads-page">
-    <div class="header">
-      <h2>Quản lý Quảng cáo</h2>
-    </div>
+  <div class="min-h-screen bg-[#05060a] text-zinc-300 p-4 sm:p-6">
+    <div class="mx-auto max-w-7xl">
+      
+      <!-- Header -->
+      <header class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <NuxtLink to="/admin" class="text-zinc-500 hover:text-white transition flex items-center gap-1 text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              </svg>
+              ダッシュボードに戻る (Back)
+            </NuxtLink>
+          </div>
+          <h1 class="text-xl font-bold text-white">広告管理</h1>
+          <p class="text-xs text-zinc-500 mt-1">
+            Ads Management / バナーとスクリプトの設定
+          </p>
+        </div>
+      </header>
 
-    <!-- Form Thêm / Sửa Quảng Cáo -->
-    <div class="ad-form-card">
-      <h3>{{ isEditing ? 'Cập nhật' : 'Thêm mới' }} cấu hình Quảng cáo</h3>
-      <form @submit.prevent="saveAd">
-        <div class="form-group">
-          <label>Vị trí hiển thị</label>
-          <select v-model="formData.position" required :disabled="isEditing">
-            <option value="header">Dưới Header (header)</option>
-            <option value="player_top">Trên Player (player_top)</option>
-            <option value="player_bottom">Dưới Player (player_bottom)</option>
-            <option value="sticky_left">Bên trái màn hình (sticky_left)</option>
-            <option value="sticky_right">Bên phải màn hình (sticky_right)</option>
-            <option value="footer">Trên Footer (footer)</option>
-          </select>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Cột trái: Form Thêm/Sửa -->
+        <div class="lg:col-span-1">
+          <div class="bg-zinc-900/50 border border-white/5 rounded-xl p-4 sm:p-6 sticky top-6 shadow-sm">
+            <h2 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-cyan-500">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+              </svg>
+              {{ isEditing ? '設定の更新 (Update)' : '新規追加 (Add New)' }}
+            </h2>
+            
+            <form @submit.prevent="saveAd" class="space-y-4">
+              <div>
+                <label class="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">表示位置 (Position)</label>
+                <select v-model="formData.position" required :disabled="isEditing" class="w-full bg-[#05060a] border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 disabled:opacity-50 appearance-none">
+                  <option value="header">ヘッダー下 (Header)</option>
+                  <option value="player_top">プレイヤー上 (Player Top)</option>
+                  <option value="player_bottom">プレイヤー下 (Player Bottom)</option>
+                  <option value="sticky_left">画面左固定 (Sticky Left)</option>
+                  <option value="sticky_right">画面右固定 (Sticky Right)</option>
+                  <option value="footer">フッター上 (Footer)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">コード (Ad Code)</label>
+                <textarea v-model="formData.code" rows="6" required placeholder="<script> または <iframe> を入力..." class="w-full bg-[#05060a] border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 font-mono placeholder:text-zinc-700 resize-y"></textarea>
+              </div>
+
+              <label class="flex items-center gap-2 cursor-pointer group">
+                <div class="relative flex items-center">
+                  <input type="checkbox" v-model="formData.is_active" class="peer sr-only" />
+                  <div class="w-10 h-5 bg-zinc-800 rounded-full peer-checked:bg-cyan-500 transition-colors"></div>
+                  <div class="absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                </div>
+                <span class="text-sm font-bold text-zinc-400 group-hover:text-white transition-colors">有効 (Active)</span>
+              </label>
+
+              <div class="pt-2 flex items-center gap-2">
+                <button type="submit" class="flex-1 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-black font-bold py-2.5 rounded-lg transition-colors text-sm">
+                  保存 (Save)
+                </button>
+                <button v-if="isEditing" type="button" @click="resetForm" class="px-4 py-2.5 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 rounded-lg font-bold transition-colors text-sm">
+                  キャンセル
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Mã quảng cáo (HTML / JS Script)</label>
-          <textarea v-model="formData.code" rows="6" required placeholder="Dán mã thẻ <script> hoặc <iframe> vào đây..."></textarea>
+        <!-- Cột phải: Bảng danh sách -->
+        <div class="lg:col-span-2">
+          <div class="bg-zinc-900/50 border border-white/5 rounded-xl overflow-hidden shadow-sm">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr>
+                    <th class="bg-black/20 p-4 text-[10px] text-zinc-500 font-bold uppercase tracking-widest whitespace-nowrap">位置 (Position)</th>
+                    <th class="bg-black/20 p-4 text-[10px] text-zinc-500 font-bold uppercase tracking-widest whitespace-nowrap">状態 (Status)</th>
+                    <th class="bg-black/20 p-4 text-[10px] text-zinc-500 font-bold uppercase tracking-widest whitespace-nowrap">更新日 (Updated)</th>
+                    <th class="bg-black/20 p-4 text-[10px] text-zinc-500 font-bold uppercase tracking-widest whitespace-nowrap text-right">操作 (Actions)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="ad in ads" :key="ad.id" class="hover:bg-white/[0.02] transition-colors group">
+                    <td class="p-4 border-t border-white/5 text-sm font-bold text-white whitespace-nowrap">
+                      {{ ad.position }}
+                    </td>
+                    <td class="p-4 border-t border-white/5 whitespace-nowrap">
+                      <span v-if="ad.is_active" class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                      </span>
+                      <span v-else class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-zinc-500/10 text-zinc-400 text-xs font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span> Inactive
+                      </span>
+                    </td>
+                    <td class="p-4 border-t border-white/5 text-sm text-zinc-400 whitespace-nowrap">
+                      {{ ad.updated_at ? new Date(ad.updated_at).toLocaleDateString('ja-JP') : '-' }}
+                    </td>
+                    <td class="p-4 border-t border-white/5 whitespace-nowrap text-right">
+                      <button @click="editAd(ad)" class="text-zinc-500 hover:text-cyan-400 p-2 transition-colors" title="Edit">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+                      </button>
+                      <button @click="deleteAd(ad.id!)" class="text-zinc-500 hover:text-rose-500 p-2 transition-colors ml-1" title="Delete">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr v-if="!ads.length">
+                    <td colspan="4" class="p-8 text-center text-zinc-500 text-sm">
+                      登録されている広告データはありません。(No ad configurations found.)
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-
-        <div class="form-group checkbox">
-          <label>
-            <input type="checkbox" v-model="formData.is_active" />
-            Đang hoạt động (Kích hoạt)
-          </label>
-        </div>
-
-        <div class="actions">
-          <button type="submit" class="btn btn-primary">Lưu cấu hình</button>
-          <button type="button" class="btn btn-secondary" v-if="isEditing" @click="resetForm">Hủy</button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Bảng Danh Sách Quảng Cáo -->
-    <div class="ad-list">
-      <table>
-        <thead>
-          <tr>
-            <th>Vị trí</th>
-            <th>Trạng thái</th>
-            <th>Lần cập nhật cuối</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="ad in ads" :key="ad.id">
-            <td><strong>{{ ad.position }}</strong></td>
-            <td>{{ ad.is_active ? '✅ Đang bật' : '❌ Đã tắt' }}</td>
-            <td>{{ ad.updated_at ? new Date(ad.updated_at).toLocaleDateString('vi-VN') : 'Mới tạo' }}</td> 
-            <td>
-              <button @click="editAd(ad)" class="btn btn-edit">Sửa</button>
-              <button @click="deleteAd(ad.id!)" class="btn btn-delete">Xóa</button>
-            </td>
-          </tr>
-          <tr v-if="!ads.length">
-            <td colspan="4" class="text-center">Chưa có dữ liệu quảng cáo nào được thiết lập.</td>
-          </tr>
-        </tbody>
-      </table>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { definePageMeta } from '#imports'
+
+definePageMeta({
+  middleware: 'admin',
+})
 
 interface AdConfig {
   id?: number
@@ -89,7 +149,6 @@ const formData = ref<AdConfig>({
   is_active: true
 })
 
-// Lấy danh sách từ Admin API
 const fetchAds = async () => {
   try {
     const data = await $fetch<AdConfig[]>('/api/admin/ads')
@@ -99,14 +158,12 @@ const fetchAds = async () => {
   }
 }
 
-// Gửi yêu cầu Thêm/Sửa (Upsert)
 const saveAd = async () => {
   try {
     await $fetch('/api/admin/ads', {
       method: 'POST',
       body: formData.value
     })
-    alert('Lưu thành công!')
     resetForm()
     await fetchAds()
   } catch (error) {
@@ -115,15 +172,13 @@ const saveAd = async () => {
   }
 }
 
-// Đưa dữ liệu lên form để sửa
 const editAd = (ad: AdConfig) => {
   isEditing.value = true
   formData.value = { ...ad }
 }
 
-// Xóa quảng cáo
 const deleteAd = async (id: number) => {
-  if (!confirm('Bạn có chắc chắn muốn xóa vị trí quảng cáo này? Mọi thiết lập sẽ bị mất.')) return
+  if (!confirm('この広告設定を削除してもよろしいですか？ (Are you sure?)')) return
   try {
     await $fetch(`/api/admin/ads/${id}`, {
       method: 'DELETE'
@@ -134,7 +189,6 @@ const deleteAd = async (id: number) => {
   }
 }
 
-// Làm mới form
 const resetForm = () => {
   isEditing.value = false
   formData.value = {
@@ -144,24 +198,5 @@ const resetForm = () => {
   }
 }
 
-// Gọi ngay khi load trang admin
 await fetchAds()
 </script>
-
-<style scoped>
-/* Style cơ bản để bạn dễ nhìn, hãy thay thế bằng các utility classes (như Tailwind) đang dùng trong Admin của bạn */
-.admin-ads-page { padding: 20px; }
-.ad-form-card { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; color: #111;}
-.form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
-.form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-.actions button { margin-right: 10px; padding: 8px 16px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold;}
-.btn-primary { background: #007bff; color: white; }
-.btn-secondary { background: #6c757d; color: white; }
-.btn-edit { background: #ffc107; color: black; margin-right: 8px; }
-.btn-delete { background: #dc3545; color: white; }
-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-th { background: #e9ecef; color: #333;}
-.text-center { text-align: center; }
-</style>

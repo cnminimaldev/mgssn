@@ -124,6 +124,25 @@
           </div>
         </NuxtLink>
 
+        <div class="col-span-full mt-4 mb-1">
+          <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">マーケティング (Marketing)</h2>
+        </div>
+
+        <NuxtLink to="/admin/ads" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-cyan-500/50 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-black transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.43 3 12c0 2.924 1.753 5.48 4.307 6.953l.76 3.123 3.65-2.072A9.155 9.155 0 0012 20.25z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h.008v.008H9V12zm3 0h.008v.008H12V12zm3 0h.008v.008H15V12z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white group-hover:text-cyan-400">広告管理</h3>
+              <p class="text-[10px] text-zinc-500">Advertisements</p>
+            </div>
+          </div>
+        </NuxtLink>
+
       </div>
     </div>
   </div>
