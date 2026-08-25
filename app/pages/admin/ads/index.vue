@@ -54,6 +54,10 @@
                         <option value="sticky_left">Sticky Left - 画面左固定</option>
                         <option value="sticky_right">Sticky Right - 画面右固定</option>
                     </optgroup>
+                    <optgroup label="グローバル (Toàn cục - Ẩn)">
+                        <option value="global_head">Global Head (Google Analytics, Meta...)</option>
+                        <option value="global_body">Global Body (Popunder, Interstitial...)</option>
+                    </optgroup>
                 </select>
               </div>
 

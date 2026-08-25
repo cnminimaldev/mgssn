@@ -333,6 +333,10 @@
         &copy; {{ new Date().getFullYear() }} 無限テレビ. All rights reserved.
       </p>
     </footer>
+
+    <ClientOnly>
+      <GlobalScripts />
+    </ClientOnly>
   </div>
 </template>
 
