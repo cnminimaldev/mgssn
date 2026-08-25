@@ -277,9 +277,12 @@
           </div>
         </div>
 
+        <AdSlot position="player_top" />
+
         <div
           class="overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-2xl"
         >
+        
           <UniversalPlayer
             v-if="playerSrc"
             :key="activePart ? activePart.id : playerSrc"
@@ -302,6 +305,8 @@
             再生可能な動画ソースが登録されていません。
           </div>
         </div>
+
+        <AdSlot position="player_bottom" />
       </section>
 
       <section v-if="relatedMovies.length" class="mt-10 px-4 sm:px-8">
