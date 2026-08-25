@@ -1,5 +1,4 @@
 <template>
-  <!-- ClientOnly đảm bảo component chỉ render ở trình duyệt, tránh Hydration Mismatch -->
   <ClientOnly>
     <div 
       v-if="adCode" 
@@ -11,8 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-// Import composable chúng ta vừa viết ở Bước 3
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useAds } from '~~/app/composables/useAds'
 
 const props = defineProps<{
@@ -23,28 +21,50 @@ const { getAdCode } = useAds()
 const adCode = getAdCode(props.position)
 const adContainer = ref<HTMLElement | null>(null)
 
-// Hàm inject mã quảng cáo an toàn
-const injectAd = () => {
+const injectAd = async () => {
+  // Đợi DOM cập nhật xong
+  await nextTick()
+  
   if (adContainer.value && adCode) {
-    // Xóa nội dung cũ (nếu có)
+    // Xóa nội dung cũ
     adContainer.value.innerHTML = ''
     
-    try {
-      // createContextualFragment là "chìa khóa" giúp các thẻ <script> bên trong chuỗi string được thực thi
-      const fragment = document.createRange().createContextualFragment(adCode)
-      adContainer.value.appendChild(fragment)
-    } catch (error) {
-      console.error(`Lỗi khi render quảng cáo ở vị trí ${props.position}:`, error)
-    }
+    // Tạo một div ảo để phân tích chuỗi HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = adCode
+
+    // 1. Chèn các element bình thường (div, a, img, iframe...) vào trước
+    Array.from(tempDiv.childNodes).forEach(node => {
+      if (node.nodeName.toLowerCase() !== 'script') {
+        adContainer.value!.appendChild(node.cloneNode(true))
+      }
+    })
+
+    // 2. Tìm tất cả các thẻ script và TẠO MỚI chúng
+    const scripts = tempDiv.getElementsByTagName('script')
+    Array.from(scripts).forEach(oldScript => {
+      const newScript = document.createElement('script')
+      
+      // Sao chép toàn bộ thuộc tính (src, async, defer, type...)
+      Array.from(oldScript.attributes).forEach(attr => {
+        newScript.setAttribute(attr.name, attr.value)
+      })
+      
+      // Sao chép nội dung code bên trong (nếu có)
+      if (oldScript.innerHTML) {
+        newScript.innerHTML = oldScript.innerHTML
+      }
+      
+      // Gắn thẻ script mới vào DOM -> Trình duyệt sẽ ngay lập tức tải và thực thi nó
+      adContainer.value!.appendChild(newScript)
+    })
   }
 }
 
 onMounted(() => {
-  // Đợi DOM mount xong mới bắt đầu nhúng script
   injectAd()
 })
 
-// Lắng nghe sự thay đổi nếu Nuxt chuyển trang và component được tái sử dụng
 watch(() => adCode, () => {
   injectAd()
 })
@@ -56,13 +76,11 @@ watch(() => adCode, () => {
   justify-content: center;
   align-items: center;
   width: 100%;
-  /* Min-height giúp giảm thiểu CLS (Cumulative Layout Shift) khi quảng cáo chưa load xong */
   min-height: 50px; 
   margin: 1rem 0;
   overflow: hidden;
 }
 
-/* Tinh chỉnh riêng cho các quảng cáo dính (Sticky Ads) hai bên */
 .ad-sticky_left, .ad-sticky_right {
   position: fixed;
   top: 50%;
@@ -70,7 +88,6 @@ watch(() => adCode, () => {
   width: auto;
   min-height: auto;
   margin: 0;
-  /* Giữ z-index ở mức vừa phải (vd: 40) để không đè lên thanh Header hay màn hình Fullscreen Player */
   z-index: 40; 
 }
 
