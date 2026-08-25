@@ -320,6 +320,10 @@
       </div>
     </Teleport>
 
+    // AdSlot Placement
+    <AdSlot position="sticky_left" />
+    <AdSlot position="sticky_right" />
+
     <main class="pt-16">
       <NuxtPage />
     </main>
@@ -336,8 +340,11 @@
 import { ref, watch, onMounted } from "vue";
 import { useAuth } from "~/composables/useAuth";
 import { useMyList } from "~/composables/useMyList";
+import { useAds } from '~/composables/useAds';
 import { useRoute, useSupabaseUser, useNuxtApp, useRouter } from "#imports";
 
+const { fetchAds } = useAds();
+await fetchAds();
 const { user, isAdmin, logout, fetchProfile } = useAuth();
 const { fetchMyList, clearMyList } = useMyList();
 const supabaseUser = useSupabaseUser();
