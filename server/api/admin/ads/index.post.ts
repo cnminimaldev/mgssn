@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const { data, error } = await supabase
     .from('advertisements')
     .upsert({
-      ...(body.id ? { id: body.id } : {}),
+      // Chỉ truyền đúng 3 trường cần thiết, bỏ qua id và các trường thời gian
       position: body.position,
       code: body.code,
       is_active: body.is_active

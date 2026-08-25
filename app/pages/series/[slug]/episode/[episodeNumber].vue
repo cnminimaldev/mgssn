@@ -124,6 +124,8 @@
             </div>
           </div>
 
+          <AdSlot position="player_top_desktop" device="desktop" />
+          <AdSlot position="player_top_mobile" device="mobile" />
           <div
             class="overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-2xl aspect-video"
           >
@@ -150,6 +152,8 @@
               </div>
             </ClientOnly>
           </div>
+          <AdSlot position="player_bottom_desktop" device="desktop" />
+          <AdSlot position="player_bottom_mobile" device="mobile" />
 
           <div
             class="flex items-center justify-between border-b border-white/5 pb-4"
@@ -375,7 +379,7 @@
 
       <section
         v-if="relatedSeries.length"
-        class="mt-10 max-w-7xl mx-auto px-4 pb-12 sm:px-8 min-[1520px]:px-[200px]"
+        class="mt-10 max-w-7xl mx-auto px-4 pb-12 sm:px-8"
       >
         <MovieRow
           title="あなたにおすすめ"

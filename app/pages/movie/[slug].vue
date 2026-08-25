@@ -277,7 +277,8 @@
           </div>
         </div>
 
-        <AdSlot position="player_top" />
+        <AdSlot position="player_top_desktop" device="desktop" />
+        <AdSlot position="player_top_mobile" device="mobile" />
 
         <div
           class="overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-2xl"
@@ -306,7 +307,8 @@
           </div>
         </div>
 
-        <AdSlot position="player_bottom" />
+        <AdSlot position="player_bottom_desktop" device="desktop" />
+        <AdSlot position="player_bottom_mobile" device="mobile" />
       </section>
 
       <section v-if="relatedMovies.length" class="mt-10 px-4 sm:px-8 min-[1520px]:px-[200px]">

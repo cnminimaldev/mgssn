@@ -1,9 +1,8 @@
 <template>
   <ClientOnly>
-    <!-- Thêm v-show để ẩn quảng cáo sticky ở trang chủ (path === '/') -->
+    <!-- v-if chặn hoàn toàn render DOM nếu không khớp thiết bị -->
     <div 
-      v-if="adCode" 
-      v-show="!isStickyOnHomePage"
+      v-if="adCode && isMatchDevice && !isStickyOnHomePage" 
       ref="adContainer" 
       class="ad-slot-container" 
       :class="`ad-${position}`"
@@ -12,30 +11,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { useAds } from '~~/app/composables/useAds'
 import { useRoute } from '#imports'
 
 const props = defineProps<{
   position: string
+  device?: 'desktop' | 'mobile' | 'all' // Thêm prop này (mặc định là 'all')
 }>()
 
 const route = useRoute()
 const { getAdCode } = useAds()
 const adCode = computed(() => getAdCode(props.position))
 const adContainer = ref<HTMLElement | null>(null)
+const isMatchDevice = ref(false)
 
-// Computed property để xác định có phải đang hiển thị sticky ads trên trang chủ không
 const isStickyOnHomePage = computed(() => {
-  const isHomePage = route.path === '/'
-  const isSticky = props.position === 'sticky_left' || props.position === 'sticky_right'
-  return isHomePage && isSticky
+  return route.path === '/' && (props.position === 'sticky_left' || props.position === 'sticky_right')
 })
 
-const injectAd = async () => {
-  await nextTick()
+// Kiểm tra kích thước màn hình bằng JS thuần
+const checkDevice = () => {
+  if (typeof window === 'undefined') return
   
-  if (adContainer.value && adCode.value) {
+  // 640px tương đương với breakpoint 'sm' của Tailwind
+  const isDesktopScreen = window.matchMedia('(min-width: 640px)').matches 
+  
+  if (props.device === 'desktop') {
+    isMatchDevice.value = isDesktopScreen
+  } else if (props.device === 'mobile') {
+    isMatchDevice.value = !isDesktopScreen
+  } else {
+    isMatchDevice.value = true
+  }
+}
+
+const injectAd = async () => {
+  await nextTick() // Đợi v-if render DOM xong
+  
+  if (adContainer.value && adCode.value && isMatchDevice.value) {
     adContainer.value.innerHTML = ''
     const tempDiv = document.createElement('div')
     tempDiv.innerHTML = adCode.value
@@ -61,16 +75,32 @@ const injectAd = async () => {
 }
 
 onMounted(() => {
-  injectAd()
+  checkDevice()
+  window.addEventListener('resize', checkDevice)
+  
+  // Chỉ chạy inject khi thiết bị khớp
+  if (isMatchDevice.value) {
+    injectAd()
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkDevice)
+})
+
+// Lắng nghe khi điều kiện thiết bị thay đổi (người dùng xoay điện thoại hoặc kéo lại cửa sổ)
+watch(isMatchDevice, (newVal) => {
+  if (newVal) {
+    injectAd()
+  }
 })
 
 watch(() => adCode.value, () => {
-  injectAd()
+  if (isMatchDevice.value) injectAd()
 })
 
-// Chạy lại injectAd nếu route thay đổi (để đảm bảo quảng cáo load đúng khi chuyển trang)
 watch(() => route.path, () => {
-  injectAd()
+  if (isMatchDevice.value) injectAd()
 })
 </script>
 
@@ -85,9 +115,8 @@ watch(() => route.path, () => {
   overflow: hidden;
 }
 
-/* Thiết lập mặc định cho Sticky Ads là ẨN trên màn hình nhỏ */
 .ad-sticky_left, .ad-sticky_right {
-  display: none; /* ẨN MẶC ĐỊNH */
+  display: none; 
   position: fixed;
   top: 50%;
   transform: translateY(-50%);
@@ -97,18 +126,12 @@ watch(() => route.path, () => {
   z-index: 40; 
 }
 
-/* Chỉ HIỂN THỊ Sticky Ads khi màn hình rộng từ 1520px trở lên */
-@media (min-width: 1520px) {
+@media (min-width: 1650px) {
   .ad-sticky_left, .ad-sticky_right {
     display: block; 
   }
 }
 
-.ad-sticky_left {
-  left: 0;
-}
-
-.ad-sticky_right {
-  right: 0;
-}
+.ad-sticky_left { left: 0; }
+.ad-sticky_right { right: 0; }
 </style>

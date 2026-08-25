@@ -36,12 +36,24 @@
               <div>
                 <label class="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">表示位置 (Position)</label>
                 <select v-model="formData.position" required :disabled="isEditing" class="w-full bg-[#05060a] border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 disabled:opacity-50 appearance-none">
-                  <option value="header">ヘッダー下 (Header)</option>
-                  <option value="player_top">プレイヤー上 (Player Top)</option>
-                  <option value="player_bottom">プレイヤー下 (Player Bottom)</option>
-                  <option value="sticky_left">画面左固定 (Sticky Left)</option>
-                  <option value="sticky_right">画面右固定 (Sticky Right)</option>
-                  <option value="footer">フッター上 (Footer)</option>
+                    <optgroup label="ヘッダー下 (Header)">
+                        <option value="header_desktop">Header - PC用 (PC)</option>
+                        <option value="header_mobile">Header - SP用 (Mobile)</option>
+                    </optgroup>
+                    <optgroup label="プレイヤー周辺 (Player)">
+                        <option value="player_top_desktop">Player Top - PC用 (PC)</option>
+                        <option value="player_top_mobile">Player Top - SP用 (Mobile)</option>
+                        <option value="player_bottom_desktop">Player Bottom - PC用 (PC)</option>
+                        <option value="player_bottom_mobile">Player Bottom - SP用 (Mobile)</option>
+                    </optgroup>
+                    <optgroup label="フッター上 (Footer)">
+                        <option value="footer_desktop">Footer - PC用 (PC)</option>
+                        <option value="footer_mobile">Footer - SP用 (Mobile)</option>
+                    </optgroup>
+                    <optgroup label="画面固定 (Sticky - Chỉ dành cho PC)">
+                        <option value="sticky_left">Sticky Left - 画面左固定</option>
+                        <option value="sticky_right">Sticky Right - 画面右固定</option>
+                    </optgroup>
                 </select>
               </div>
 
