@@ -309,7 +309,7 @@
         <AdSlot position="player_bottom" />
       </section>
 
-      <section v-if="relatedMovies.length" class="mt-10 px-4 sm:px-8">
+      <section v-if="relatedMovies.length" class="mt-10 px-4 sm:px-8 min-[1520px]:px-[200px]">
         <MovieRow
           title="あなたにおすすめ"
           :movies="relatedRowItems"

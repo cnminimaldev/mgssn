@@ -375,7 +375,7 @@
 
       <section
         v-if="relatedSeries.length"
-        class="mt-10 max-w-7xl mx-auto px-4 pb-12 sm:px-8"
+        class="mt-10 max-w-7xl mx-auto px-4 pb-12 sm:px-8 min-[1520px]:px-[200px]"
       >
         <MovieRow
           title="あなたにおすすめ"
