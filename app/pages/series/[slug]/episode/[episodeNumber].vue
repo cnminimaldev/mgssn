@@ -389,6 +389,9 @@
       </section>
     </div>
   </div>
+  <ClientOnly>
+    <GlobalScripts position="popunder_player" target="body" />
+  </ClientOnly>
 </template>
 
 <script setup lang="ts">

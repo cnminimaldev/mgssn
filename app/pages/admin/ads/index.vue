@@ -57,6 +57,7 @@
                     <optgroup label="グローバル (Toàn cục - Ẩn)">
                         <option value="global_head">Global Head (Google Analytics, Meta...)</option>
                         <option value="global_body">Global Body (Popunder, Interstitial...)</option>
+                        <option value="popunder_player">Popunder (Only for Player)</option>
                     </optgroup>
                 </select>
               </div>
