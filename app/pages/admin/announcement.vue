@@ -90,8 +90,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { definePageMeta, useSupabaseClient } from '#imports'
-import { QuillEditor } from '@vueup/vue-quill'
-import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 definePageMeta({
   middleware: 'admin',

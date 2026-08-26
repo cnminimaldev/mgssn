@@ -13,6 +13,10 @@ export default defineNuxtConfig({
     client: false
   },
 
+  build: {
+    transpile: ['@vueup/vue-quill']
+  },
+
   vite: {
     esbuild: {
       // Đã sửa lại lỗi logic để tự động xóa console và debugger khi build production
