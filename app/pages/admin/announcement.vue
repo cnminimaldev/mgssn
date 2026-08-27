@@ -30,9 +30,9 @@
             ここで作成したお知らせは、全ユーザーの画面上部に表示されます。文字の色や太さを変更して目立たせることができます。
           </p>
 
-          <!-- Rich Text Editor (Bọc trong ClientOnly vì Quill dùng Document object) -->
           <ClientOnly>
-            <div class="editor-wrapper rounded-lg border border-white/10 overflow-hidden bg-[#0a0a0f]">
+            <!-- Chỉ hiển thị Editor khi isLoading = false -->
+            <div v-if="!isLoading" class="editor-wrapper rounded-lg border border-white/10 overflow-hidden bg-[#0a0a0f]">
               <QuillEditor 
                 v-model:content="htmlContent" 
                 contentType="html" 
@@ -40,6 +40,11 @@
                 theme="snow"
                 class="min-h-[250px] text-zinc-300"
               />
+            </div>
+            
+            <!-- Giao diện chờ lúc đang lấy data từ Supabase -->
+            <div v-else class="min-h-[250px] flex items-center justify-center border border-white/10 rounded-lg text-sm text-zinc-500">
+              データを読み込み中... (Đang tải dữ liệu...)
             </div>
             
             <template #fallback>
@@ -110,7 +115,8 @@ const isActive = ref(false)
 const isSaving = ref(false)
 const activeId = ref<string | null>(null)
 
-// Load thông báo hiện tại khi vào trang
+const isLoading = ref(true)
+
 onMounted(async () => {
   const { data, error } = await supabase
     .from('announcements')
@@ -119,7 +125,6 @@ onMounted(async () => {
     .limit(1)
     .single()
 
-  // 2. Ép kiểu dữ liệu (Type Assertion) cho data
   const announcement = data as Announcement | null
 
   if (announcement) {
@@ -127,6 +132,9 @@ onMounted(async () => {
     isActive.value = announcement.is_active
     activeId.value = announcement.id
   }
+  
+  // Sau khi lấy dữ liệu xong, tắt loading để Quill Editor xuất hiện
+  isLoading.value = false
 })
 
 const saveAnnouncement = async () => {
