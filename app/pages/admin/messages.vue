@@ -163,7 +163,8 @@ onMounted(() => {
 // Tính toán danh sách hiển thị dựa trên Tab (Tất cả / Chưa đọc)
 const filteredMessages = computed(() => {
   if (filter.value === 'unread') {
-    return messages.value.filter(m => !m.is_read)
+    // Giữ lại các tin chưa đọc HOẶC tin đang được mở (activeMessageId)
+    return messages.value.filter(m => !m.is_read || m.id === activeMessageId.value)
   }
   return messages.value
 })

@@ -63,7 +63,7 @@
           <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">システム (System)</h2>
         </div>
 
-        <NuxtLink to="/admin/messages" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-amber-500/50 shadow-sm mt-3">
+        <NuxtLink to="/admin/messages" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-amber-500/50 shadow-sm">
           <div class="flex items-center gap-3">
             <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-black transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
