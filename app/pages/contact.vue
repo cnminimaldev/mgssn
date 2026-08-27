@@ -33,7 +33,7 @@
             @invalid="handleInvalid($event, '必須項目です。')"
             @input="handleInvalid($event, '')"
             class="w-full bg-[#0a0a0f] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition outline-none" 
-            placeholder="例: ムゲン太郎 (Ví dụ: Mugen Taro)"
+            placeholder="例: ムゲン太郎"
           >
         </div>
 

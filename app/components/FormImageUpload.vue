@@ -40,7 +40,7 @@
           @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         />
         <p class="text-[10px] text-zinc-500">
-          Upload ảnh hoặc dán đường dẫn trực tiếp.
+          Upload an image or input a direct URL
         </p>
       </div>
     </div>
@@ -52,7 +52,7 @@ import { ref, computed } from 'vue'
 import { useImageUpload } from '~/composables/useImageUpload'
 
 const props = defineProps<{
-  label?: string // [SỬA] Thêm dấu ? để không bắt buộc
+  label?: string
   modelValue: string | null
   folder?: string
   ratio?: 'poster' | 'banner'
@@ -74,7 +74,7 @@ const handleFileChange = async (event: Event) => {
   if (!input.files || input.files.length === 0) return
 
   const file = input.files[0]
-  if (!file) return // [FIX] Check null
+  if (!file) return
 
   localPreview.value = URL.createObjectURL(file)
 

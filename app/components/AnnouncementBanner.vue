@@ -47,13 +47,14 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from '#imports'
+import { useRoute } from '#imports' // Thêm thư viện nhận diện URL
 
 const supabase = useSupabaseClient()
 const route = useRoute()
 const notice = ref(null)
 const isDismissed = ref(true) 
 
+// Tự động kiểm tra xem người dùng có đang ở trang chủ (/) hay không
 const isHomePage = computed(() => route.path === '/')
 
 onMounted(async () => {

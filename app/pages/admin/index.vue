@@ -105,6 +105,22 @@
           </div>
         </NuxtLink>
 
+        <NuxtLink to="/admin/settings" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-cyan-500/50 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-black transition-colors">
+              <!-- Icon Bánh răng cưa -->
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.342 3.204a2.746 2.746 0 0 0-4.085 2.418v.172a2.746 2.746 0 0 1-1.375 2.383l-.15.086a2.746 2.746 0 0 0-1.373 3.44l.173.3a2.746 2.746 0 0 1 0 2.772l-.173.3a2.746 2.746 0 0 0 1.373 3.44l.15.086a2.746 2.746 0 0 1 1.375 2.383v.172a2.746 2.746 0 0 0 4.085 2.418h.273a2.746 2.746 0 0 1 2.505 1.637l.108.243a2.746 2.746 0 0 0 5.01 0l.108-.243a2.746 2.746 0 0 1 2.505-1.637h.273a2.746 2.746 0 0 0 4.085-2.418v-.172a2.746 2.746 0 0 1 1.375-2.383l.15-.086a2.746 2.746 0 0 0 1.373-3.44l-.173-.3a2.746 2.746 0 0 1 0-2.772l.173-.3a2.746 2.746 0 0 0-1.373-3.44l-.15-.086a2.746 2.746 0 0 1-1.375-2.383v-.172a2.746 2.746 0 0 0-4.085-2.418h-.273a2.746 2.746 0 0 1-2.505-1.637l-.108-.243a2.746 2.746 0 0 0-5.01 0l-.108.243a2.746 2.746 0 0 1-2.505 1.637h-.273Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white group-hover:text-cyan-400">サイト設定</h3>
+              <p class="text-[10px] text-zinc-500">Settings</p>
+            </div>
+          </div>
+        </NuxtLink>
+
         <div class="col-span-full mt-4 mb-1">
           <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">マスターデータ (Master)</h2>
         </div>

@@ -350,11 +350,7 @@
       <NuxtPage />
     </main>
 
-    <footer class="mt-20 border-t border-white/5 bg-black py-10 text-center">
-      <p class="text-xs text-zinc-500">
-        &copy; {{ new Date().getFullYear() }} 無限テレビ. All rights reserved.
-      </p>
-    </footer>
+    <TheFooter />
 
     <ClientOnly>
       <GlobalScripts />
