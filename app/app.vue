@@ -70,6 +70,16 @@
               active-class="text-emerald-400"
               >マイリスト</NuxtLink
             >
+            <NuxtLink
+              to="/contact"
+              class="hover:text-white transition-colors flex items-center gap-1 ml-2 border-l border-white/10 pl-4"
+              active-class="text-emerald-400"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+              お問い合わせ
+            </NuxtLink>
           </nav>
         </div>
 
@@ -281,6 +291,17 @@
               />
             </svg>
             マイリスト
+          </NuxtLink>
+          <NuxtLink
+            to="/contact"
+            class="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-300 hover:bg-white/10 hover:text-white transition-colors mt-2 border-t border-white/5 pt-4"
+            active-class="bg-emerald-500/10 text-emerald-400"
+            @click="isDrawerOpen = false"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+            </svg>
+            お問い合わせ
           </NuxtLink>
         </nav>
 

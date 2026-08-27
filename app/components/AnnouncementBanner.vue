@@ -1,9 +1,4 @@
 <template>
-  <!-- 
-    Sử dụng class động (:class): 
-    - Nếu là trang chủ (isHomePage): Dùng 'absolute top-16' để nổi lên trên Big Banner.
-    - Nếu là trang khác: Dùng 'relative mb-6' để đẩy nội dung bên dưới xuống một cách tự nhiên.
-  -->
   <div 
     v-if="notice" 
     :class="[
@@ -13,9 +8,7 @@
   >
     <Transition name="fade" mode="out-in">
       
-      <!-- TRẠNG THÁI 1: KHI BỊ ẨN (Thu gọn) -->
       <div v-if="isDismissed" class="flex justify-end pointer-events-auto">
-        <!-- Đổi style nút: Nền đen đục (zinc-900/90), viền rõ hơn, chữ trắng đậm và icon màu ngọc lục bảo -->
         <button 
           @click="toggleNotice" 
           class="flex items-center gap-2 text-xs font-bold text-white transition-all bg-zinc-900/90 hover:bg-zinc-800 px-4 py-2.5 rounded-full border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] backdrop-blur-md"
@@ -27,7 +20,6 @@
         </button>
       </div>
 
-      <!-- TRẠNG THÁI 2: KHI HIỂN THỊ ĐẦY ĐỦ -->
       <div v-else class="relative overflow-hidden rounded-xl bg-[#0a0a0f]/95 backdrop-blur-xl border border-white/10 shadow-2xl p-4 sm:p-5 flex justify-between items-start sm:items-center group pointer-events-auto">
         
         <div class="hidden sm:flex items-center justify-center h-10 w-10 rounded-full bg-white/5 border border-white/10 text-zinc-300 mr-4 flex-shrink-0">
@@ -41,7 +33,7 @@
         <button 
           @click="toggleNotice" 
           class="text-zinc-500 hover:text-white hover:bg-white/10 p-2 rounded-lg ml-4 flex-shrink-0 transition-colors z-10" 
-          title="閉じる (Đóng)"
+          title="閉じる"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -55,14 +47,13 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from '#imports' // Thêm thư viện nhận diện URL
+import { useRoute } from '#imports'
 
 const supabase = useSupabaseClient()
 const route = useRoute()
 const notice = ref(null)
 const isDismissed = ref(true) 
 
-// Tự động kiểm tra xem người dùng có đang ở trang chủ (/) hay không
 const isHomePage = computed(() => route.path === '/')
 
 onMounted(async () => {
