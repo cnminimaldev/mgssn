@@ -28,11 +28,12 @@
           <input 
             v-model="form.name" 
             type="text" 
-            required 
+            required
+            maxlength="50"
             @invalid="handleInvalid($event, '必須項目です。')"
             @input="handleInvalid($event, '')"
             class="w-full bg-[#0a0a0f] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition outline-none" 
-            placeholder="例: ムゲン太郎"
+            placeholder="例: ムゲン太郎 (Ví dụ: Mugen Taro)"
           >
         </div>
 
@@ -62,7 +63,8 @@
           <input 
             v-model="form.title" 
             type="text" 
-            required 
+            required
+            maxlength="100"
             @invalid="handleInvalid($event, '必須項目です。')"
             @input="handleInvalid($event, '')"
             class="w-full bg-[#0a0a0f] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition outline-none" 
@@ -74,13 +76,17 @@
           <label class="block text-sm font-medium text-zinc-300 mb-1.5">お問い合わせ内容</label>
           <textarea 
             v-model="form.content" 
-            required 
+            required
+            maxlength="1000"
             @invalid="handleInvalid($event, '必須項目です。')"
             @input="handleInvalid($event, '')"
             rows="5" 
             class="w-full bg-[#0a0a0f] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition outline-none resize-none" 
             placeholder="詳しくご記入ください..."
           ></textarea>
+          <div class="text-right text-xs mt-1" :class="form.content.length >= 1000 ? 'text-rose-400 font-bold' : 'text-zinc-500'">
+            {{ form.content.length }} / 1000
+          </div>
         </div>
 
         <div class="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
