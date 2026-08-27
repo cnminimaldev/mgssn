@@ -63,6 +63,20 @@
           <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">システム (System)</h2>
         </div>
 
+        <NuxtLink to="/admin/messages" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-amber-500/50 shadow-sm mt-3">
+          <div class="flex items-center gap-3">
+            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-black transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white group-hover:text-amber-400">メッセージ管理</h3>
+              <p class="text-[10px] text-zinc-500">Inbox</p>
+            </div>
+          </div>
+        </NuxtLink>
+
         <NuxtLink to="/admin/users" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-purple-500/50 shadow-sm">
           <div class="flex items-center gap-3">
             <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
