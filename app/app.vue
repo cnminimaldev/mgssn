@@ -325,7 +325,6 @@
     <AdSlot position="sticky_right" />
 
     <main class="pt-16">
-      <AnnouncementBanner />
       <NuxtPage />
     </main>
 
