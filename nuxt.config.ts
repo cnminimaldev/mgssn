@@ -26,7 +26,7 @@ export default defineNuxtConfig({
 
   // 1. Cấu hình Domain chính thức (Sửa lỗi URL localhost)
   site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL || 'https://mugentv.com',
+    url: process.env.NUXT_PUBLIC_SITE_URL || 'https://noritv.com',
   },
 
   app: {
@@ -84,7 +84,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://mugentv.com',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://noritv.com',
     }
   },
 

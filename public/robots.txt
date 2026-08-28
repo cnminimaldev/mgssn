@@ -13,4 +13,4 @@ Disallow: /profile
 Disallow: /api/
 
 # Đường dẫn đến Sitemap (Thay thế bằng domain thật của bạn)
-Sitemap: https://mugentv.com/sitemap.xml
+Sitemap: https://noritv.com/sitemap.xml
