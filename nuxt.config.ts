@@ -26,7 +26,8 @@ export default defineNuxtConfig({
 
   // 1. Cấu hình Domain chính thức (Sửa lỗi URL localhost)
   site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL || 'https://noritv.com',
+    // url: process.env.NUXT_PUBLIC_SITE_URL || 'https://noritv.com',
+    url: 'https://noritv.com',
   },
 
   app: {
@@ -62,6 +63,7 @@ export default defineNuxtConfig({
 
   // 2. Cấu hình Sitemap
   sitemap: {
+    cacheMaxAgeSeconds: 0, // Tắt cache sitemap
     sources: ['/api/sitemap/urls'],
     exclude: [
       '/admin/**',

@@ -155,7 +155,7 @@
             v-else-if="featuredMovies.length"
             title="注目の作品"
             :movies="featuredMovies"
-            sub-label="MugenTVのおすすめ"
+            sub-label="NoriTVのおすすめ"
             view-all-link="/search"
           />
         </section>

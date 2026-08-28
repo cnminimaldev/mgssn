@@ -164,7 +164,7 @@ const movies = computed(() => {
   return allMovies.value.slice(start, start + pageSize)
 })
 
-const title = computed(() => person.value ? `${person.value.name} 出演・監督作品 (映画・ドラマ) | MugenTV` : '人物 | MugenTV')
+const title = computed(() => person.value ? `${person.value.name} 出演・監督作品 (映画・ドラマ) | NoriTV` : '人物 | NoriTV')
 const desc = computed(() => person.value ? `${person.value.name}が出演、監督する映画やドラマの一覧。` : '')
 
 useSeoMeta({

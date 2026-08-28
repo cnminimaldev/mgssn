@@ -103,8 +103,8 @@ import { useSupabaseClient, useAsyncData, useSeoMeta } from '#imports'
 const supabase = useSupabaseClient<any>()
 
 useSeoMeta({
-  title: '人気ランキング - MugenTV',
-  description: 'MugenTVの人気作品ランキング。今日、今週、今月、今年もっとも視聴された映画やドラマをチェック。'
+  title: '人気ランキング - NoriTV',
+  description: 'NoriTVの人気作品ランキング。今日、今週、今月、今年もっとも視聴された映画やドラマをチェック。'
 })
 
 const periods = [

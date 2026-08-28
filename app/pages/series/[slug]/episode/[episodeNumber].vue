@@ -1044,16 +1044,16 @@ const canonicalUrl = computed(() => {
 
 const seoTitle = computed(() => {
   if (!series.value || !activeEpisode.value) {
-    return "エピソード 無料動画 | MugenTV";
+    return "エピソード 無料動画 | NoriTV";
   }
   const ep = activeEpisode.value;
   const epLabel = ep.title ? ep.title : `第${ep.episode_number}話`;
-  return `${series.value.title} ${epLabel} 無料動画 | MugenTV`;
+  return `${series.value.title} ${epLabel} 無料動画 | NoriTV`;
 });
 
 const seoDescription = computed(
   () =>
-    series.value?.description ?? "映画やドラマをオンラインで楽しめるMugenTV。"
+    series.value?.description ?? "映画やドラマをオンラインで楽しめるNoriTV。"
 );
 
 const seoImage = computed(

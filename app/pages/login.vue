@@ -115,8 +115,8 @@ import { useRoute, useRouter, useSeoMeta, navigateTo } from '#imports'
 import { useAuth } from '~/composables/useAuth'
 
 useSeoMeta({
-  title: 'ログイン / 新規登録 - MugenTV',
-  description: 'MugenTVへのログインまたは新規登録ページです。',
+  title: 'ログイン / 新規登録 - NoriTV',
+  description: 'NoriTVへのログインまたは新規登録ページです。',
 })
 
 const route = useRoute()

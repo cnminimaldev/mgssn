@@ -368,7 +368,7 @@ const canonicalUrl = computed(() => {
 });
 
 useSeoMeta({
-  title: "検索 - MugenTV",
+  title: "検索 - NoriTV",
   description: "映画やドラマを検索・視聴",
   robots: route.query.q || route.query.cast || route.query.director ? "noindex, follow" : "index, follow",
   ogUrl: canonicalUrl,

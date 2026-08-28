@@ -958,15 +958,15 @@ const canonicalUrl = computed(() => {
 
 const seoTitle = computed(() =>
   movie.value
-    ? `${movie.value.title} 無料動画 | MugenTV`
-    : "無料動画 | MugenTV"
+    ? `${movie.value.title} 無料動画 | NoriTV`
+    : "無料動画 | NoriTV"
 );
 
 const shareTitle = computed(() => seoTitle.value);
 
 const seoDescription = computed(
   () =>
-    movie.value?.description ?? "映画やドラマをオンラインで楽しめるMugenTV。"
+    movie.value?.description ?? "映画やドラマをオンラインで楽しめるNoriTV。"
 );
 const seoImage = computed(
   () =>
@@ -1073,7 +1073,7 @@ useSeoMeta({
   ogImage: seoImage,
   ogUrl: canonicalUrl,
   ogType: 'video.movie',
-  ogSiteName: 'MugenTV',
+  ogSiteName: 'NoriTV',
   ogLocale: 'ja_JP',
   twitterCard: "summary_large_image",
   twitterTitle: seoTitle,
