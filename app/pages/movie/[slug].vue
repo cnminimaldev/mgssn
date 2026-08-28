@@ -109,17 +109,18 @@
                 </div>
 
                 <div class="mt-1 space-y-1 text-xs text-zinc-400">
-                  <p v-if="movie?.director">
+                  <!-- [NÂNG CẤP] Hiển thị Đạo diễn từ mảng dữ liệu chuẩn -->
+                  <p v-if="directors.length">
                     <span class="opacity-70">監督：</span>
                     <span class="text-zinc-300">
-                      <template v-for="(dir, idx) in directorList" :key="idx">
+                      <template v-for="(dir, idx) in directors" :key="dir.id">
                         <NuxtLink
-                          :to="`/person/${encodeURIComponent(dir)}?role=director`"
+                          :to="`/person/${dir.id}`"
                           class="hover:text-white hover:underline"
-                          >{{ dir }}</NuxtLink
+                          >{{ dir.name }}</NuxtLink
                         >
                         <span
-                          v-if="idx < directorList.length - 1"
+                          v-if="idx < directors.length - 1"
                           class="text-zinc-600"
                           >,
                         </span>
@@ -127,17 +128,18 @@
                     </span>
                   </p>
 
-                  <p v-if="castList.length">
+                  <!-- [NÂNG CẤP] Hiển thị Diễn viên từ mảng dữ liệu chuẩn -->
+                  <p v-if="casts.length">
                     <span class="opacity-70">出演：</span>
                     <span class="text-zinc-300">
-                      <template v-for="(actor, idx) in castList" :key="idx">
+                      <template v-for="(actor, idx) in casts" :key="actor.id">
                         <NuxtLink
-                          :to="`/person/${encodeURIComponent(actor)}`"
+                          :to="`/person/${actor.id}`"
                           class="hover:text-white hover:underline"
-                          >{{ actor }}</NuxtLink
+                          >{{ actor.name }}</NuxtLink
                         >
                         <span
-                          v-if="idx < castList.length - 1"
+                          v-if="idx < casts.length - 1"
                           class="text-zinc-600"
                           >,
                         </span>
@@ -346,12 +348,15 @@ import {
 import UniversalPlayer from "~/components/UniversalPlayer.vue"; 
 import MovieRow from "~/components/MovieRow.vue";
 import StarRating from "~/components/StarRating.vue";
-import ShareModal from "~/components/ShareModal.vue"; // [NEW]
+import ShareModal from "~/components/ShareModal.vue"; 
 import { useMyList } from "~/composables/useMyList";
 import { useContinueWatching } from "~/composables/useContinueWatching";
 import { getResizedUrl } from "~/utils/image";
 
 type SubtitleItem = { src: string; label: string; lang: string };
+
+// [NÂNG CẤP] Khai báo Type chuẩn cho Nhân vật
+type CrewMember = { id: number; name: string };
 
 type DbMovie = {
   id: number;
@@ -364,8 +369,6 @@ type DbMovie = {
   description?: string | null;
   poster_url?: string | null;
   banner_url?: string | null;
-  director?: string | null;
-  main_cast?: string | null;
   duration_minutes?: number | null;
   created_at?: string;
   movie_genres?: {
@@ -436,6 +439,10 @@ const parts = ref<MoviePartRow[]>([]);
 const providers = ref<ProviderRow[]>([]);
 const relatedMovies = ref<RelatedItem[]>([]);
 
+// [NÂNG CẤP] Tạo Ref lưu trữ dữ liệu đạo diễn/diễn viên
+const directors = ref<CrewMember[]>([]);
+const casts = ref<CrewMember[]>([]);
+
 const selectedCollectionId = ref<number | null>(null);
 const selectedPartId = ref<number | null>(null);
 
@@ -451,13 +458,11 @@ const handleToggleMyList = () => {
   toggleMyList(movie.value.id, "movie");
 };
 
-// [NEW] Share Logic
 const showShareModal = ref(false);
 const shareUrl = computed(() => {
   if (import.meta.client) return window.location.href;
   return '';
 });
-// shareTitle dùng lại seoTitle ở phía dưới
 
 const handleShare = async () => {
   if (import.meta.client && navigator.share) {
@@ -536,22 +541,6 @@ const countryLabel = computed(() => {
     VN: "ベトナム",
   };
   return map[code] || code;
-});
-
-const castList = computed(() => {
-  if (!movie.value?.main_cast) return [];
-  return movie.value.main_cast
-    .split(",")
-    .map((c) => c.trim())
-    .filter(Boolean);
-});
-
-const directorList = computed(() => {
-  if (!movie.value?.director) return [];
-  return movie.value.director
-    .split(",")
-    .map((c) => c.trim())
-    .filter(Boolean);
 });
 
 const genres = computed(() => {
@@ -732,6 +721,8 @@ const {
   const nuxtApp = useNuxtApp();
   const result = {
     movie: null as DbMovie | null,
+    directors: [] as CrewMember[], // [NÂNG CẤP]
+    casts: [] as CrewMember[],     // [NÂNG CẤP]
     collections: [] as MovieCollectionRow[],
     parts: [] as MoviePartRow[],
     providers: [] as ProviderRow[],
@@ -748,7 +739,7 @@ const {
   const { data: movieData, error: movieError } = await supabase
     .from("movies")
     .select(
-      "id, slug, title, original_title, title_kana, year, origin_country, description, poster_url, banner_url, director, main_cast, duration_minutes, created_at, movie_genres(genre:genres(slug, name, name_ja))"
+      "id, slug, title, original_title, title_kana, year, origin_country, description, poster_url, banner_url, duration_minutes, created_at, movie_genres(genre:genres(slug, name, name_ja))"
     )
     .eq("slug", slug)
     .single();
@@ -763,6 +754,23 @@ const {
   if (movieData) {
     result.movie = movieData as unknown as DbMovie;
     const movieId = result.movie!.id;
+
+    // [NÂNG CẤP] Truy vấn bảng trung gian lấy Đạo diễn & Diễn viên
+    const { data: crewData } = await supabase
+      .from("content_crew")
+      .select("role, persons(id, name)")
+      .eq("content_id", movieId)
+      .eq("type", "movie");
+
+    if (crewData) {
+      result.directors = crewData
+        .filter((c: any) => c.role === 'director' && c.persons)
+        .map((c: any) => c.persons as CrewMember);
+      
+      result.casts = crewData
+        .filter((c: any) => c.role === 'cast' && c.persons)
+        .map((c: any) => c.persons as CrewMember);
+    }
 
     const { data: ratingData } = await supabase.rpc("get_content_rating", {
       target_id: movieId,
@@ -876,6 +884,8 @@ watch(
       }
 
       movie.value = newData.movie;
+      directors.value = newData.directors; // [NÂNG CẤP]
+      casts.value = newData.casts;         // [NÂNG CẤP]
       collections.value = newData.collections;
       parts.value = newData.parts;
       providers.value = newData.providers;
@@ -925,7 +935,6 @@ const seoTitle = computed(() =>
     : "無料動画 | MugenTV"
 );
 
-// shareTitle dùng chung với seoTitle
 const shareTitle = computed(() => seoTitle.value);
 
 const seoDescription = computed(
@@ -937,7 +946,6 @@ const seoImage = computed(
     movie.value?.banner_url || movie.value?.poster_url || "/images/banner.jpg"
 );
 
-// [FIX] Hàm helper
 const toAbsoluteUrl = (path: string | null | undefined) => {
   if (!path) return undefined;
   if (path.startsWith('http')) return path;
@@ -971,14 +979,12 @@ useHead({
             "@type": "Country",
             name: movie.value.origin_country,
           },
-          director: movie.value.director
-            ? { "@type": "Person", name: movie.value.director }
+          // [NÂNG CẤP] Schema đọc dữ liệu từ mảng đối tượng
+          director: directors.value.length
+            ? directors.value.map(d => ({ "@type": "Person", name: d.name }))
             : undefined,
-          actor: movie.value.main_cast
-            ? movie.value.main_cast.split(",").map((name) => ({
-                "@type": "Person",
-                name: name.trim(),
-              }))
+          actor: casts.value.length
+            ? casts.value.map(c => ({ "@type": "Person", name: c.name }))
             : undefined,
           offers: {
             "@type": "Offer",
@@ -999,7 +1005,6 @@ useHead({
             };
         }
 
-        // VideoObject Schema
         const schemaVideo = {
           "@context": "https://schema.org",
           "@type": "VideoObject",
@@ -1010,13 +1015,7 @@ useHead({
           duration: movie.value.duration_minutes
             ? `PT${movie.value.duration_minutes}M`
             : undefined,
-          
-          // [QUAN TRỌNG] Chỉ dùng contentUrl cho file .m3u8/.mp4
           contentUrl: absVideoUrl, 
-          
-          // [FIX] XOÁ BỎ embedUrl vì bạn đang play trực tiếp, không dùng iframe player riêng biệt
-          // embedUrl: canonicalUrl.value, <--- Dòng gây lỗi
-          
           interactionStatistic: {
             "@type": "InteractionCounter",
             interactionType: { "@type": "WatchAction" },
