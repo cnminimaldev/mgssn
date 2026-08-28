@@ -1,5 +1,5 @@
-// app/composables/useImageUpload.ts
 import { useSupabaseClient } from '#imports'
+import { ref } from 'vue'
 
 export const useImageUpload = () => {
   const supabase = useSupabaseClient<any>()
@@ -46,8 +46,36 @@ export const useImageUpload = () => {
     }
   }
 
+  const deleteImage = async (publicUrl: string) => {
+    if (!publicUrl) return
+
+    try {
+      // Bóc tách đường dẫn file từ Public URL
+      const bucketName = 'images'
+      const pathParts = publicUrl.split(`/public/${bucketName}/`)
+      
+      if (pathParts.length < 2) return 
+
+      const filePath = pathParts[1]
+      
+      // Thêm dòng kiểm tra này để TypeScript biết chắc chắn filePath là một chuỗi (string)
+      if (!filePath) return
+
+      const { error } = await supabase.storage
+        .from(bucketName)
+        .remove([filePath])
+
+      if (error) throw error
+      
+    } catch (e: any) {
+      console.error('Delete failed:', e.message)
+      throw e
+    }
+  }
+
   return {
     uploadImage,
+    deleteImage,
     uploading
   }
 }

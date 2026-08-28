@@ -383,10 +383,35 @@ const handleUpdate = async () => {
 
   saving.value = true;
   try {
-    // 1. Update Movie Info
+    // --- [THÊM MỚI] BƯỚC 1: XỬ LÝ LỊCH SỬ SLUG ---
+    // Kéo slug cũ từ database lên để đối chiếu trước khi ghi đè
+    const { data: oldData, error: fetchError } = await supabase
+      .from("movies")
+      .select("slug")
+      .eq("id", movieId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Nếu người dùng đã gõ một slug mới khác hoàn toàn slug đang có trên DB
+    if (oldData && oldData.slug !== form.slug) {
+      // Đẩy slug cũ vào bảng lịch sử
+      const { error: historyError } = await supabase
+        .from("movie_slug_history")
+        .insert({
+          movie_id: movieId,
+          slug: oldData.slug
+        });
+      
+      if (historyError) {
+        console.warn("Lỗi khi lưu lịch sử slug:", historyError.message);
+      }
+    }
+    // ----------------------------------------------
+
+    // --- BƯỚC 2: CẬP NHẬT THÔNG TIN PHIM (Code cũ của bạn) ---
     const { genre_ids, ...movieData } = form;
 
-    // Đảm bảo không có type
     const updateData = {
       ...movieData,
       release_date: movieData.release_date || null,
@@ -400,11 +425,9 @@ const handleUpdate = async () => {
 
     if (error) throw error;
 
-    // 2. Sync Genres (Delete all -> Insert new)
-    // 2a. Delete old
+    // --- BƯỚC 3: ĐỒNG BỘ THỂ LOẠI (Code cũ của bạn) ---
     await supabase.from("movie_genres").delete().eq("movie_id", movieId);
 
-    // 2b. Insert new
     if (genre_ids && genre_ids.length > 0) {
       const inserts = genre_ids.map((gid) => ({
         movie_id: movieId,
@@ -417,7 +440,6 @@ const handleUpdate = async () => {
     }
 
     alert("更新しました");
-    // Không cần refresh() vì ta đã update trực tiếp DB và form đã có data mới nhất
   } catch (e: any) {
     alert("エラー: " + e.message);
   } finally {

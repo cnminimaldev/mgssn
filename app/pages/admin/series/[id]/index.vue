@@ -370,6 +370,34 @@ const handleUpdate = async () => {
 
   saving.value = true;
   try {
+    // --- [THÊM MỚI] BƯỚC 1: LƯU LỊCH SỬ SLUG ---
+    // Lấy slug hiện tại từ database trước khi ghi đè
+    const { data: oldData, error: fetchError } = await supabase
+      .from("series")
+      .select("slug")
+      .eq("id", seriesId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // So sánh: Nếu slug người dùng nhập khác với slug đang có trong DB
+    if (oldData && oldData.slug !== form.slug) {
+      // Đẩy slug cũ vào bảng lịch sử
+      const { error: historyError } = await supabase
+        .from("series_slug_history")
+        .insert({
+          series_id: seriesId,
+          slug: oldData.slug
+        });
+      
+      // Bỏ qua lỗi nếu trùng lặp lịch sử, chỉ log ra console
+      if (historyError) {
+        console.warn("Lỗi khi lưu lịch sử slug series:", historyError.message);
+      }
+    }
+    // ----------------------------------------------
+
+    // --- BƯỚC 2: CẬP NHẬT THÔNG TIN SERIES ---
     // 1. Tách genre_ids
     const { genre_ids, ...seriesData } = form;
 
@@ -388,7 +416,7 @@ const handleUpdate = async () => {
 
     if (error) throw error;
 
-    // 3. Sync Genres
+    // --- BƯỚC 3: ĐỒNG BỘ THỂ LOẠI (Genres) ---
     // 3a. Delete old
     await supabase.from("series_genres").delete().eq("series_id", seriesId);
 
