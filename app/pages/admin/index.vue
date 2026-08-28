@@ -45,6 +45,21 @@
           </div>
         </NuxtLink>
 
+        <!-- [THÊM MỚI] Nút Điều hướng cho Quản lý Nhân vật -->
+        <NuxtLink to="/admin/persons" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-teal-500/50 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400 group-hover:bg-teal-500 group-hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white group-hover:text-teal-400">人物管理</h3>
+              <p class="text-[10px] text-zinc-500">Persons</p>
+            </div>
+          </div>
+        </NuxtLink>
+
         <NuxtLink to="/admin/featured" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-rose-500/50 shadow-sm">
           <div class="flex items-center gap-3">
             <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-400 group-hover:bg-rose-500 group-hover:text-white transition-colors">
