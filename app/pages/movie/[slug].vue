@@ -109,7 +109,6 @@
                 </div>
 
                 <div class="mt-1 space-y-1 text-xs text-zinc-400">
-                  <!-- [NÂNG CẤP] Hiển thị Đạo diễn từ mảng dữ liệu chuẩn -->
                   <p v-if="directors.length">
                     <span class="opacity-70">監督：</span>
                     <span class="text-zinc-300">
@@ -128,7 +127,6 @@
                     </span>
                   </p>
 
-                  <!-- [NÂNG CẤP] Hiển thị Diễn viên từ mảng dữ liệu chuẩn -->
                   <p v-if="casts.length">
                     <span class="opacity-70">出演：</span>
                     <span class="text-zinc-300">
@@ -148,6 +146,7 @@
                   </p>
                 </div>
 
+                <!-- [NÂNG CẤP] Khu vực nút bấm Action -->
                 <div class="mt-4 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
@@ -201,6 +200,19 @@
                       />
                     </svg>
                   </button>
+
+                  <!-- [THÊM MỚI] Nút Edit chỉ hiện cho Admin -->
+                  <NuxtLink
+                    v-if="isAdmin && movie?.id"
+                    :to="`/admin/movies/${movie.id}`"
+                    class="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-5 py-2.5 text-sm font-medium text-amber-400 hover:bg-amber-500/20 transition backdrop-blur-sm border border-amber-500/20 ml-auto sm:ml-0"
+                    title="管理画面で編集"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                    </svg>
+                    編集
+                  </NuxtLink>
                 </div>
 
                 <div v-if="movie?.id" class="mt-1">
@@ -338,6 +350,7 @@ import { computed, ref, nextTick, watch, onMounted } from "vue";
 import {
   useRoute,
   useSupabaseClient,
+  useSupabaseUser, // [THÊM MỚI] Import composable lấy user
   useSeoMeta,
   useHead,
   navigateTo,
@@ -353,9 +366,13 @@ import { useMyList } from "~/composables/useMyList";
 import { useContinueWatching } from "~/composables/useContinueWatching";
 import { getResizedUrl } from "~/utils/image";
 
+// [THÊM MỚI] Khởi tạo User để check phân quyền
+const user = useSupabaseUser();
+// Kiểm tra xem có người đang đăng nhập hay không
+const isAdmin = computed(() => !!user.value);
+
 type SubtitleItem = { src: string; label: string; lang: string };
 
-// [NÂNG CẤP] Khai báo Type chuẩn cho Nhân vật
 type CrewMember = { id: number; name: string };
 
 type DbMovie = {
@@ -439,7 +456,6 @@ const parts = ref<MoviePartRow[]>([]);
 const providers = ref<ProviderRow[]>([]);
 const relatedMovies = ref<RelatedItem[]>([]);
 
-// [NÂNG CẤP] Tạo Ref lưu trữ dữ liệu đạo diễn/diễn viên
 const directors = ref<CrewMember[]>([]);
 const casts = ref<CrewMember[]>([]);
 
@@ -721,8 +737,8 @@ const {
   const nuxtApp = useNuxtApp();
   const result = {
     movie: null as DbMovie | null,
-    directors: [] as CrewMember[], // [NÂNG CẤP]
-    casts: [] as CrewMember[],     // [NÂNG CẤP]
+    directors: [] as CrewMember[], 
+    casts: [] as CrewMember[],     
     collections: [] as MovieCollectionRow[],
     parts: [] as MoviePartRow[],
     providers: [] as ProviderRow[],
@@ -755,7 +771,6 @@ const {
     result.movie = movieData as unknown as DbMovie;
     const movieId = result.movie!.id;
 
-    // [NÂNG CẤP] Truy vấn bảng trung gian lấy Đạo diễn & Diễn viên
     const { data: crewData } = await supabase
       .from("content_crew")
       .select("role, persons(id, name)")
@@ -884,8 +899,8 @@ watch(
       }
 
       movie.value = newData.movie;
-      directors.value = newData.directors; // [NÂNG CẤP]
-      casts.value = newData.casts;         // [NÂNG CẤP]
+      directors.value = newData.directors; 
+      casts.value = newData.casts;         
       collections.value = newData.collections;
       parts.value = newData.parts;
       providers.value = newData.providers;
@@ -979,7 +994,6 @@ useHead({
             "@type": "Country",
             name: movie.value.origin_country,
           },
-          // [NÂNG CẤP] Schema đọc dữ liệu từ mảng đối tượng
           director: directors.value.length
             ? directors.value.map(d => ({ "@type": "Person", name: d.name }))
             : undefined,

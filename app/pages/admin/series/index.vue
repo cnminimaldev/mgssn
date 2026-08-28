@@ -36,7 +36,8 @@
           <table class="w-full text-left text-sm">
             <thead class="bg-white/5 text-xs uppercase text-zinc-400">
               <tr>
-                <th class="px-6 py-4 font-medium w-16">Image</th>
+                <!-- [ĐÃ SỬA] Nới rộng cột Image thành w-20 -->
+                <th class="px-6 py-4 font-medium w-20">Image</th>
                 <th class="px-6 py-4 font-medium">Title</th>
                 <th class="px-6 py-4 font-medium">Year</th>
                 <th class="px-6 py-4 font-medium">Country</th>
@@ -64,8 +65,9 @@
                 class="hover:bg-white/5 transition-colors group"
               >
                 <td class="px-6 py-3">
+                  <!-- [ĐÃ SỬA] Chuyển đổi thành hình ngang (aspect-video w-16) -->
                   <div
-                    class="h-10 w-7 overflow-hidden rounded bg-zinc-800 border border-white/10"
+                    class="aspect-video w-16 overflow-hidden rounded bg-zinc-800 border border-white/10"
                   >
                     <img
                       v-if="item.thumbnail"

@@ -109,7 +109,6 @@
                 </div>
 
                 <div class="mt-1 space-y-1 text-xs text-zinc-400">
-                  <!-- [NÂNG CẤP] Hiển thị Đạo diễn từ mảng chuẩn -->
                   <p v-if="directors.length">
                     <span class="opacity-70">監督：</span>
                     <span class="text-zinc-300">
@@ -128,7 +127,6 @@
                     </span>
                   </p>
                   
-                  <!-- [NÂNG CẤP] Hiển thị Diễn viên từ mảng chuẩn -->
                   <p v-if="casts.length">
                     <span class="opacity-70">出演：</span>
                     <span class="text-zinc-300">
@@ -179,6 +177,19 @@
                     <span v-else>＋</span>
                     マイリスト
                   </button>
+
+                  <!-- [THÊM MỚI] Nút Edit chỉ hiện cho Admin -->
+                  <NuxtLink
+                    v-if="isAdmin && series?.id"
+                    :to="`/admin/series/${series.id}`"
+                    class="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-5 py-2.5 text-sm font-medium text-amber-400 hover:bg-amber-500/20 transition backdrop-blur-sm border border-amber-500/20 ml-auto sm:ml-0"
+                    title="管理画面で編集"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                    </svg>
+                    編集
+                  </NuxtLink>
                 </div>
 
                 <div v-if="series?.id" class="mt-1">
@@ -266,6 +277,7 @@ import { computed, ref, watch } from "vue";
 import {
   useRoute,
   useSupabaseClient,
+  useSupabaseUser, // [THÊM MỚI] Import useSupabaseUser
   useSeoMeta,
   useHead,
   navigateTo,
@@ -277,7 +289,10 @@ import { useMyList } from "~/composables/useMyList";
 import { getResizedUrl } from "~/utils/image";
 import StarRating from "~/components/StarRating.vue";
 
-// [NÂNG CẤP] Khai báo Type chuẩn cho Nhân vật
+// [THÊM MỚI] Kiểm tra trạng thái đăng nhập của Admin
+const user = useSupabaseUser();
+const isAdmin = computed(() => !!user.value);
+
 type CrewMember = { id: number; name: string };
 
 type SeriesRow = {
@@ -473,7 +488,6 @@ watch(selectedSeason, () => {
   currentPage.value = 1;
 });
 
-// [NÂNG CẤP] Chuyển đổi sang useAsyncData để hỗ trợ SSR
 const {
   status,
   error,
@@ -495,7 +509,6 @@ const {
     return result;
   }
 
-  // Đã xóa cột director và main_cast ở đây
   const { data: seriesData, error: seriesError } = await supabase
     .from("series")
     .select(
@@ -539,7 +552,6 @@ const {
   result.series = seriesData as unknown as SeriesRow;
   const seriesId = result.series.id;
 
-  // [NÂNG CẤP] Truy vấn bảng trung gian lấy Đạo diễn & Diễn viên
   const { data: crewData } = await supabase
     .from("content_crew")
     .select("role, persons(id, name)")
@@ -613,7 +625,6 @@ watch(
   { immediate: true }
 );
 
-// --- SEO CONFIGURATION ---
 const url = useRequestURL();
 
 const canonicalUrl = computed(() => {
@@ -659,7 +670,6 @@ useHead({
             "@type": "Country",
             name: series.value?.origin_country,
           },
-          // [NÂNG CẤP] Schema đọc dữ liệu từ mảng đối tượng
           director: directors.value.length
             ? directors.value.map(d => ({ "@type": "Person", name: d.name }))
             : undefined,
