@@ -13,7 +13,7 @@ type ApiMediaItem = {
   type: 'movie' | 'series'
   slug: string
   title: string
-  highlightedTitle?: string // [THÊM MỚI] Chứa thẻ HTML bôi đen
+  highlightedTitle?: string 
   originalTitle: string | null
   titleKana: string | null
   year: number
@@ -33,7 +33,6 @@ export default defineEventHandler(async (event) => {
 
   // --- 1. Params ---
   const searchRaw = typeof query.q === 'string' ? query.q.trim() : ''
-  // Ép toàn bộ từ khóa tìm kiếm (dù là Hiragana hay Katakana) về chung một chuẩn Hiragana
   const search = searchRaw ? toHiragana(searchRaw) : ''
 
   const castParam = typeof query.cast === 'string' ? query.cast.trim() : ''
@@ -60,26 +59,58 @@ export default defineEventHandler(async (event) => {
   // --- 2. Build Query ---
   let dbQuery = client.from('all_contents').select('*', { count: 'exact' })
   
-  // Biến lưu trữ dữ liệu Highlight và Xếp hạng từ PGroonga
   const highlightMap: Record<string, string> = {}
   const recommendedOrder: Record<string, number> = {}
 
   // --- 3. Filter (Áp dụng bộ lọc) ---
-  
   if (typeParam === 'movie' || typeParam === 'series') {
     dbQuery = dbQuery.eq('type', typeParam)
   }
   if (genreSlugs.length > 0) {
     dbQuery = dbQuery.overlaps('genre_slugs', genreSlugs)
   }
+  if (countries.length > 0) {
+    dbQuery = dbQuery.in('origin_country', countries)
+  }
+  if (!Number.isNaN(yearNum)) {
+    dbQuery = dbQuery.eq('year', yearNum)
+  }
 
-  // [TÍCH HỢP PGROONGA VÀ PHÂN TRANG TẠI DB]
+  // [NÂNG CẤP] TÌM KIẾM DIỄN VIÊN / ĐẠO DIỄN QUA BẢNG CHUẨN
+  if (castParam || directorParam) {
+    const roleFilter = castParam ? 'cast' : 'director';
+    const searchName = castParam || directorParam;
+
+    const { data: crewMatches, error: crewErr } = await client
+      .from('content_crew')
+      .select('content_id, type, persons!inner(name)')
+      .eq('role', roleFilter)
+      .ilike('persons.name', `%${searchName}%`);
+
+    if (!crewErr && crewMatches && crewMatches.length > 0) {
+      // Gom ID các phim/series mà người này tham gia
+      const movieIds = crewMatches.filter((c: any) => c.type === 'movie').map((c: any) => c.content_id);
+      const seriesIds = crewMatches.filter((c: any) => c.type === 'series').map((c: any) => c.content_id);
+
+      const orFilters = [];
+      if (movieIds.length > 0) orFilters.push(`and(type.eq.movie,id.in.(${movieIds.join(',')}))`);
+      if (seriesIds.length > 0) orFilters.push(`and(type.eq.series,id.in.(${seriesIds.join(',')}))`);
+
+      if (orFilters.length > 0) {
+         dbQuery = dbQuery.or(orFilters.join(','));
+      } else {
+         dbQuery = dbQuery.eq('id', -1); // Ép trả về mảng rỗng nếu không có dữ liệu khớp
+      }
+    } else {
+      dbQuery = dbQuery.eq('id', -1); // Không tìm thấy người này -> Mảng rỗng
+    }
+  }
+
   let totalSearchResults = 0
 
   if (search) {
     const from = (page - 1) * pageSize
 
-    // TRUYỀN ĐỦ THAM SỐ P_LIMIT VÀ P_OFFSET VÀO RPC
     const { data: searchResults, error: searchError } = await client
       .rpc('search_japanese_media', { 
         search_term: search,
@@ -95,7 +126,6 @@ export default defineEventHandler(async (event) => {
       return { items: [], total: 0, page, pageSize }
     }
 
-    // LẤY TRỰC TIẾP TỔNG SỐ LƯỢNG THỰC TẾ (>1000 KẾT QUẢ) TỪ CỘT TOTAL_COUNT CỦA DB
     totalSearchResults = Number(searchResults[0]?.total_count || 0)
 
     const movieIds: number[] = []
@@ -116,22 +146,7 @@ export default defineEventHandler(async (event) => {
     dbQuery = dbQuery.or(orFilters.join(','))
   }
 
-  if (castParam) {
-    dbQuery = dbQuery.ilike('main_cast', `%${castParam}%`)
-  }
-  if (directorParam) {
-    dbQuery = dbQuery.ilike('director', `%${directorParam}%`)
-  }
-  if (countries.length > 0) {
-    dbQuery = dbQuery.in('origin_country', countries)
-  }
-  if (!Number.isNaN(yearNum)) {
-    dbQuery = dbQuery.eq('year', yearNum)
-  }
-
   // --- 4. Sorting & Pagination ---
-  // ĐIỂM CHÚ Ý: Nếu đang search và sort="recommended", ta sẽ không phân trang/sort ở DB 
-  // mà lấy toàn bộ data ra để Javascript tự sort theo độ chính xác của PGroonga.
   const isCustomRelevanceSort = search && sortParam === 'recommended'
 
   if (!isCustomRelevanceSort) {
@@ -145,7 +160,6 @@ export default defineEventHandler(async (event) => {
       dbQuery = dbQuery.order('created_at', { ascending: false })
     }
     
-    // DB Pagination
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
     dbQuery = dbQuery.range(from, to)
@@ -160,10 +174,13 @@ export default defineEventHandler(async (event) => {
 
   // --- 6. Mapping ---
   let items: ApiMediaItem[] = (data ?? []).map((row: any) => {
-    // Lưu ý: Đảm bảo getResizedUrl đã được import hoặc auto-import trong dự án của bạn
-    const thumbnail = getResizedUrl(row.banner_url || row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
-    const posterUrl = getResizedUrl(row.poster_url, 450, 450, 'contain') || '/images/fallback-poster.png'
-    const bannerUrl = getResizedUrl(row.banner_url, 1920, 1080, 'contain') || ''
+    // Lưu ý: Đảm bảo getResizedUrl đã được import hoặc auto-import
+    const thumbnail = row.banner_url || row.poster_url 
+      ? `${row.banner_url || row.poster_url}` // Backend không có getResizedUrl bên vue, tạm dùng chuỗi gốc hoặc bạn tự xử lý hàm Helper
+      : '/images/fallback-poster.png'
+    
+    const posterUrl = row.poster_url || '/images/fallback-poster.png'
+    const bannerUrl = row.banner_url || ''
     
     const key = `${row.type}-${row.id}`
 
@@ -172,7 +189,7 @@ export default defineEventHandler(async (event) => {
       type: row.type, 
       slug: row.slug ?? String(row.id),
       title: row.title,
-      highlightedTitle: highlightMap[key] || row.title, // Nạp thẻ bôi đen vào
+      highlightedTitle: highlightMap[key] || row.title,
       originalTitle: row.original_title,
       titleKana: row.title_kana,
       year: row.year,
@@ -187,11 +204,10 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // --- 7. Sắp xếp và Phân trang Bằng Javascript (Cho trường hợp Relevance) ---
+  // --- 7. Sắp xếp và Phân trang Bằng Javascript ---
   let finalTotal = search ? totalSearchResults : (count ?? 0)
 
   if (isCustomRelevanceSort && !search) {
-    // Xếp theo đúng thứ tự mảng trả về của PGroonga
     items.sort((a, b) => {
       const orderA = recommendedOrder[`${a.type}-${a.id}`] ?? 9999
       const orderB = recommendedOrder[`${b.type}-${b.id}`] ?? 9999
@@ -200,7 +216,6 @@ export default defineEventHandler(async (event) => {
     
     finalTotal = items.length
     
-    // Cắt mảng lấy đúng số lượng trang
     const from = (page - 1) * pageSize
     items = items.slice(from, from + pageSize)
   }
