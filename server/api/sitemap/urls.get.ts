@@ -56,11 +56,12 @@ export default defineEventHandler(async (event) => {
     priority: 0.6, 
   }))
 
-  const staticUrls = [
-    { loc: `${baseUrl}/ranking`, changefreq: 'daily', priority: 0.9 },
-    { loc: `${baseUrl}/search`, changefreq: 'monthly', priority: 0.7 },
-  ]
+  // const staticUrls = [
+  //   { loc: `${baseUrl}/ranking`, changefreq: 'daily', priority: 0.9 },
+  //   { loc: `${baseUrl}/search`, changefreq: 'monthly', priority: 0.7 },
+  // ]
 
   // 5. Trả về danh sách tổng hợp
-  return [...staticUrls, ...genreUrls, ...movieUrls, ...seriesUrls, ...episodeUrls]
+  //return [...staticUrls, ...genreUrls, ...movieUrls, ...seriesUrls, ...episodeUrls]
+  return [...genreUrls, ...movieUrls, ...seriesUrls, ...episodeUrls]
 })
