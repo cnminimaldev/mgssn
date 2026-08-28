@@ -660,7 +660,19 @@ const activeProvider = computed(() => {
   return providers.value.find((p) => p.id === c.provider_id) || null;
 });
 
-const playerSrc = computed(() => activePart.value?.video_path || "");
+const config = useRuntimeConfig();
+
+const playerSrc = computed(() => {
+  const path = activePart.value?.video_path || "";
+  if (!path) return "";
+  
+  // Nếu là link ngoài (embed, youtube) thì giữ nguyên, không ghép
+  if (path.startsWith('http')) return path; 
+  
+  // Tự động ghép tên miền Streaming vào đường dẫn tương đối
+  const baseUrl = config.public.streamUrl;
+  return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+});
 const playerPoster = computed(() => {
   if (activePart.value?.thumbnail_url) {
     return getResizedUrl(activePart.value.thumbnail_url, 1280, 720, "cover");

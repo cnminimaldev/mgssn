@@ -85,6 +85,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://noritv.com',
+      streamUrl: process.env.NUXT_PUBLIC_STREAM_URL || '',
     }
   },
 
