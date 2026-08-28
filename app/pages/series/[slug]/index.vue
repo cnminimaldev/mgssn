@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-[calc(100vh-4rem)] bg-black text-white">
     <div
-      v-if="loading"
+      v-if="status === 'pending'"
       class="flex h-full items-center justify-center py-20 text-zinc-300"
     >
       <div
@@ -10,7 +10,7 @@
     </div>
 
     <div
-      v-else-if="errorMessage || !series"
+      v-else-if="error || errorMessage || !series"
       class="flex h-full items-center justify-center py-20 text-zinc-200"
     >
       <div class="text-center">
@@ -48,7 +48,7 @@
               >
                 <img
                   :src="posterUrl"
-                  :alt="series.title"
+                  :alt="series?.title"
                   class="h-full w-full object-cover"
                   loading="eager"
                   fetchpriority="high"
@@ -78,20 +78,20 @@
                 <h1
                   class="text-2xl font-bold sm:text-4xl leading-tight text-white drop-shadow-md"
                 >
-                  {{ series.title }}
+                  {{ series?.title }}
                 </h1>
 
                 <div class="text-xs text-zinc-400 space-y-1">
-                  <p v-if="series.original_title">
+                  <p v-if="series?.original_title">
                     原題：{{ series.original_title }}
                   </p>
-                  <p v-if="series.title_kana">
+                  <p v-if="series?.title_kana">
                     {{ series.title_kana }}
                   </p>
                 </div>
 
                 <p
-                  v-if="series.description"
+                  v-if="series?.description"
                   class="mt-2 text-xs leading-relaxed text-zinc-200 sm:text-sm max-w-2xl line-clamp-4 hover:line-clamp-none transition-all cursor-default"
                 >
                   {{ series.description }}
@@ -109,34 +109,37 @@
                 </div>
 
                 <div class="mt-1 space-y-1 text-xs text-zinc-400">
-                  <p v-if="series.director">
+                  <!-- [NÂNG CẤP] Hiển thị Đạo diễn từ mảng chuẩn -->
+                  <p v-if="directors.length">
                     <span class="opacity-70">監督：</span>
                     <span class="text-zinc-300">
-                      <template v-for="(dir, idx) in directorList" :key="idx">
+                      <template v-for="(dir, idx) in directors" :key="dir.id">
                         <NuxtLink
-                          :to="`/person/${encodeURIComponent(dir)}?role=director`"
+                          :to="`/person/${dir.id}`"
                           class="hover:text-white hover:underline"
-                          >{{ dir }}</NuxtLink
+                          >{{ dir.name }}</NuxtLink
                         >
                         <span
-                          v-if="idx < directorList.length - 1"
+                          v-if="idx < directors.length - 1"
                           class="text-zinc-600"
                           >,
                         </span>
                       </template>
                     </span>
                   </p>
-                  <p v-if="series.main_cast">
+                  
+                  <!-- [NÂNG CẤP] Hiển thị Diễn viên từ mảng chuẩn -->
+                  <p v-if="casts.length">
                     <span class="opacity-70">出演：</span>
                     <span class="text-zinc-300">
-                      <template v-for="(actor, idx) in castList" :key="idx">
+                      <template v-for="(actor, idx) in casts" :key="actor.id">
                         <NuxtLink
-                          :to="`/person/${encodeURIComponent(actor)}`"
+                          :to="`/person/${actor.id}`"
                           class="hover:text-white hover:underline"
-                          >{{ actor }}</NuxtLink
+                          >{{ actor.name }}</NuxtLink
                         >
                         <span
-                          v-if="idx < castList.length - 1"
+                          v-if="idx < casts.length - 1"
                           class="text-zinc-600"
                           >,
                         </span>
@@ -167,6 +170,7 @@
                   </NuxtLink>
 
                   <button
+                    v-if="series?.id"
                     type="button"
                     class="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/20 transition backdrop-blur-sm"
                     @click="handleToggleMyList"
@@ -270,7 +274,11 @@ import {
   useAsyncData,
 } from "#imports";
 import { useMyList } from "~/composables/useMyList";
-// Auto-import getResizedUrl from utils
+import { getResizedUrl } from "~/utils/image";
+import StarRating from "~/components/StarRating.vue";
+
+// [NÂNG CẤP] Khai báo Type chuẩn cho Nhân vật
+type CrewMember = { id: number; name: string };
 
 type SeriesRow = {
   id: number;
@@ -283,8 +291,6 @@ type SeriesRow = {
   description?: string | null;
   poster_url?: string | null;
   banner_url?: string | null;
-  director?: string | null;
-  main_cast?: string | null;
   ratingInfo?: {
     avg_rating: number;
     total_votes: number;
@@ -320,10 +326,11 @@ type EpisodeCollectionRow = {
 const route = useRoute();
 const supabase = useSupabaseClient<any>();
 
-const loading = ref(true);
 const errorMessage = ref("");
 
 const series = ref<SeriesRow | null>(null);
+const directors = ref<CrewMember[]>([]);
+const casts = ref<CrewMember[]>([]);
 const collections = ref<EpisodeCollectionRow[]>([]);
 const episodes = ref<EpisodeRow[]>([]);
 
@@ -331,6 +338,8 @@ const selectedSeason = ref<number | null>(null);
 
 const EPISODES_PER_PAGE = 50;
 const currentPage = ref(1);
+
+const slugParam = computed(() => String(route.params.slug || ""));
 
 const { isInMyList, toggleMyList } = useMyList();
 const inMyList = computed(() =>
@@ -340,8 +349,6 @@ const handleToggleMyList = () => {
   if (!series.value) return;
   toggleMyList(series.value.id, "series");
 };
-
-const slugParam = computed(() => String(route.params.slug || ""));
 
 const posterUrl = computed(
   () =>
@@ -373,22 +380,6 @@ const countryLabel = computed(() => {
     VN: "ベトナム",
   };
   return map[code] || code;
-});
-
-const castList = computed(() => {
-  if (!series.value?.main_cast) return [];
-  return series.value.main_cast
-    .split(",")
-    .map((c) => c.trim())
-    .filter(Boolean);
-});
-
-const directorList = computed(() => {
-  if (!series.value?.director) return [];
-  return series.value.director
-    .split(",")
-    .map((c) => c.trim())
-    .filter(Boolean);
 });
 
 const genres = computed(() => {
@@ -482,108 +473,145 @@ watch(selectedSeason, () => {
   currentPage.value = 1;
 });
 
-const loadData = async () => {
+// [NÂNG CẤP] Chuyển đổi sang useAsyncData để hỗ trợ SSR
+const {
+  status,
+  error,
+  data: pageData,
+} = await useAsyncData(`series-${slugParam.value}`, async () => {
   const nuxtApp = useNuxtApp();
-  loading.value = true;
-  errorMessage.value = "";
+  const result = {
+    series: null as SeriesRow | null,
+    directors: [] as CrewMember[],
+    casts: [] as CrewMember[],
+    collections: [] as EpisodeCollectionRow[],
+    episodes: [] as EpisodeRow[],
+    errorMessage: "",
+  };
 
-  try {
-    const slug = slugParam.value;
-    if (!slug) {
-      errorMessage.value = "Invalid slug";
-      return;
-    }
+  const slug = slugParam.value;
+  if (!slug) {
+    result.errorMessage = "Invalid slug";
+    return result;
+  }
 
-    const { data: seriesData, error: seriesError } = await supabase
-      .from("series")
-      .select(
-        "id, slug, title, original_title, title_kana, year, origin_country, description, poster_url, banner_url, director, main_cast, series_genres(genre:genres(slug, name, name_ja))"
-      )
+  // Đã xóa cột director và main_cast ở đây
+  const { data: seriesData, error: seriesError } = await supabase
+    .from("series")
+    .select(
+      "id, slug, title, original_title, title_kana, year, origin_country, description, poster_url, banner_url, series_genres(genre:genres(slug, name, name_ja))"
+    )
+    .eq("slug", slug)
+    .single();
+
+  if (seriesError || !seriesData) {
+    const { data: aliasRows, error: aliasError } = await supabase
+      .from("series_slug_history")
+      .select("series_id")
       .eq("slug", slug)
-      .single();
+      .limit(1);
 
-    if (seriesError || !seriesData) {
-      const { data: aliasRows, error: aliasError } = await supabase
-        .from("series_slug_history")
-        .select("series_id")
-        .eq("slug", slug)
-        .limit(1);
+    if (!aliasError && aliasRows && aliasRows.length > 0) {
+      const aliasSeriesId = aliasRows[0]?.series_id as number;
 
-      if (!aliasError && aliasRows && aliasRows.length > 0) {
-        const aliasSeriesId = aliasRows[0]?.series_id as number;
+      if (aliasSeriesId) {
+        const { data: canonicalSeries } = await supabase
+          .from("series")
+          .select("slug")
+          .eq("id", aliasSeriesId)
+          .single();
 
-        if (aliasSeriesId) {
-          const { data: canonicalSeries } = await supabase
-            .from("series")
-            .select("slug")
-            .eq("id", aliasSeriesId)
-            .single();
-
-          if (canonicalSeries?.slug) {
-            await nuxtApp.runWithContext(() =>
-              navigateTo(`/series/${canonicalSeries.slug}`, {
-                redirectCode: 301,
-                external: true,
-              })
-            );
-            return;
-          }
+        if (canonicalSeries?.slug) {
+          await nuxtApp.runWithContext(() =>
+            navigateTo(`/series/${canonicalSeries.slug}`, {
+              redirectCode: 301,
+              external: true,
+            })
+          );
+          return result;
         }
       }
-
-      errorMessage.value = "シリーズが見つかりませんでした。";
-      return;
     }
-
-    series.value = seriesData as unknown as SeriesRow
-
-    // [SEO] Fetch Ratings
-    const { data: ratingData } = await supabase.rpc("get_content_rating", {
-      target_id: series.value.id,
-      target_type: "series",
-    });
-
-    if (series.value) {
-      series.value.ratingInfo = ratingData?.[0] || {
-        avg_rating: 0,
-        total_votes: 0,
-      };
-    }
-
-    const { data: colData } = await supabase
-      .from("episode_collections")
-      .select("id, series_id, name, is_default")
-      .eq("series_id", series.value.id);
-
-    collections.value = (colData ?? []) as EpisodeCollectionRow[];
-
-    const { data: epData, error: epError } = await supabase
-      .from("episodes")
-      .select(
-        "id, series_id, collection_id, season_number, episode_number, title, video_path, thumbnail_url, duration_minutes"
-      )
-      .eq("series_id", series.value.id)
-      .order("season_number", { ascending: true })
-      .order("episode_number", { ascending: true });
-
-    episodes.value = (epData ?? []) as EpisodeRow[];
-
-    if (!episodes.value.length) {
-      errorMessage.value = "エピソードがまだ登録されていません。";
-      return;
-    }
-
-    const seasons = seasonNumbers.value;
-    if (seasons.length) {
-      selectedSeason.value = seasons[0] ?? null;
-    }
-    currentPage.value = 1;
-  } finally {
-    loading.value = false;
+    result.errorMessage = "シリーズが見つかりませんでした。";
+    return result;
   }
-};
 
-await loadData();
+  result.series = seriesData as unknown as SeriesRow;
+  const seriesId = result.series.id;
+
+  // [NÂNG CẤP] Truy vấn bảng trung gian lấy Đạo diễn & Diễn viên
+  const { data: crewData } = await supabase
+    .from("content_crew")
+    .select("role, persons(id, name)")
+    .eq("content_id", seriesId)
+    .eq("type", "series");
+
+  if (crewData) {
+    result.directors = crewData
+      .filter((c: any) => c.role === 'director' && c.persons)
+      .map((c: any) => c.persons as CrewMember);
+    
+    result.casts = crewData
+      .filter((c: any) => c.role === 'cast' && c.persons)
+      .map((c: any) => c.persons as CrewMember);
+  }
+
+  const { data: ratingData } = await supabase.rpc("get_content_rating", {
+    target_id: seriesId,
+    target_type: "series",
+  });
+
+  if (result.series) {
+    result.series.ratingInfo = ratingData?.[0] || {
+      avg_rating: 0,
+      total_votes: 0,
+    };
+  }
+
+  const { data: colData } = await supabase
+    .from("episode_collections")
+    .select("id, series_id, name, is_default")
+    .eq("series_id", seriesId);
+
+  result.collections = (colData ?? []) as EpisodeCollectionRow[];
+
+  const { data: epData } = await supabase
+    .from("episodes")
+    .select(
+      "id, series_id, collection_id, season_number, episode_number, title, video_path, thumbnail_url, duration_minutes"
+    )
+    .eq("series_id", seriesId)
+    .order("season_number", { ascending: true })
+    .order("episode_number", { ascending: true });
+
+  result.episodes = (epData ?? []) as EpisodeRow[];
+
+  return result;
+});
+
+watch(
+  pageData,
+  (newData) => {
+    if (newData) {
+      if (newData.errorMessage) {
+        errorMessage.value = newData.errorMessage;
+        return;
+      }
+      series.value = newData.series;
+      directors.value = newData.directors;
+      casts.value = newData.casts;
+      collections.value = newData.collections;
+      episodes.value = newData.episodes;
+
+      const seasons = seasonNumbers.value;
+      if (seasons.length) {
+        selectedSeason.value = seasons[0] ?? null;
+      }
+      currentPage.value = 1;
+    }
+  },
+  { immediate: true }
+);
 
 // --- SEO CONFIGURATION ---
 const url = useRequestURL();
@@ -619,7 +647,6 @@ useHead({
     {
       type: "application/ld+json",
       innerHTML: computed(() => {
-        // [SEO] TVSeries Schema
         const schema: any = {
           "@context": "https://schema.org",
           "@type": "TVSeries",
@@ -632,23 +659,17 @@ useHead({
             "@type": "Country",
             name: series.value?.origin_country,
           },
-          director: series.value?.director
-            ? {
-                "@type": "Person",
-                name: series.value.director,
-              }
+          // [NÂNG CẤP] Schema đọc dữ liệu từ mảng đối tượng
+          director: directors.value.length
+            ? directors.value.map(d => ({ "@type": "Person", name: d.name }))
             : undefined,
-          actor: series.value?.main_cast
-            ? series.value.main_cast.split(",").map((name) => ({
-                "@type": "Person",
-                name: name.trim(),
-              }))
+          actor: casts.value.length
+            ? casts.value.map(c => ({ "@type": "Person", name: c.name }))
             : undefined,
           numberOfSeasons: seasonNumbers.value.length,
           numberOfEpisodes: episodes.value.length,
         };
 
-        // [SEO] AggregateRating Schema
         if (
           series.value?.ratingInfo &&
           series.value.ratingInfo.total_votes > 0
@@ -662,7 +683,6 @@ useHead({
           };
         }
 
-        // [SEO] BreadcrumbList Schema
         const schemaBreadcrumb = {
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
@@ -695,20 +715,15 @@ useHead({
 });
 
 useSeoMeta({
-  // Cơ bản
   title: seoTitle,
   description: seoDescription,
-
-  // Open Graph (Facebook, Zalo, LINE)
   ogTitle: seoTitle,
   ogDescription: seoDescription,
   ogImage: seoImage,
   ogUrl: canonicalUrl,
-  ogType: 'video.tv_show', // Quan trọng: Khai báo là TV Show
+  ogType: 'video.tv_show', 
   ogSiteName: 'MugenTV',
   ogLocale: 'ja_JP',
-
-  // Twitter / X Card
   twitterCard: "summary_large_image",
   twitterTitle: seoTitle,
   twitterDescription: seoDescription,

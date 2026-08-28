@@ -262,33 +262,35 @@
                 </div>
               </div>
 
-              <div v-if="series?.main_cast">
+              <!-- [NÂNG CẤP] Chuyển đổi sang truy xuất dữ liệu Casts mới -->
+              <div v-if="casts.length">
                 <span class="text-zinc-500 block mb-1">キャスト</span>
                 <div class="flex flex-wrap gap-1 text-zinc-300">
-                  <template v-for="(actor, idx) in castList" :key="idx">
+                  <template v-for="(actor, idx) in casts" :key="actor.id">
                     <NuxtLink
-                      :to="`/person/${encodeURIComponent(actor)}`"
+                      :to="`/person/${actor.id}`"
                       class="hover:text-white hover:underline"
-                      >{{ actor }}</NuxtLink
+                      >{{ actor.name }}</NuxtLink
                     >
-                    <span v-if="idx < castList.length - 1" class="text-zinc-600"
+                    <span v-if="idx < casts.length - 1" class="text-zinc-600"
                       >,</span
                     >
                   </template>
                 </div>
               </div>
 
-              <div v-if="series?.director">
+              <!-- [NÂNG CẤP] Chuyển đổi sang truy xuất dữ liệu Directors mới -->
+              <div v-if="directors.length">
                 <span class="text-zinc-500 block mb-1">監督</span>
                 <div class="flex flex-wrap gap-1 text-zinc-300">
-                  <template v-for="(dir, idx) in directorList" :key="idx">
+                  <template v-for="(dir, idx) in directors" :key="dir.id">
                     <NuxtLink
-                      :to="`/person/${encodeURIComponent(dir)}?role=director`"
+                      :to="`/person/${dir.id}`"
                       class="hover:text-white hover:underline"
                     >
-                      {{ dir }}
+                      {{ dir.name }}
                     </NuxtLink>
-                    <span v-if="idx < directorList.length - 1" class="text-zinc-600">,</span>
+                    <span v-if="idx < directors.length - 1" class="text-zinc-600">,</span>
                   </template>
                 </div>
               </div>
@@ -407,11 +409,14 @@ import {
   useRequestURL,
   useAsyncData,
 } from "#imports";
-// [CHANGE] Import UniversalPlayer thay vì StreamingPlayer
 import UniversalPlayer from "~/components/UniversalPlayer.vue";
 import MovieRow from "~/components/MovieRow.vue";
 import { useContinueWatching } from "~/composables/useContinueWatching";
 import { useMyList } from "~/composables/useMyList";
+import { getResizedUrl } from "~/utils/image";
+
+// [NÂNG CẤP] Khai báo kiểu cho Nhân vật
+type CrewMember = { id: number; name: string };
 
 // --- Types ---
 type SeriesRow = {
@@ -425,8 +430,6 @@ type SeriesRow = {
   poster_url?: string | null;
   banner_url?: string | null;
   year?: number | null;
-  director?: string | null;
-  main_cast?: string | null;
   created_at?: string;
   series_genres?: {
     genre: {
@@ -464,7 +467,6 @@ type EpisodeRow = {
   created_at?: string;
 };
 
-// [CHANGE] Update ProviderRow type
 type ProviderRow = {
   id: number;
   name: string;
@@ -495,6 +497,8 @@ const errorMessage = ref("");
 
 // Reactive Refs
 const series = ref<SeriesRow | null>(null);
+const directors = ref<CrewMember[]>([]); // [NÂNG CẤP]
+const casts = ref<CrewMember[]>([]);     // [NÂNG CẤP]
 const collections = ref<EpisodeCollectionRow[]>([]);
 const episodes = ref<EpisodeRow[]>([]);
 const providers = ref<ProviderRow[]>([]);
@@ -512,7 +516,6 @@ const shareUrl = computed(() => {
 })
 
 const handleShare = async () => {
-  // 1. Nếu là Mobile và hỗ trợ Native Share -> Dùng Native Share
   if (import.meta.client && navigator.share) {
     try {
       await navigator.share({
@@ -522,12 +525,9 @@ const handleShare = async () => {
       })
       return
     } catch (err) {
-      // Nếu user huỷ share hoặc lỗi, fall back về Modal hoặc bỏ qua
       console.log('Share canceled or failed, falling back to modal')
     }
   }
-  
-  // 2. Nếu là PC hoặc Share API lỗi -> Mở Modal thủ công
   showShareModal.value = true
 }
 
@@ -576,19 +576,6 @@ const genres = computed(() => {
       slug: g!.slug,
       label: g!.name_ja || g!.name || g!.slug,
     }));
-});
-
-const castList = computed(() => {
-  if (!series.value?.main_cast) return [];
-  return series.value.main_cast.split(",").map((c) => c.trim());
-});
-
-const directorList = computed(() => {
-  if (!series.value?.director) return [];
-  return series.value.director
-    .split(",")
-    .map((c) => c.trim())
-    .filter(Boolean);
 });
 
 const collectionFromQuery = computed<number | null>(() => {
@@ -708,7 +695,6 @@ const activeCollectionInfo = computed(() => {
   };
 });
 
-// [CHANGE] Computed tìm activeProvider để truyền vào UniversalPlayer
 const activeProvider = computed(() => {
   if (selectedCollectionId.value == null) return null;
   const c = collections.value.find((cc) => cc.id === selectedCollectionId.value);
@@ -745,7 +731,6 @@ const playerKey = computed(() => {
 const episodeStartTime = computed(() => {
   const ep = activeEpisode.value;
   if (!ep) return 0;
-  // Key lưu trữ progress cho Series: dùng ID tập phim
   const entry = getEntry(ep.id);
   if (!entry) return 0;
   if (!entry.duration || entry.duration < 60) return 0;
@@ -765,7 +750,6 @@ const handlePlayerTimeUpdate = (payload: {
   const now = performance.now();
   if (now - lastSavedAt.value < 2000) return;
   lastSavedAt.value = now;
-  // Lưu progress
   setProgress(ep.id, payload.currentTime, payload.duration);
 };
 
@@ -817,6 +801,8 @@ const {
     const nuxtApp = useNuxtApp();
     const result = {
       series: null as SeriesRow | null,
+      directors: [] as CrewMember[], // [NÂNG CẤP]
+      casts: [] as CrewMember[],     // [NÂNG CẤP]
       collections: [] as EpisodeCollectionRow[],
       episodes: [] as EpisodeRow[],
       providers: [] as ProviderRow[],
@@ -836,10 +822,11 @@ const {
       return result;
     }
 
+    // Đã xóa cột director và main_cast ở đây
     const { data: seriesData, error: seriesError } = await supabase
       .from("series")
       .select(
-        "id, slug, title, original_title, title_kana, origin_country, description, poster_url, banner_url, year, director, main_cast, created_at, series_genres(genre:genres(slug, name, name_ja))"
+        "id, slug, title, original_title, title_kana, origin_country, description, poster_url, banner_url, year, created_at, series_genres(genre:genres(slug, name, name_ja))"
       )
       .eq("slug", slug)
       .single();
@@ -851,6 +838,23 @@ const {
 
     result.series = seriesData as unknown as SeriesRow;
 
+    // [NÂNG CẤP] Truy vấn bảng trung gian lấy Đạo diễn & Diễn viên
+    const { data: crewData } = await supabase
+      .from("content_crew")
+      .select("role, persons(id, name)")
+      .eq("content_id", result.series.id)
+      .eq("type", "series");
+
+    if (crewData) {
+      result.directors = crewData
+        .filter((c: any) => c.role === 'director' && c.persons)
+        .map((c: any) => c.persons as CrewMember);
+      
+      result.casts = crewData
+        .filter((c: any) => c.role === 'cast' && c.persons)
+        .map((c: any) => c.persons as CrewMember);
+    }
+
     const { data: colData } = await supabase
       .from("episode_collections")
       .select(
@@ -861,7 +865,6 @@ const {
       .order("created_at", { ascending: true });
     result.collections = (colData ?? []) as EpisodeCollectionRow[];
 
-    // [CHANGE] Lấy thêm player_type và embed_pattern
     const { data: provData } = await supabase
       .from("collection_providers")
       .select("id, name, website_url, player_type, embed_pattern")
@@ -928,6 +931,8 @@ watch(
       }
 
       series.value = newData.series;
+      directors.value = newData.directors; // [NÂNG CẤP]
+      casts.value = newData.casts;         // [NÂNG CẤP]
       collections.value = newData.collections;
       episodes.value = newData.episodes;
       providers.value = newData.providers;
@@ -1044,7 +1049,6 @@ const seoImage = computed(
     series.value?.banner_url || series.value?.poster_url || "/images/banner.jpg"
 );
 
-// [FIX] Hàm helper
 const toAbsoluteUrl = (path: string | null | undefined) => {
   if (!path) return undefined;
   if (path.startsWith('http')) return path;
@@ -1064,7 +1068,6 @@ useHead({
           ? new Date(activeEpisode.value.created_at).toISOString() 
           : new Date().toISOString();
 
-        // 1. Breadcrumb List
         const schemaBreadcrumb = {
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
@@ -1096,7 +1099,6 @@ useHead({
           ],
         };
 
-        // 2. TVEpisode Schema
         const schemaEpisode = {
           "@context": "https://schema.org",
           "@type": "TVEpisode",
@@ -1107,7 +1109,14 @@ useHead({
             `Episode ${currentEpisodeNumber.value}`,
           description: activeEpisode.value?.title || series.value?.description,
           image: playerPoster.value,
-          datePublished: activeEpisode.value?.created_at, // Use real release date if available
+          datePublished: activeEpisode.value?.created_at, 
+          // [NÂNG CẤP] Cập nhật thành phần truyền cấu trúc diễn viên/đạo diễn cho SEO
+          director: directors.value.length
+            ? directors.value.map(d => ({ "@type": "Person", name: d.name }))
+            : undefined,
+          actor: casts.value.length
+            ? casts.value.map(c => ({ "@type": "Person", name: c.name }))
+            : undefined,
           partOfSeries: {
             "@type": "TVSeries",
             name: series.value?.title,
@@ -1115,7 +1124,6 @@ useHead({
           },
         };
 
-        // 3. VideoObject Schema
         const schemaVideo = {
           "@context": "https://schema.org",
           "@type": "VideoObject",
@@ -1126,7 +1134,6 @@ useHead({
           duration: activeEpisode.value?.duration_minutes
             ? `PT${activeEpisode.value.duration_minutes}M`
             : undefined,
-            
           contentUrl: absVideoSrc,
         };
 
