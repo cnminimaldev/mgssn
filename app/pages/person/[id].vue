@@ -42,8 +42,8 @@
                 @click="showBio = !showBio"
                 class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-white transition-colors bg-zinc-800/80 hover:bg-zinc-700 px-3 py-1.5 rounded-full border border-zinc-700"
               >
-                <span v-if="!showBio">続きを読む (Xem tiểu sử)</span>
-                <span v-else>閉じる (Ẩn đi)</span>
+                <span v-if="!showBio">プロフィールを見る</span>
+                <span v-else>閉じる</span>
                 <svg v-if="!showBio" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                 <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
               </button>
