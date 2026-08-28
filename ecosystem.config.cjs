@@ -2,7 +2,7 @@
 module.exports = {
   apps: [
     {
-      name: 'mugentv',
+      name: 'noritv',
       port: '3000',
       exec_mode: 'cluster',
       instances: 'max', // Tận dụng hết core CPU

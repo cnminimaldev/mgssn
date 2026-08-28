@@ -209,7 +209,7 @@ type FiltersResponse = {
 
 // -- SEO --
 useSeoMeta({
-  title: "無限TV - 映画・ドラマ・アニメ見放題",
+  title: "のりTV - 映画・ドラマ・アニメ見放題",
   description:
     "最新の映画、ドラマ、アニメを高品質で無料ストリーミング。登録不要ですぐに見られます。",
 });

@@ -40,7 +40,7 @@
             </div>
             <span
               class="text-lg font-bold tracking-tight text-white group-hover:text-emerald-400 transition-colors"
-              >無限テレビ</span
+              >のりテレビ</span
             >
           </NuxtLink>
 

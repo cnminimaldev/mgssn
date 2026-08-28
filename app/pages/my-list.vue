@@ -82,7 +82,7 @@ import MovieCard from "~/components/MovieCard.vue";
 definePageMeta({ middleware: "auth" });
 
 useSeoMeta({
-  title: "マイリスト - 無限テレビ",
+  title: "マイリスト - のりテレビ",
   robots: "noindex, nofollow",
 });
 

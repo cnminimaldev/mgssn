@@ -3,15 +3,12 @@ import { serverSupabaseClient } from '#supabase/server'
 export default defineEventHandler(async (event) => {
   const client = await serverSupabaseClient<any>(event)
 
-  // [TUYỆT CHIÊU CUỐI]: Khai báo cứng tên miền ở đây để vô hiệu hóa mọi cơ chế cache của Nuxt
-  const baseUrl = 'https://noritv.com'
-
-  // 1. Lấy danh sách Movie
+  // 1. Lấy danh sách Movie (Thêm created_at để dự phòng)
   const { data: movies } = await client
     .from('movies')
     .select('slug, updated_at, created_at')
 
-  // 2. Lấy danh sách Series
+  // 2. Lấy danh sách Series (Thêm created_at)
   const { data: series } = await client
     .from('series')
     .select('slug, updated_at, created_at')
@@ -27,41 +24,42 @@ export default defineEventHandler(async (event) => {
     .select('slug')
     .eq('is_active', true)
 
-  // --- MAPPING URLs (Ép ghép baseUrl vào từng link) ---
+  // --- MAPPING URLs ---
 
   const movieUrls = (movies || []).map((m: any) => ({
-    loc: `${baseUrl}/movie/${m.slug}`,
+    loc: `/movie/${m.slug}`,
+    // CHUẨN SEO: Ưu tiên updated_at -> created_at -> giờ hiện tại
     lastmod: m.updated_at || m.created_at || new Date().toISOString(),
     changefreq: 'monthly',
     priority: 0.8,
   }))
 
   const seriesUrls = (series || []).map((s: any) => ({
-    loc: `${baseUrl}/series/${s.slug}`,
+    loc: `/series/${s.slug}`,
     lastmod: s.updated_at || s.created_at || new Date().toISOString(),
     changefreq: 'weekly',
     priority: 0.8,
   }))
   
+  // Bơm trực tiếp link từng tập phim vào mâm cho Googlebot xơi
   const episodeUrls = (episodes || []).map((ep: any) => ({
-    loc: `${baseUrl}/series/${ep.series.slug}/episode/${ep.episode_number}`,
+    loc: `/series/${ep.series.slug}/episode/${ep.episode_number}`,
     lastmod: ep.created_at || new Date().toISOString(),
-    changefreq: 'yearly',
+    changefreq: 'yearly', // Tập phim phát rồi thì ít khi sửa lại
     priority: 0.7,
   }))
 
   const genreUrls = (genres || []).map((g: any) => ({
-    loc: `${baseUrl}/genres/${g.slug}`,
+    loc: `/genres/${g.slug}`,
     changefreq: 'weekly',
     priority: 0.6, 
   }))
 
-  // const staticUrls = [
-  //   { loc: `${baseUrl}/ranking`, changefreq: 'daily', priority: 0.9 },
-  //   { loc: `${baseUrl}/search`, changefreq: 'monthly', priority: 0.7 },
-  // ]
+  const staticUrls = [
+    { loc: '/ranking', changefreq: 'daily', priority: 0.9 },
+    { loc: '/search', changefreq: 'monthly', priority: 0.7 },
+  ]
 
   // 5. Trả về danh sách tổng hợp
-  //return [...staticUrls, ...genreUrls, ...movieUrls, ...seriesUrls, ...episodeUrls]
-  return [...genreUrls, ...movieUrls, ...seriesUrls, ...episodeUrls]
+  return [...staticUrls, ...genreUrls, ...movieUrls, ...seriesUrls, ...episodeUrls]
 })
