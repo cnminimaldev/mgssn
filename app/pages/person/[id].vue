@@ -10,7 +10,6 @@
       </div>
 
       <div v-else>
-        <!-- [NÂNG CẤP] Khu vực Header có thêm Ảnh đại diện, Tên Tiếng Anh và Tiểu sử -->
         <header class="mb-10 flex flex-col sm:flex-row sm:items-end gap-6 border-b border-white/5 pb-8">
           <div class="h-24 w-24 sm:h-32 sm:w-32 flex-shrink-0 overflow-hidden rounded-full bg-zinc-800 shadow-xl border border-white/10">
             <img v-if="person.avatar_url" :src="person.avatar_url" :alt="person.name" class="h-full w-full object-cover" />
@@ -30,16 +29,31 @@
             <p v-if="person.name_romaji" class="text-emerald-400 text-sm mb-3">
               {{ person.name_romaji }}
             </p>
-            <p v-if="person.bio" class="text-sm text-zinc-400 max-w-3xl line-clamp-3 hover:line-clamp-none transition-all">
-              {{ person.bio }}
-            </p>
-            <p v-else class="text-zinc-500 text-xs">
+            
+            <!-- [CẬP NHẬT] Khu vực ẩn/hiện Tiểu sử và giữ nguyên dấu xuống dòng -->
+            <div v-if="person.bio" class="max-w-3xl mt-2">
+              <!-- whitespace-pre-wrap là thẻ CSS "thần thánh" để giữ dấu xuống dòng -->
+              <div 
+                v-show="showBio" 
+                class="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed mb-3 bg-zinc-900/50 p-4 rounded-xl border border-white/5"
+              >{{ person.bio }}</div>
+              
+              <button 
+                @click="showBio = !showBio"
+                class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-white transition-colors bg-zinc-800/80 hover:bg-zinc-700 px-3 py-1.5 rounded-full border border-zinc-700"
+              >
+                <span v-if="!showBio">続きを読む (Xem tiểu sử)</span>
+                <span v-else>閉じる (Ẩn đi)</span>
+                <svg v-if="!showBio" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
+              </button>
+            </div>
+            <p v-else class="text-zinc-500 text-xs mt-2">
               出演・監督作品一覧
             </p>
           </div>
         </header>
 
-        <!-- Danh sách phim -->
         <div v-if="!movies.length" class="py-10 text-center text-zinc-400">
           関連作品はまだありません。
         </div>
@@ -48,7 +62,6 @@
             <MovieCard v-for="movie in movies" :key="`${movie.type}-${movie.id}`" :item="movie" />
           </div>
 
-          <!-- Phân trang -->
           <div v-if="totalPages > 1" class="mt-10 flex justify-center gap-2">
             <button
               v-for="p in totalPages"
@@ -76,15 +89,15 @@ const route = useRoute()
 const url = useRequestURL()
 const supabase = useSupabaseClient<any>()
 
-// Lấy ID từ URL
 const personId = route.params.id
+
+// [THÊM MỚI] Biến điều khiển trạng thái ẩn/hiện Bio
+const showBio = ref(false)
 
 const currentPage = ref(1)
 const pageSize = 24
 
-// [NÂNG CẤP] Gọi dữ liệu song song 2 bảng để tối ưu SSR
 const { data: pageData, pending } = await useAsyncData(`person-${personId}`, async () => {
-  // 1. Lấy thông tin chi tiết của diễn viên/đạo diễn
   const { data: personData, error: personError } = await supabase
     .from('persons')
     .select('*')
@@ -95,7 +108,6 @@ const { data: pageData, pending } = await useAsyncData(`person-${personId}`, asy
     return { person: null, movies: [], total: 0 }
   }
 
-  // 2. Tra cứu trong bảng trung gian xem họ tham gia những phim nào
   const { data: crewData } = await supabase
     .from('content_crew')
     .select('content_id, type')
@@ -105,7 +117,6 @@ const { data: pageData, pending } = await useAsyncData(`person-${personId}`, asy
     return { person: personData, movies: [], total: 0 }
   }
 
-  // Lọc tách ID của phim lẻ (movie) và phim bộ (series)
   const movieIds = crewData.filter((c: any) => c.type === 'movie').map((c: any) => c.content_id)
   const seriesIds = crewData.filter((c: any) => c.type === 'series').map((c: any) => c.content_id)
 
@@ -113,7 +124,6 @@ const { data: pageData, pending } = await useAsyncData(`person-${personId}`, asy
   if (movieIds.length > 0) orFilters.push(`and(type.eq.movie,id.in.(${movieIds.join(',')}))`)
   if (seriesIds.length > 0) orFilters.push(`and(type.eq.series,id.in.(${seriesIds.join(',')}))`)
 
-  // 3. Kéo toàn bộ phim đó lên từ View `all_contents`
   const { data: contents } = await supabase
     .from('all_contents')
     .select('*')
@@ -149,13 +159,11 @@ const totalItems = computed(() => pageData.value?.total || 0)
 
 const totalPages = computed(() => Math.ceil(totalItems.value / pageSize))
 
-// Xử lý chia mảng phân trang ngay tại Frontend cho nhanh
 const movies = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   return allMovies.value.slice(start, start + pageSize)
 })
 
-// [NÂNG CẤP] SEO Meta & Schema JSON-LD hỗ trợ Entity "Person"
 const title = computed(() => person.value ? `${person.value.name} 出演・監督作品 (映画・ドラマ) | MugenTV` : '人物 | MugenTV')
 const desc = computed(() => person.value ? `${person.value.name}が出演、監督する映画やドラマの一覧。` : '')
 
