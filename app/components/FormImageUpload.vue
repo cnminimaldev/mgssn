@@ -97,7 +97,7 @@ const handleFileChange = async (event: Event) => {
   if (!file) return
 
   // Nếu đang có link ảnh cũ thuộc về Supabase, tự động xóa nó đi trước
-  if (props.modelValue && props.modelValue.includes('supabase')) {
+  if (props.modelValue && props.modelValue.includes('/storage/')) {
     deleting.value = true
     try {
       await deleteImage(props.modelValue)

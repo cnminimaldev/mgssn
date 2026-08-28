@@ -32,12 +32,13 @@ export const useImageUpload = () => {
 
       if (error) throw error
 
-      // Lấy Public URL
       const { data: publicUrlData } = supabase.storage
         .from('images')
         .getPublicUrl(filePath)
 
-      return publicUrlData.publicUrl
+      // [ĐÃ SỬA] Bóc tách lấy Relative Path thay vì Absolute URL
+      const urlObj = new URL(publicUrlData.publicUrl)
+      return urlObj.pathname // Sẽ trả về dạng: /storage/v1/object/public/images/...
     } catch (e: any) {
       console.error('Upload failed:', e.message)
       throw e
