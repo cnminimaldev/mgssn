@@ -373,7 +373,7 @@ onMounted(async () => {
 });
 
 const handleSmartPaste = (data: any) => {
-  // Copy đè các thuộc tính thông thường
+  // 1. Copy đè các thuộc tính thông thường
   Object.assign(form, {
     title: data.title || form.title,
     original_title: data.original_title || form.original_title,
@@ -382,17 +382,40 @@ const handleSmartPaste = (data: any) => {
     year: data.year || form.year,
     origin_country: data.origin_country || form.origin_country,
     description: data.description || form.description,
+    duration_minutes: data.duration_minutes,
     release_date: data.release_date || form.release_date,
     poster_url: data.poster_url || form.poster_url,
     banner_url: data.banner_url || form.banner_url
   });
 
-  // Tự động băm chuỗi từ Smart Paste thành các thẻ Tag
+  // 2. Tự động băm chuỗi từ Smart Paste thành các thẻ Tag Đạo diễn & Diễn viên
   if (data.director) {
     form.directors = data.director.split(',').map((n: string) => ({ id: null, name: n.trim() })).filter((n: any) => n.name);
   }
   if (data.main_cast) {
     form.casts = data.main_cast.split(',').map((n: string) => ({ id: null, name: n.trim() })).filter((n: any) => n.name);
+  }
+
+  // 3. [BỔ SUNG] Tự động tích chọn ジャンル (Genres) dựa trên kết quả Smart Paste
+  if (data.genre_ids && Array.isArray(data.genre_ids)) {
+    // Nếu Smart Paste trả về sẵn mảng ID
+    form.genre_ids = data.genre_ids;
+  } else if (data.genres && Array.isArray(data.genres)) {
+    // Nếu Smart Paste trả về danh sách tên thể loại (ví dụ: ["Action", "Drama"] hoặc tiếng Nhật)
+    const matchedIds: number[] = [];
+    for (const gName of data.genres) {
+      const found = genres.value.find(
+        (g) => 
+          g.name.toLowerCase() === gName.toLowerCase() || 
+          (g.name_ja && g.name_ja.toLowerCase() === gName.toLowerCase())
+      );
+      if (found) {
+        matchedIds.push(found.id);
+      }
+    }
+    if (matchedIds.length > 0) {
+      form.genre_ids = matchedIds;
+    }
   }
 };
 
