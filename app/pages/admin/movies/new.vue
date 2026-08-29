@@ -140,65 +140,62 @@
                 </div>
               </div>
 
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-zinc-400 mb-1"
+                    >公開日 (Release Date)</label
+                  >
+                  <input
+                    v-model="form.release_date"
+                    type="date"
+                    class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white [color-scheme:dark]"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-zinc-400 mb-1"
+                    >再生時間 (分)</label
+                  >
+                  <input
+                    v-model.number="form.duration_minutes"
+                    type="number"
+                    class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white"
+                  />
+                </div>
+              </div>
+
+              <!-- KHU VỰC TAG ĐẠO DIỄN -->
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1"
-                  >公開日 (Release Date)</label
-                >
-                <input
-                  v-model="form.release_date"
-                  type="date"
-                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white [color-scheme:dark]"
+                <label class="block text-xs font-medium text-zinc-400 mb-1">監督 (Nhấn Enter để thêm)</label>
+                <div class="flex flex-wrap gap-2 mb-2" v-if="form.directors.length">
+                  <span v-for="(dir, idx) in form.directors" :key="idx" class="inline-flex items-center gap-1 rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-300">
+                    {{ dir.name }}
+                    <button type="button" @click="form.directors.splice(idx, 1)" class="text-zinc-500 hover:text-red-400 transition">&times;</button>
+                  </span>
+                </div>
+                <input 
+                  v-model="directorInput" 
+                  @keydown.enter.prevent="addDirector" 
+                  type="text" 
+                  placeholder="Tên đạo diễn rồi nhấn Enter..." 
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white" 
                 />
               </div>
 
-              <!-- Trường 監督 (Director) dạng Tag -->
+              <!-- KHU VỰC TAG DIỄN VIÊN -->
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1">監督 (Director)</label>
-                <div class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-sm focus-within:border-emerald-500 flex flex-wrap items-center gap-1.5 min-h-[38px]">
-                  <span v-for="(dir, index) in directorList" :key="index" class="inline-flex items-center gap-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded text-xs border border-zinc-700">
-                    {{ dir }}
-                    <button type="button" @click="removeDirector(index)" class="text-zinc-400 hover:text-red-400">&times;</button>
+                <label class="block text-xs font-medium text-zinc-400 mb-1">キャスト (Nhấn Enter để thêm)</label>
+                <div class="flex flex-wrap gap-2 mb-2" v-if="form.casts.length">
+                  <span v-for="(cast, idx) in form.casts" :key="idx" class="inline-flex items-center gap-1 rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-300">
+                    {{ cast.name }}
+                    <button type="button" @click="form.casts.splice(idx, 1)" class="text-zinc-500 hover:text-red-400 transition">&times;</button>
                   </span>
-                  <input
-                    type="text"
-                    v-model="newDirectorInput"
-                    @keydown.enter.prevent="addDirector"
-                    @keydown.comma.prevent="addDirector"
-                    placeholder="入力してEnter..."
-                    class="bg-transparent outline-none text-white text-sm flex-1 min-w-[100px] px-1 py-0.5 placeholder-zinc-700"
-                  />
                 </div>
-                <p class="text-[10px] text-zinc-500 mt-1">Enter またはカンマ (,) でタグを追加</p>
-              </div>
-
-              <!-- Trường キャスト (Main Cast) dạng Tag -->
-              <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1">キャスト (Cast)</label>
-                <div class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-sm focus-within:border-emerald-500 flex flex-wrap items-center gap-1.5 min-h-[38px]">
-                  <span v-for="(actor, index) in castList" :key="index" class="inline-flex items-center gap-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded text-xs border border-zinc-700">
-                    {{ actor }}
-                    <button type="button" @click="removeCast(index)" class="text-zinc-400 hover:text-red-400">&times;</button>
-                  </span>
-                  <input
-                    type="text"
-                    v-model="newCastInput"
-                    @keydown.enter.prevent="addCast"
-                    @keydown.comma.prevent="addCast"
-                    placeholder="入力してEnter..."
-                    class="bg-transparent outline-none text-white text-sm flex-1 min-w-[100px] px-1 py-0.5 placeholder-zinc-700"
-                  />
-                </div>
-                <p class="text-[10px] text-zinc-500 mt-1">Enter またはカンマ (,) でタグを追加</p>
-              </div>
-
-              <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1"
-                  >再生時間 (分)</label
-                >
-                <input
-                  v-model.number="form.duration_minutes"
-                  type="number"
-                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white"
+                <input 
+                  v-model="castInput" 
+                  @keydown.enter.prevent="addCast" 
+                  type="text" 
+                  placeholder="Tên diễn viên rồi nhấn Enter..." 
+                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white" 
                 />
               </div>
             </div>
@@ -269,7 +266,7 @@
             </div>
             <div>
               <label class="block text-xs font-medium text-zinc-400 mb-2"
-                >バナー (Horizontal)</label>
+                >バナー (Horizontal)</label
               >
               <FormImageUpload
                 v-model="form.banner_url"
@@ -315,7 +312,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useRouter, definePageMeta, useSupabaseClient } from "#imports";
 import FormImageUpload from "~/components/FormImageUpload.vue";
 import SmartPasteModal from "~/components/SmartPasteModal.vue";
@@ -333,6 +330,10 @@ const showSmartPaste = ref(false);
 const genres = ref<any[]>([]);
 const genresLoading = ref(true);
 
+// Biến tạm để nhập Tag
+const directorInput = ref("");
+const castInput = ref("");
+
 const form = reactive({
   title: "",
   original_title: "",
@@ -341,67 +342,31 @@ const form = reactive({
   year: new Date().getFullYear(),
   origin_country: "JP",
   description: "",
-  director: "",
-  main_cast: "",
   poster_url: "",
   banner_url: "",
   duration_minutes: 0,
   release_date: "",
   genre_ids: [] as number[],
+  directors: [] as { id: number | null, name: string }[],
+  casts: [] as { id: number | null, name: string }[]
 });
 
-// Quản lý mảng Tag cho 監督 (Director) và キャスト (Cast)
-const directorList = ref<string[]>([]);
-const newDirectorInput = ref("");
-
-const castList = ref<string[]>([]);
-const newCastInput = ref("");
-
-// Đồng bộ từ chuỗi sang mảng tag khi form.director / form.main_cast thay đổi (ví dụ do Smart Paste)
-watch(() => form.director, (val) => {
-  if (val) {
-    directorList.value = val.split(',').map(s => s.trim()).filter(Boolean);
-  } else {
-    directorList.value = [];
-  }
-}, { immediate: true });
-
-watch(() => form.main_cast, (val) => {
-  if (val) {
-    castList.value = val.split(',').map(s => s.trim()).filter(Boolean);
-  } else {
-    castList.value = [];
-  }
-}, { immediate: true });
-
-// Các hàm xử lý tag Đạo diễn
+// Hàm xử lý khi nhấn Enter ở ô nhập Đạo diễn
 const addDirector = () => {
-  const val = newDirectorInput.value.trim().replace(/,/g, '');
-  if (val && !directorList.value.includes(val)) {
-    directorList.value.push(val);
-    form.director = directorList.value.join(', ');
+  const val = directorInput.value.trim();
+  if (val && !form.directors.find(d => d.name === val)) {
+    form.directors.push({ id: null, name: val });
   }
-  newDirectorInput.value = '';
+  directorInput.value = "";
 };
 
-const removeDirector = (index: number) => {
-  directorList.value.splice(index, 1);
-  form.director = directorList.value.join(', ');
-};
-
-// Các hàm xử lý tag Diễn viên
+// Hàm xử lý khi nhấn Enter ở ô nhập Diễn viên
 const addCast = () => {
-  const val = newCastInput.value.trim().replace(/,/g, '');
-  if (val && !castList.value.includes(val)) {
-    castList.value.push(val);
-    form.main_cast = castList.value.join(', ');
+  const val = castInput.value.trim();
+  if (val && !form.casts.find(c => c.name === val)) {
+    form.casts.push({ id: null, name: val });
   }
-  newCastInput.value = '';
-};
-
-const removeCast = (index: number) => {
-  castList.value.splice(index, 1);
-  form.main_cast = castList.value.join(', ');
+  castInput.value = "";
 };
 
 onMounted(async () => {
@@ -421,7 +386,56 @@ onMounted(async () => {
 });
 
 const handleSmartPaste = (data: any) => {
-  Object.assign(form, data);
+  // Copy đè các thuộc tính thông thường
+  Object.assign(form, {
+    title: data.title || form.title,
+    original_title: data.original_title || form.original_title,
+    title_kana: data.title_kana || form.title_kana,
+    slug: data.slug || form.slug,
+    year: data.year || form.year,
+    origin_country: data.origin_country || form.origin_country,
+    description: data.description || form.description,
+    duration_minutes: data.duration_minutes || form.duration_minutes,
+    release_date: data.release_date || form.release_date,
+    poster_url: data.poster_url || form.poster_url,
+    banner_url: data.banner_url || form.banner_url
+  });
+
+  // Tự động băm chuỗi từ Smart Paste thành các thẻ Tag
+  if (data.director) {
+    form.directors = data.director.split(',').map((n: string) => ({ id: null, name: n.trim() })).filter((n: any) => n.name);
+  }
+  if (data.main_cast) {
+    form.casts = data.main_cast.split(',').map((n: string) => ({ id: null, name: n.trim() })).filter((n: any) => n.name);
+  }
+};
+
+// Hàm Helper để xử lý việc Tạo Mới & Nối ID tự động vào bảng persons & content_crew
+const syncCrew = async (movieId: number, crewList: { id: number | null, name: string }[], role: string) => {
+  const toLink = [];
+  for (const person of crewList) {
+    let personId = person.id;
+    
+    if (!personId) {
+      const { data: pData } = await supabase
+        .from('persons')
+        .upsert({ name: person.name }, { onConflict: 'name' })
+        .select('id')
+        .single();
+        
+      if (pData) personId = pData.id;
+    }
+    
+    if (personId) {
+      toLink.push({
+        content_id: movieId,
+        person_id: personId,
+        type: 'movie',
+        role: role
+      });
+    }
+  }
+  return toLink;
 };
 
 const handleCreate = async () => {
@@ -432,8 +446,8 @@ const handleCreate = async () => {
 
   saving.value = true;
   try {
-    // 1. Tách genre_ids
-    const { genre_ids, ...movieData } = form;
+    // 1. Bóc tách các trường không thuộc bảng movies ra
+    const { genre_ids, directors, casts, ...movieData } = form;
 
     const insertData = {
       ...movieData,
@@ -450,11 +464,12 @@ const handleCreate = async () => {
       .single();
 
     if (error) throw error;
+    const movieId = newVal.id;
 
     // 3. Insert Genres
     if (genre_ids && genre_ids.length > 0) {
       const genreInserts = genre_ids.map((gid) => ({
-        movie_id: newVal.id,
+        movie_id: movieId,
         genre_id: gid,
       }));
 
@@ -464,12 +479,21 @@ const handleCreate = async () => {
 
       if (genreError) {
         console.error("Error linking genres:", genreError);
-        alert("映画は作成されましたが、ジャンルの紐付けに失敗しました。");
       }
     }
 
+    // 4. Insert Đạo diễn và Diễn viên vào content_crew
+    const directorLinks = await syncCrew(movieId, directors, 'director');
+    const castLinks = await syncCrew(movieId, casts, 'cast');
+    const allCrewLinks = [...directorLinks, ...castLinks];
+    
+    if (allCrewLinks.length > 0) {
+      const { error: crewError } = await supabase.from("content_crew").insert(allCrewLinks);
+      if (crewError) console.error("Error linking crew:", crewError);
+    }
+
     alert("登録しました");
-    router.push(`/admin/movies/${newVal.id}`);
+    router.push(`/admin/movies/${movieId}`);
   } catch (e: any) {
     alert("エラー: " + e.message);
   } finally {
