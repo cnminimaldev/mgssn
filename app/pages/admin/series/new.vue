@@ -151,25 +151,44 @@
                 />
               </div>
 
+              <!-- Trường 監督 (Director) dạng Tag -->
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1"
-                  >監督</label
-                >
-                <input
-                  v-model="form.director"
-                  type="text"
-                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white"
-                />
+                <label class="block text-xs font-medium text-zinc-400 mb-1">監督 (Director)</label>
+                <div class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-sm focus-within:border-emerald-500 flex flex-wrap items-center gap-1.5 min-h-[38px]">
+                  <span v-for="(dir, index) in directorList" :key="index" class="inline-flex items-center gap-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded text-xs border border-zinc-700">
+                    {{ dir }}
+                    <button type="button" @click="removeDirector(index)" class="text-zinc-400 hover:text-red-400">&times;</button>
+                  </span>
+                  <input
+                    type="text"
+                    v-model="newDirectorInput"
+                    @keydown.enter.prevent="addDirector"
+                    @keydown.comma.prevent="addDirector"
+                    placeholder="入力してEnter..."
+                    class="bg-transparent outline-none text-white text-sm flex-1 min-w-[100px] px-1 py-0.5 placeholder-zinc-700"
+                  />
+                </div>
+                <p class="text-[10px] text-zinc-500 mt-1">Enter またはカンマ (,) でタグを追加</p>
               </div>
+
+              <!-- Trường キャスト (Main Cast) dạng Tag -->
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1"
-                  >キャスト</label
-                >
-                <input
-                  v-model="form.main_cast"
-                  type="text"
-                  class="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white"
-                />
+                <label class="block text-xs font-medium text-zinc-400 mb-1">キャスト (Cast)</label>
+                <div class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-sm focus-within:border-emerald-500 flex flex-wrap items-center gap-1.5 min-h-[38px]">
+                  <span v-for="(actor, index) in castList" :key="index" class="inline-flex items-center gap-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded text-xs border border-zinc-700">
+                    {{ actor }}
+                    <button type="button" @click="removeCast(index)" class="text-zinc-400 hover:text-red-400">&times;</button>
+                  </span>
+                  <input
+                    type="text"
+                    v-model="newCastInput"
+                    @keydown.enter.prevent="addCast"
+                    @keydown.comma.prevent="addCast"
+                    placeholder="入力してEnter..."
+                    class="bg-transparent outline-none text-white text-sm flex-1 min-w-[100px] px-1 py-0.5 placeholder-zinc-700"
+                  />
+                </div>
+                <p class="text-[10px] text-zinc-500 mt-1">Enter またはカンマ (,) でタグを追加</p>
               </div>
             </div>
           </div>
@@ -285,7 +304,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import { useRouter, definePageMeta, useSupabaseClient } from "#imports";
 import FormImageUpload from "~/components/FormImageUpload.vue";
 import SmartPasteModal from "~/components/SmartPasteModal.vue";
@@ -314,10 +333,63 @@ const form = reactive({
   main_cast: "",
   poster_url: "",
   banner_url: "",
-  // [QUAN TRỌNG] Không có thuộc tính 'type' ở đây
   release_date: "",
   genre_ids: [] as number[],
 });
+
+// Quản lý mảng Tag cho 監督 (Director) và キャスト (Cast)
+const directorList = ref<string[]>([]);
+const newDirectorInput = ref("");
+
+const castList = ref<string[]>([]);
+const newCastInput = ref("");
+
+// Tự động đồng bộ từ chuỗi sang mảng tag khi form thay đổi (như khi dùng Smart Paste)
+watch(() => form.director, (val) => {
+  if (val) {
+    directorList.value = val.split(',').map(s => s.trim()).filter(Boolean);
+  } else {
+    directorList.value = [];
+  }
+}, { immediate: true });
+
+watch(() => form.main_cast, (val) => {
+  if (val) {
+    castList.value = val.split(',').map(s => s.trim()).filter(Boolean);
+  } else {
+    castList.value = [];
+  }
+}, { immediate: true });
+
+// Các hàm xử lý tag Đạo diễn
+const addDirector = () => {
+  const val = newDirectorInput.value.trim().replace(/,/g, '');
+  if (val && !directorList.value.includes(val)) {
+    directorList.value.push(val);
+    form.director = directorList.value.join(', ');
+  }
+  newDirectorInput.value = '';
+};
+
+const removeDirector = (index: number) => {
+  directorList.value.splice(index, 1);
+  form.director = directorList.value.join(', ');
+};
+
+// Các hàm xử lý tag Diễn viên
+const addCast = () => {
+  const val = newCastInput.value.trim().replace(/,/g, '');
+  if (val && !castList.value.includes(val)) {
+    castList.value.push(val);
+    form.main_cast = castList.value.join(', ');
+  }
+  newCastInput.value = '';
+};
+
+const removeCast = (index: number) => {
+  castList.value.splice(index, 1);
+  form.main_cast = castList.value.join(', ');
+};
 
 onMounted(async () => {
   try {
@@ -357,7 +429,7 @@ const handleCreate = async () => {
       updated_at: new Date(),
     };
 
-    // 2. Insert Series (Schema không có cột 'type', nên insertData cũng không được có)
+    // 2. Insert Series
     const { data: newVal, error } = await supabase
       .from("series")
       .insert(insertData)
