@@ -87,9 +87,8 @@
                 />
               </div>
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1"
-                  >タイトルかな</label>
-                >
+                <label class="block text-xs font-medium text-zinc-400 mb-1">タイトルかな</label>
+                
                 <input
                   v-model="form.title_kana"
                   type="text"

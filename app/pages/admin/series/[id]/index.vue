@@ -267,6 +267,29 @@ const handleSmartPaste = (data: any) => {
   if (data.main_cast) {
     form.casts = data.main_cast.split(',').map((n: string) => ({ id: null, name: n.trim() })).filter((n: any) => n.name);
   }
+
+  // [THÊM MỚI] Xử lý tự động tick Thể loại (Genres)
+  const incomingGenres = data.genres || data.genre; 
+  if (incomingGenres) {
+    // Chuẩn hóa dữ liệu đầu vào thành mảng các chuỗi
+    const genreNames = Array.isArray(incomingGenres)
+      ? incomingGenres
+      : incomingGenres.split(',').map((g: string) => g.trim());
+
+    // Dò tìm ID tương ứng trong danh sách genres của hệ thống
+    const matchedIds = genreNames.map((gName: string) => {
+      const found = genres.value.find(
+        (g: any) => g.name?.toLowerCase() === gName.toLowerCase() ||
+                    g.name_ja?.toLowerCase() === gName.toLowerCase()
+      );
+      return found ? found.id : null;
+    }).filter((id: number | null) => id !== null);
+
+    // Ghép các ID tìm được vào mảng hiện tại và lọc trùng lặp
+    if (matchedIds.length > 0) {
+      form.genre_ids = [...new Set([...form.genre_ids, ...matchedIds])];
+    }
+  }
 };
 
 const syncCrew = async (crewList: { id: number | null, name: string }[], role: string) => {
