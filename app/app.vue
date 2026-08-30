@@ -35,7 +35,7 @@
             >
               <span
                 class="absolute inset-0 flex items-center justify-center font-bold text-white text-lg"
-                >M</span
+                >N</span
               >
             </div>
             <span
