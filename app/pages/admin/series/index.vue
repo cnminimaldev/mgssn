@@ -145,8 +145,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-// [MỚI] Import thêm useSupabaseClient
+import { ref, watch } from "vue";
 import { useFetch, definePageMeta, useSupabaseClient } from "#imports";
 
 definePageMeta({
@@ -155,7 +154,6 @@ definePageMeta({
 
 const page = ref(1);
 const keyword = ref("");
-// [MỚI] Khởi tạo Supabase client
 const supabase = useSupabaseClient<any>();
 
 const { data, pending, refresh } = await useFetch("/api/movies", {
@@ -165,22 +163,33 @@ const { data, pending, refresh } = await useFetch("/api/movies", {
     type: "series", 
     sort: "created_at",
     pageSize: 20,
-    isAdmin: "true", // [MỚI] Truyền cờ isAdmin để API không ẩn phim Private
+    isAdmin: "true",
   },
   watch: [page],
 });
 
-const seriesList = computed(() => data.value?.items || []);
-const total = computed(() => data.value?.total || 0);
+// [ĐÃ SỬA] Đổi từ computed sang ref cục bộ 
+const seriesList = ref<any[]>([]);
+const total = ref(0);
+
+watch(data, (newData) => {
+  if (newData) {
+    seriesList.value = newData.items || [];
+    total.value = newData.total || 0;
+  }
+}, { immediate: true });
 
 const handleSearch = () => {
   page.value = 1;
   refresh();
 };
 
-// [MỚI] Hàm cập nhật trạng thái Public/Private xuống bảng series
 const togglePublicStatus = async (item: any) => {
   const newStatus = !item.isPublic;
+  
+  // [MỚI] Optimistic UI: Cập nhật giao diện ngay lập tức
+  item.isPublic = newStatus;
+
   try {
     const { error } = await supabase
       .from("series")
@@ -188,10 +197,9 @@ const togglePublicStatus = async (item: any) => {
       .eq("id", item.id);
 
     if (error) throw error;
-
-    // Cập nhật UI ngay lập tức
-    item.isPublic = newStatus;
   } catch (e: any) {
+    // Hoàn tác nếu lỗi
+    item.isPublic = !newStatus;
     alert("Trạng thái cập nhật thất bại: " + e.message);
   }
 };

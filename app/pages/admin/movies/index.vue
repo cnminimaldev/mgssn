@@ -126,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useFetch, definePageMeta, useSupabaseClient } from '#imports'
 
 definePageMeta({
@@ -149,8 +149,16 @@ const { data, pending, refresh } = await useFetch('/api/movies', {
   watch: [page] 
 })
 
-const movies = computed(() => data.value?.items || [])
-const total = computed(() => data.value?.total || 0)
+// [ĐÃ SỬA] Đổi từ computed sang ref cục bộ để Vue bắt được sự kiện thay đổi sâu (Deep Reactivity)
+const movies = ref<any[]>([])
+const total = ref(0)
+
+watch(data, (newData) => {
+  if (newData) {
+    movies.value = newData.items || []
+    total.value = newData.total || 0
+  }
+}, { immediate: true })
 
 const handleSearch = () => {
   page.value = 1
@@ -158,20 +166,21 @@ const handleSearch = () => {
 }
 
 const togglePublicStatus = async (movie: any) => {
-  // [ĐÃ SỬA] Đổi is_public thành isPublic
   const newStatus = !movie.isPublic
+  
+  // [MỚI] Optimistic UI: Cập nhật giao diện ngay lập tức trước khi chờ DB
+  movie.isPublic = newStatus
+  
   try {
     const { error } = await supabase
       .from('movies')
-      // Database thì vẫn giữ nguyên cột is_public
       .update({ is_public: newStatus })
       .eq('id', movie.id)
     
     if (error) throw error
-    
-    // [ĐÃ SỬA] Cập nhật UI ngay lập tức
-    movie.isPublic = newStatus
   } catch (e: any) {
+    // Nếu có lỗi, hoàn tác lại trạng thái UI
+    movie.isPublic = !newStatus
     alert('Trạng thái cập nhật thất bại: ' + e.message)
   }
 }
