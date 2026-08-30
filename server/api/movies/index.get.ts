@@ -25,6 +25,7 @@ type ApiMediaItem = {
   genre: string
   episodeCount?: number
   createdAt: string
+  isPublic: boolean // [MỚI] Thêm thuộc tính trạng thái
 }
 
 export default defineEventHandler(async (event) => {
@@ -56,6 +57,9 @@ export default defineEventHandler(async (event) => {
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1
   const pageSize = Number.isFinite(pageSizeParam) && pageSizeParam > 0 && pageSizeParam <= 100 ? pageSizeParam : 24
 
+  // [MỚI] Bắt cờ kiểm tra Admin
+  const isAdmin = query.isAdmin === 'true'
+
   // --- 2. Build Query ---
   let dbQuery = client.from('all_contents').select('*', { count: 'exact' })
   
@@ -63,6 +67,12 @@ export default defineEventHandler(async (event) => {
   const recommendedOrder: Record<string, number> = {}
 
   // --- 3. Filter (Áp dụng bộ lọc) ---
+  
+  // [MỚI] Lọc nội dung Công khai/Riêng tư
+  if (!isAdmin) {
+    dbQuery = dbQuery.eq('is_public', true)
+  }
+
   if (typeParam === 'movie' || typeParam === 'series') {
     dbQuery = dbQuery.eq('type', typeParam)
   }
@@ -76,7 +86,7 @@ export default defineEventHandler(async (event) => {
     dbQuery = dbQuery.eq('year', yearNum)
   }
 
-  // [NÂNG CẤP] TÌM KIẾM DIỄN VIÊN / ĐẠO DIỄN QUA BẢNG CHUẨN
+  // TÌM KIẾM DIỄN VIÊN / ĐẠO DIỄN QUA BẢNG CHUẨN
   if (castParam || directorParam) {
     const roleFilter = castParam ? 'cast' : 'director';
     const searchName = castParam || directorParam;
@@ -88,7 +98,6 @@ export default defineEventHandler(async (event) => {
       .ilike('persons.name', `%${searchName}%`);
 
     if (!crewErr && crewMatches && crewMatches.length > 0) {
-      // Gom ID các phim/series mà người này tham gia
       const movieIds = crewMatches.filter((c: any) => c.type === 'movie').map((c: any) => c.content_id);
       const seriesIds = crewMatches.filter((c: any) => c.type === 'series').map((c: any) => c.content_id);
 
@@ -99,10 +108,10 @@ export default defineEventHandler(async (event) => {
       if (orFilters.length > 0) {
          dbQuery = dbQuery.or(orFilters.join(','));
       } else {
-         dbQuery = dbQuery.eq('id', -1); // Ép trả về mảng rỗng nếu không có dữ liệu khớp
+         dbQuery = dbQuery.eq('id', -1); 
       }
     } else {
-      dbQuery = dbQuery.eq('id', -1); // Không tìm thấy người này -> Mảng rỗng
+      dbQuery = dbQuery.eq('id', -1); 
     }
   }
 
@@ -174,9 +183,8 @@ export default defineEventHandler(async (event) => {
 
   // --- 6. Mapping ---
   let items: ApiMediaItem[] = (data ?? []).map((row: any) => {
-    // Lưu ý: Đảm bảo getResizedUrl đã được import hoặc auto-import
     const thumbnail = row.banner_url || row.poster_url 
-      ? `${row.banner_url || row.poster_url}` // Backend không có getResizedUrl bên vue, tạm dùng chuỗi gốc hoặc bạn tự xử lý hàm Helper
+      ? `${row.banner_url || row.poster_url}` 
       : '/images/fallback-poster.png'
     
     const posterUrl = row.poster_url || '/images/fallback-poster.png'
@@ -200,7 +208,8 @@ export default defineEventHandler(async (event) => {
       bannerUrl,
       genre: row.genre_label || 'その他',
       episodeCount: row.episode_count || 0,
-      createdAt: row.created_at
+      createdAt: row.created_at,
+      isPublic: row.is_public !== false // [MỚI] Trả về trạng thái (mặc định true nếu null)
     }
   })
 

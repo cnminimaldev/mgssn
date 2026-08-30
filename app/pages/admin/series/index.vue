@@ -36,9 +36,10 @@
           <table class="w-full text-left text-sm">
             <thead class="bg-white/5 text-xs uppercase text-zinc-400">
               <tr>
-                <!-- [ĐÃ SỬA] Nới rộng cột Image thành w-20 -->
                 <th class="px-6 py-4 font-medium w-20">Image</th>
                 <th class="px-6 py-4 font-medium">Title</th>
+                <!-- [MỚI] Thêm cột Status -->
+                <th class="px-6 py-4 font-medium text-center">Status</th>
                 <th class="px-6 py-4 font-medium">Year</th>
                 <th class="px-6 py-4 font-medium">Country</th>
                 <th class="px-6 py-4 font-medium text-right">Action</th>
@@ -46,7 +47,8 @@
             </thead>
             <tbody class="divide-y divide-white/5">
               <tr v-if="pending" class="bg-black/20">
-                <td colspan="5" class="px-6 py-10 text-center text-zinc-500">
+                <!-- [MỚI] Tăng colspan lên 6 -->
+                <td colspan="6" class="px-6 py-10 text-center text-zinc-500">
                   <div
                     class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-emerald-500"
                   ></div>
@@ -54,7 +56,8 @@
               </tr>
 
               <tr v-else-if="seriesList.length === 0" class="bg-black/20">
-                <td colspan="5" class="px-6 py-10 text-center text-zinc-500">
+                <!-- [MỚI] Tăng colspan lên 6 -->
+                <td colspan="6" class="px-6 py-10 text-center text-zinc-500">
                   データがありません (No Data)
                 </td>
               </tr>
@@ -65,7 +68,6 @@
                 class="hover:bg-white/5 transition-colors group"
               >
                 <td class="px-6 py-3">
-                  <!-- [ĐÃ SỬA] Chuyển đổi thành hình ngang (aspect-video w-16) -->
                   <div
                     class="aspect-video w-16 overflow-hidden rounded bg-zinc-800 border border-white/10"
                   >
@@ -83,6 +85,21 @@
                     {{ item.originalTitle }}
                   </div>
                 </td>
+                
+                <!-- [MỚI] Cột nút Status Public/Private -->
+                <td class="px-6 py-3 text-center">
+                  <button
+                    @click="togglePublicStatus(item)"
+                    :class="item.isPublic ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-zinc-800 text-zinc-500 border-zinc-700'"
+                    class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold transition-colors hover:opacity-80"
+                    title="Trạng thái hiển thị (Nhấn để đổi)"
+                  >
+                    <span v-if="item.isPublic" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span v-else class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+                    {{ item.isPublic ? 'Public' : 'Private' }}
+                  </button>
+                </td>
+
                 <td class="px-6 py-3 text-zinc-400">
                   {{ item.year }}
                 </td>
@@ -129,7 +146,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { useFetch, definePageMeta } from "#imports";
+// [MỚI] Import thêm useSupabaseClient
+import { useFetch, definePageMeta, useSupabaseClient } from "#imports";
 
 definePageMeta({
   middleware: "admin",
@@ -137,15 +155,17 @@ definePageMeta({
 
 const page = ref(1);
 const keyword = ref("");
+// [MỚI] Khởi tạo Supabase client
+const supabase = useSupabaseClient<any>();
 
-// Gọi API movies nhưng filter type='series'
 const { data, pending, refresh } = await useFetch("/api/movies", {
   params: {
     page,
     q: keyword,
-    type: "series", // [QUAN TRỌNG] Chỉ lấy Series
+    type: "series", 
     sort: "created_at",
     pageSize: 20,
+    isAdmin: "true", // [MỚI] Truyền cờ isAdmin để API không ẩn phim Private
   },
   watch: [page],
 });
@@ -156,5 +176,23 @@ const total = computed(() => data.value?.total || 0);
 const handleSearch = () => {
   page.value = 1;
   refresh();
+};
+
+// [MỚI] Hàm cập nhật trạng thái Public/Private xuống bảng series
+const togglePublicStatus = async (item: any) => {
+  const newStatus = !item.isPublic;
+  try {
+    const { error } = await supabase
+      .from("series")
+      .update({ is_public: newStatus })
+      .eq("id", item.id);
+
+    if (error) throw error;
+
+    // Cập nhật UI ngay lập tức
+    item.isPublic = newStatus;
+  } catch (e: any) {
+    alert("Trạng thái cập nhật thất bại: " + e.message);
+  }
 };
 </script>

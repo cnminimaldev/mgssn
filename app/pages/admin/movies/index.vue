@@ -33,6 +33,7 @@
               <tr>
                 <th class="px-6 py-4 font-medium w-20">Image</th>
                 <th class="px-6 py-4 font-medium">Title</th>
+                <th class="px-6 py-4 font-medium text-center">Status</th>
                 <th class="px-6 py-4 font-medium">Year</th>
                 <th class="px-6 py-4 font-medium">Country</th>
                 <th class="px-6 py-4 font-medium text-right">Action</th>
@@ -40,12 +41,12 @@
             </thead>
             <tbody class="divide-y divide-white/5">
               <tr v-if="pending" class="bg-black/20">
-                <td colspan="5" class="px-6 py-10 text-center text-zinc-500">
+                <td colspan="6" class="px-6 py-10 text-center text-zinc-500">
                   Loading...
                 </td>
               </tr>
               <tr v-else-if="movies.length === 0" class="bg-black/20">
-                <td colspan="5" class="px-6 py-10 text-center text-zinc-500">
+                <td colspan="6" class="px-6 py-10 text-center text-zinc-500">
                   データがありません (No Data)
                 </td>
               </tr>
@@ -55,7 +56,6 @@
                 class="hover:bg-white/5 transition-colors group"
               >
                 <td class="px-6 py-3">
-                  <!-- Đã sửa thành hình ngang (aspect-video w-16) -->
                   <div class="aspect-video w-16 overflow-hidden rounded bg-zinc-800">
                     <img 
                       v-if="movie.thumbnail" 
@@ -69,6 +69,21 @@
                   <div class="truncate max-w-xs">{{ movie.title }}</div>
                   <div class="text-[10px] text-zinc-500 truncate max-w-xs">{{ movie.originalTitle }}</div>
                 </td>
+                
+                <!-- [ĐÃ SỬA] Đổi is_public thành isPublic -->
+                <td class="px-6 py-3 text-center">
+                  <button
+                    @click="togglePublicStatus(movie)"
+                    :class="movie.isPublic ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-zinc-800 text-zinc-500 border-zinc-700'"
+                    class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold transition-colors hover:opacity-80"
+                    title="Trạng thái hiển thị (Nhấn để đổi)"
+                  >
+                    <span v-if="movie.isPublic" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span v-else class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+                    {{ movie.isPublic ? 'Public' : 'Private' }}
+                  </button>
+                </td>
+
                 <td class="px-6 py-3 text-zinc-400">
                   {{ movie.year }}
                 </td>
@@ -112,7 +127,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useFetch, definePageMeta } from '#imports'
+import { useFetch, definePageMeta, useSupabaseClient } from '#imports'
 
 definePageMeta({
   middleware: 'admin'
@@ -120,19 +135,18 @@ definePageMeta({
 
 const page = ref(1)
 const keyword = ref('')
+const supabase = useSupabaseClient<any>() 
 
-// Tận dụng API public search để lấy list phim
-// Lưu ý: API này đang filter type=movie/series. 
-// Ta cần truyền type='movie' để chỉ lấy phim lẻ.
 const { data, pending, refresh } = await useFetch('/api/movies', {
   params: {
     page,
     q: keyword,
-    type: 'movie', // Chỉ lấy Movie
-    sort: 'created_at', // Mới nhất lên đầu
-    pageSize: 20
+    type: 'movie', 
+    sort: 'created_at', 
+    pageSize: 20,
+    isAdmin: 'true' 
   },
-  watch: [page] // Tự động fetch lại khi đổi trang
+  watch: [page] 
 })
 
 const movies = computed(() => data.value?.items || [])
@@ -141,5 +155,24 @@ const total = computed(() => data.value?.total || 0)
 const handleSearch = () => {
   page.value = 1
   refresh()
+}
+
+const togglePublicStatus = async (movie: any) => {
+  // [ĐÃ SỬA] Đổi is_public thành isPublic
+  const newStatus = !movie.isPublic
+  try {
+    const { error } = await supabase
+      .from('movies')
+      // Database thì vẫn giữ nguyên cột is_public
+      .update({ is_public: newStatus })
+      .eq('id', movie.id)
+    
+    if (error) throw error
+    
+    // [ĐÃ SỬA] Cập nhật UI ngay lập tức
+    movie.isPublic = newStatus
+  } catch (e: any) {
+    alert('Trạng thái cập nhật thất bại: ' + e.message)
+  }
 }
 </script>
