@@ -61,6 +61,23 @@
           >
             基本情報 (Basic Info)
           </h2>
+
+          <!-- [MỚI] CÔNG TẮC PUBLIC/PRIVATE -->
+          <div class="flex items-center justify-between bg-zinc-950 p-4 rounded-lg border border-white/5 mb-6 mt-4">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                公開設定 (Visibility)
+                <span v-if="form.is_public" class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Public</span>
+                <span v-else class="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-400 border border-zinc-700">Private</span>
+              </h3>
+              <p class="text-xs text-zinc-500 mt-1">オンにすると、ユーザー側のサイトに表示されます。 (Bật để hiển thị công khai trên website)</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" v-model="form.is_public" class="sr-only peer">
+              <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -313,15 +330,14 @@ const supabase = useSupabaseClient<any>();
 const saving = ref(false);
 const showSmartPaste = ref(false);
 
-// State cho Genres
 const genres = ref<any[]>([]);
 const genresLoading = ref(true);
 
-// Biến tạm để nhập Tag
 const directorInput = ref("");
 const castInput = ref("");
 
 const form = reactive({
+  is_public: false, // [MỚI] Mặc định khởi tạo form mới là Private
   title: "",
   original_title: "",
   title_kana: "",
@@ -337,7 +353,6 @@ const form = reactive({
   casts: [] as { id: number | null, name: string }[]
 });
 
-// Hàm xử lý khi nhấn Enter ở ô nhập Đạo diễn
 const addDirector = () => {
   const val = directorInput.value.trim();
   if (val && !form.directors.find(d => d.name === val)) {
@@ -346,7 +361,6 @@ const addDirector = () => {
   directorInput.value = "";
 };
 
-// Hàm xử lý khi nhấn Enter ở ô nhập Diễn viên
 const addCast = () => {
   const val = castInput.value.trim();
   if (val && !form.casts.find(c => c.name === val)) {
@@ -372,7 +386,6 @@ onMounted(async () => {
 });
 
 const handleSmartPaste = (data: any) => {
-  // 1. Copy đè các thuộc tính thông thường
   Object.assign(form, {
     title: data.title || form.title,
     original_title: data.original_title || form.original_title,
@@ -387,7 +400,6 @@ const handleSmartPaste = (data: any) => {
     banner_url: data.banner_url || form.banner_url
   });
 
-  // 2. Tự động băm chuỗi từ Smart Paste thành các thẻ Tag Đạo diễn & Diễn viên
   if (data.director) {
     form.directors = data.director.split(',').map((n: string) => ({ id: null, name: n.trim() })).filter((n: any) => n.name);
   }
@@ -395,12 +407,9 @@ const handleSmartPaste = (data: any) => {
     form.casts = data.main_cast.split(',').map((n: string) => ({ id: null, name: n.trim() })).filter((n: any) => n.name);
   }
 
-  // 3. [BỔ SUNG] Tự động tích chọn ジャンル (Genres) dựa trên kết quả Smart Paste
   if (data.genre_ids && Array.isArray(data.genre_ids)) {
-    // Nếu Smart Paste trả về sẵn mảng ID
     form.genre_ids = data.genre_ids;
   } else if (data.genres && Array.isArray(data.genres)) {
-    // Nếu Smart Paste trả về danh sách tên thể loại (ví dụ: ["Action", "Drama"] hoặc tiếng Nhật)
     const matchedIds: number[] = [];
     for (const gName of data.genres) {
       const found = genres.value.find(
@@ -418,7 +427,6 @@ const handleSmartPaste = (data: any) => {
   }
 };
 
-// Hàm Helper xử lý Tạo Mới & Nối ID tự động vào bảng persons & content_crew (với type là 'series')
 const syncCrew = async (seriesId: number, crewList: { id: number | null, name: string }[], role: string) => {
   const toLink = [];
   for (const person of crewList) {
@@ -454,7 +462,6 @@ const handleCreate = async () => {
 
   saving.value = true;
   try {
-    // 1. Bóc tách các trường phụ thuộc không thuộc bảng series
     const { genre_ids, directors, casts, ...seriesData } = form;
 
     const insertData = {
@@ -464,7 +471,6 @@ const handleCreate = async () => {
       updated_at: new Date(),
     };
 
-    // 2. Insert Series
     const { data: newVal, error } = await supabase
       .from("series")
       .insert(insertData)
@@ -474,7 +480,6 @@ const handleCreate = async () => {
     if (error) throw error;
     const seriesId = newVal.id;
 
-    // 3. Insert Genres vào bảng series_genres
     if (genre_ids && genre_ids.length > 0) {
       const genreInserts = genre_ids.map((gid) => ({
         series_id: seriesId,
@@ -490,7 +495,6 @@ const handleCreate = async () => {
       }
     }
 
-    // 4. Insert Đạo diễn và Diễn viên vào content_crew với type 'series'
     const directorLinks = await syncCrew(seriesId, directors, 'director');
     const castLinks = await syncCrew(seriesId, casts, 'cast');
     const allCrewLinks = [...directorLinks, ...castLinks];

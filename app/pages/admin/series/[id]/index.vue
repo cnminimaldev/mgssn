@@ -23,6 +23,23 @@
       <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-white/5 pb-2">
         基本情報 (Basic Info)
       </h2>
+
+      <!-- [MỚI] CÔNG TẮC PUBLIC/PRIVATE -->
+      <div class="flex items-center justify-between bg-zinc-950 p-4 rounded-lg border border-white/5 mb-6 mt-4">
+        <div>
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            公開設定 (Visibility)
+            <span v-if="form.is_public" class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Public</span>
+            <span v-else class="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-400 border border-zinc-700">Private</span>
+          </h3>
+          <p class="text-xs text-zinc-500 mt-1">オンにすると、ユーザー側のサイトに表示されます。 (Bật để hiển thị công khai trên website)</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" v-model="form.is_public" class="sr-only peer">
+          <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+        </label>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="space-y-4">
           <div>
@@ -175,6 +192,7 @@ const directorInput = ref("");
 const castInput = ref("");
 
 const form = reactive({
+  is_public: false, // [MỚI] Khởi tạo an toàn ở trạng thái Private (tạm thời)
   title: "",
   original_title: "",
   title_kana: "",
@@ -217,7 +235,7 @@ onMounted(async () => {
 
     const { data: selectedGenres } = await supabase.from("series_genres").select("genre_id").eq("series_id", seriesId);
     
-    // [MỚI] Kéo danh sách diễn viên/đạo diễn cho SERIES
+    // Kéo danh sách diễn viên/đạo diễn cho SERIES
     const { data: crewData } = await supabase
       .from("content_crew")
       .select("role, persons(id, name)")
@@ -225,6 +243,7 @@ onMounted(async () => {
       .eq("type", "series");
 
     Object.assign(form, {
+      is_public: seriesData.is_public ?? false, // [MỚI] Nạp trạng thái từ DB, fallback về Private an toàn
       title: seriesData.title || "",
       original_title: seriesData.original_title || "",
       title_kana: seriesData.title_kana || "",
@@ -268,15 +287,13 @@ const handleSmartPaste = (data: any) => {
     form.casts = data.main_cast.split(',').map((n: string) => ({ id: null, name: n.trim() })).filter((n: any) => n.name);
   }
 
-  // [THÊM MỚI] Xử lý tự động tick Thể loại (Genres)
+  // Xử lý tự động tick Thể loại (Genres)
   const incomingGenres = data.genres || data.genre; 
   if (incomingGenres) {
-    // Chuẩn hóa dữ liệu đầu vào thành mảng các chuỗi
     const genreNames = Array.isArray(incomingGenres)
       ? incomingGenres
       : incomingGenres.split(',').map((g: string) => g.trim());
 
-    // Dò tìm ID tương ứng trong danh sách genres của hệ thống
     const matchedIds = genreNames.map((gName: string) => {
       const found = genres.value.find(
         (g: any) => g.name?.toLowerCase() === gName.toLowerCase() ||
@@ -285,7 +302,6 @@ const handleSmartPaste = (data: any) => {
       return found ? found.id : null;
     }).filter((id: number | null) => id !== null);
 
-    // Ghép các ID tìm được vào mảng hiện tại và lọc trùng lặp
     if (matchedIds.length > 0) {
       form.genre_ids = [...new Set([...form.genre_ids, ...matchedIds])];
     }
@@ -311,7 +327,7 @@ const syncCrew = async (crewList: { id: number | null, name: string }[], role: s
       toLink.push({
         content_id: seriesId,
         person_id: personId,
-        type: 'series', // [QUAN TRỌNG] Type ở đây là 'series'
+        type: 'series',
         role: role
       });
     }
@@ -327,7 +343,6 @@ const handleUpdate = async () => {
 
   saving.value = true;
   try {
-    // 1. [LỊCH SỬ SLUG]
     const { data: oldData, error: fetchError } = await supabase.from("series").select("slug").eq("id", seriesId).single();
     if (fetchError) throw fetchError;
 
@@ -336,14 +351,13 @@ const handleUpdate = async () => {
       if (historyError) console.warn("Lỗi lưu lịch sử slug:", historyError.message);
     }
 
-    // 2. CẬP NHẬT SERIES
+    // Biến is_public sẽ tự động được gộp vào updateData
     const { genre_ids, directors, casts, ...seriesData } = form;
     const updateData = { ...seriesData, release_date: seriesData.release_date || null, updated_at: new Date() };
     
     const { error } = await supabase.from("series").update(updateData).eq("id", seriesId);
     if (error) throw error;
 
-    // 3. ĐỒNG BỘ THỂ LOẠI
     await supabase.from("series_genres").delete().eq("series_id", seriesId);
     if (genre_ids && genre_ids.length > 0) {
       const inserts = genre_ids.map((gid) => ({ series_id: seriesId, genre_id: gid }));
@@ -351,7 +365,6 @@ const handleUpdate = async () => {
       if (gError) throw gError;
     }
 
-    // 4. [MỚI] ĐỒNG BỘ DIỄN VIÊN / ĐẠO DIỄN
     await supabase.from("content_crew").delete().eq("content_id", seriesId).eq("type", "series");
     
     const directorLinks = await syncCrew(form.directors, 'director');
@@ -384,3 +397,13 @@ const handleDelete = async () => {
   }
 };
 </script>
+
+<style>
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
