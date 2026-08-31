@@ -314,17 +314,28 @@
             <div class="col-span-6 md:col-span-4">
                <div class="flex justify-between items-center mb-1">
                   <label class="block text-[10px] text-zinc-500 uppercase">Title Prefix</label>
+                  <!-- Khôi phục lại nút bấm ở đây -->
+                  <button type="button" @click="genConfig.titlePrefix = '第'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700" title="Click để tự điền">第</button>
                </div>
-               <input v-model="genConfig.titlePrefix" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
+               <input v-model="genConfig.titlePrefix" type="text" placeholder="e.g. 第" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
             </div>
+            
             <div class="col-span-6 md:col-span-4">
                <div class="flex justify-between items-center mb-1">
                   <label class="block text-[10px] text-zinc-500 uppercase">Title Suffix</label>
+                  <!-- Khôi phục lại nút bấm ở đây -->
+                  <button type="button" @click="genConfig.titleSuffix = '話'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700" title="Click để tự điền">話</button>
                </div>
-               <input v-model="genConfig.titleSuffix" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
+               <input v-model="genConfig.titleSuffix" type="text" placeholder="e.g. 話" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
             </div>
+            
             <div class="col-span-12 md:col-span-4">
-              <button @click="runGenerator" class="w-full py-1.5 rounded text-xs font-bold text-white transition border shadow-lg flex items-center justify-center gap-1 h-[34px]" :class="activeGenTab === 'video' ? 'bg-emerald-700 border-emerald-600 hover:bg-emerald-600' : 'bg-yellow-700 border-yellow-600 hover:bg-yellow-600'">
+              <button 
+                type="button"
+                @click="runGenerator" 
+                class="w-full py-1.5 rounded text-xs font-bold text-white transition border shadow-lg flex items-center justify-center gap-1 h-[34px]" 
+                :class="activeGenTab === 'video' ? 'bg-emerald-700 border-emerald-600 hover:bg-emerald-600' : 'bg-yellow-700 border-yellow-600 hover:bg-yellow-600'"
+              >
                 <span>Generate Links</span>
               </button>
             </div>
