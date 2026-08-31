@@ -7,16 +7,19 @@ export default defineEventHandler(async (event) => {
   const { data: movies } = await client
     .from('movies')
     .select('slug, updated_at, created_at')
+    .eq('is_public', true) // [ĐÃ SỬA] Chỉ lấy các Movie được Public
 
   // 2. Lấy danh sách Series (Thêm created_at)
   const { data: series } = await client
     .from('series')
     .select('slug, updated_at, created_at')
+    .eq('is_public', true) // [ĐÃ SỬA] Chỉ lấy các Series được Public
     
   // 3. Lấy danh sách Tập phim (Episodes) kèm theo slug của Series cha
   const { data: episodes } = await client
     .from('episodes')
     .select('episode_number, created_at, series!inner(slug)')
+    .eq('series.is_public', true) // [ĐÃ SỬA] Chặn đứng việc rò rỉ các tập phim của một Series đang Private
 
   // 4. Lấy danh sách Genres (Thể loại)
   const { data: genres } = await client
