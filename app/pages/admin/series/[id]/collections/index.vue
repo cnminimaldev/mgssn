@@ -5,7 +5,7 @@
         <div>
           <h1 class="text-2xl font-semibold">コレクション一覧</h1>
           <p class="mt-1 text-xs text-zinc-400">
-            シリーズID：{{ seriesId }}
+            シリーズID：{{ seriesId }} <span v-if="seriesSlug">| Slug: {{ seriesSlug }}</span>
           </p>
         </div>
         
@@ -216,7 +216,7 @@
       </form>
     </BaseModal>
 
-    <!-- [MỚI] MODAL TẠO NHANH COLLECTION & TẬP PHIM -->
+    <!-- MODAL TẠO NHANH COLLECTION & TẬP PHIM -->
     <BaseModal v-model="showQuickAutoModal" title="コレクション＆エピソード自動一括作成" widthClass="max-w-5xl">
       <div class="space-y-6">
         
@@ -268,7 +268,51 @@
 
         <!-- BƯỚC 2: CÔNG CỤ TẠO LINK TẬP PHIM -->
         <div class="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-          <h4 class="text-xs font-bold text-emerald-400 mb-4 uppercase tracking-wider border-b border-zinc-800 pb-2">2. エピソード生成 (Generate Episodes)</h4>
+          <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
+            <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">2. エピソード生成 (Generate Episodes)</h4>
+            
+            <!-- [MỚI] NÚT TỰ ĐỘNG ĐIỀN (QUICK FILL) & CÀI ĐẶT PATTERN -->
+            <div class="flex gap-2">
+              <button 
+                @click="applyQuickPattern" 
+                title="Sử dụng Pattern mẫu"
+                class="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 px-2 py-1 rounded text-[10px] text-emerald-400 font-bold transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+                自動入力 (Quick Fill)
+              </button>
+              <button 
+                @click="showPatternSettings = !showPatternSettings" 
+                title="Cài đặt Pattern"
+                class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 p-1 rounded text-zinc-400 hover:text-white transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- BẢNG CÀI ĐẶT PATTERN (Chỉ hiện khi bấm bánh răng) -->
+          <div v-if="showPatternSettings" class="mb-4 bg-black/40 border border-zinc-700 rounded-lg p-3 space-y-3 animate-fade-in">
+            <p class="text-[10px] text-zinc-400">
+              ※ Cài đặt này được lưu trữ tự động trên thiết bị của bạn. Hỗ trợ biến: 
+              <code class="text-emerald-400 bg-zinc-900 px-1 rounded">{slug}</code> (Thay bằng Slug Series) và 
+              <code class="text-emerald-400 bg-zinc-900 px-1 rounded">{n}</code> (Thay bằng số tập).
+            </p>
+            <div>
+              <label class="block text-[10px] text-zinc-500 mb-1">Default Video Pattern</label>
+              <input v-model="savedVideoPattern" @change="savePatternsToLocal" type="text" placeholder="Ví dụ: /series/jp/1/{slug}/{n}/master.m3u8" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-emerald-400 focus:border-emerald-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-zinc-500 mb-1">Default Subtitle Pattern</label>
+              <input v-model="savedSubPattern" @change="savePatternsToLocal" type="text" placeholder="Ví dụ: /series/jp/1/{slug}/{n}/sub.vtt" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-yellow-400 focus:border-yellow-500 outline-none" />
+            </div>
+          </div>
+
           <div class="flex gap-4 mb-4">
             <button @click="activeGenTab = 'video'" class="text-xs font-bold px-3 py-1.5 rounded transition" :class="activeGenTab === 'video' ? 'bg-emerald-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'">Video Links</button>
             <button @click="activeGenTab = 'sub'" class="text-xs font-bold px-3 py-1.5 rounded transition" :class="activeGenTab === 'sub' ? 'bg-yellow-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'">Subtitle Links</button>
@@ -369,7 +413,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useSupabaseClient, useAsyncData, definePageMeta } from '#imports'
 
 definePageMeta({ middleware: 'admin' })
@@ -378,26 +422,30 @@ const route = useRoute()
 const seriesId = route.params.id
 const supabase = useSupabaseClient<any>()
 
-// 1. Fetch Providers
+// =========================================================
+//  FETCH DỮ LIỆU CƠ BẢN
+// =========================================================
+
+// 1. Fetch Slug của Series hiện tại để phục vụ Quick Fill
+const { data: seriesData } = await useAsyncData(`series-slug-${seriesId}`, async () => {
+  const { data } = await supabase.from('series').select('slug').eq('id', seriesId).single()
+  return data
+})
+const seriesSlug = computed(() => seriesData.value?.slug || '')
+
+// 2. Fetch Providers
 const { data: providers } = await useAsyncData('providers-list', async () => {
-  const { data } = await supabase
-    .from('collection_providers')
-    .select('id, name')
-    .eq('is_active', true)
+  const { data } = await supabase.from('collection_providers').select('id, name').eq('is_active', true)
   return data || []
 })
 
-// 2. Fetch Collections
+// 3. Fetch Collections
 const { data: collections, pending, refresh } = await useAsyncData(
   `collections-${seriesId}`,
   async () => {
     const { data, error } = await supabase
       .from('episode_collections')
-      .select(`
-        *,
-        collection_providers (name),
-        episodes (count)
-      `)
+      .select(`*, collection_providers (name), episodes (count)`)
       .eq('series_id', seriesId)
       .order('created_at', { ascending: true })
     if (error) throw error
@@ -409,60 +457,33 @@ const { data: collections, pending, refresh } = await useAsyncData(
 //  ADD COLLECTION THỦ CÔNG CŨ
 // =========================================================
 const createForm = reactive({
-  name: '',
-  name_ja: '',
-  type: 'sub',
-  audio_language: '',    
-  subtitle_language: '', 
-  provider_id: null as number | null
+  name: '', name_ja: '', type: 'sub', audio_language: '', subtitle_language: '', provider_id: null as number | null
 })
 
 const addCollection = async () => {
   try {
     const { error } = await supabase.from('episode_collections').insert({
-      series_id: seriesId,
-      name: createForm.name,
-      name_ja: createForm.name_ja || null,
-      type: createForm.type,
-      audio_language: createForm.audio_language || null, 
-      subtitle_language: createForm.subtitle_language || null, 
-      provider_id: createForm.provider_id
+      series_id: seriesId, name: createForm.name, name_ja: createForm.name_ja || null,
+      type: createForm.type, audio_language: createForm.audio_language || null, 
+      subtitle_language: createForm.subtitle_language || null, provider_id: createForm.provider_id
     })
     if (error) throw error
     
-    createForm.name = ''
-    createForm.name_ja = ''
-    createForm.audio_language = ''
-    createForm.subtitle_language = ''
+    createForm.name = ''; createForm.name_ja = ''; createForm.audio_language = ''; createForm.subtitle_language = ''
     refresh()
-  } catch (e: any) {
-    alert(e.message)
-  }
+  } catch (e: any) { alert(e.message) }
 }
 
 // =========================================================
 //  EDIT & DELETE COLLECTION THỦ CÔNG CŨ
 // =========================================================
 const showEditModal = ref(false)
-const editForm = reactive({
-  id: 0,
-  name: '',
-  name_ja: '',
-  type: '',
-  audio_language: '',
-  subtitle_language: '',
-  provider_id: null as number | null,
-  is_default: false
-})
+const editForm = reactive({ id: 0, name: '', name_ja: '', type: '', audio_language: '', subtitle_language: '', provider_id: null as number | null, is_default: false })
 
 const openEditModal = (col: any) => {
-  editForm.id = col.id
-  editForm.name = col.name
-  editForm.name_ja = col.name_ja || ''
-  editForm.type = col.type || 'sub'
-  editForm.audio_language = col.audio_language || ''
-  editForm.subtitle_language = col.subtitle_language || ''
-  editForm.is_default = col.is_default
+  editForm.id = col.id; editForm.name = col.name; editForm.name_ja = col.name_ja || '';
+  editForm.type = col.type || 'sub'; editForm.audio_language = col.audio_language || '';
+  editForm.subtitle_language = col.subtitle_language || ''; editForm.is_default = col.is_default;
   editForm.provider_id = col.provider_id
   showEditModal.value = true
 }
@@ -472,25 +493,17 @@ const handleUpdate = async () => {
     if (editForm.is_default) {
       await supabase.from('episode_collections').update({ is_default: false }).eq('series_id', seriesId)
     }
-
     const updatePayload = {
-      name: editForm.name,
-      name_ja: editForm.name_ja || null,
-      type: editForm.type || null,
-      audio_language: editForm.audio_language || null,
-      subtitle_language: editForm.subtitle_language || null,
-      provider_id: editForm.provider_id || null,
-      is_default: editForm.is_default
+      name: editForm.name, name_ja: editForm.name_ja || null, type: editForm.type || null,
+      audio_language: editForm.audio_language || null, subtitle_language: editForm.subtitle_language || null,
+      provider_id: editForm.provider_id || null, is_default: editForm.is_default
     } as any
 
     const { error } = await supabase.from('episode_collections').update(updatePayload).eq('id', editForm.id)
     if (error) throw error
-
     showEditModal.value = false
     refresh()
-  } catch (err: any) {
-    alert('エラーが発生しました: ' + err.message)
-  }
+  } catch (err: any) { alert('エラーが発生しました: ' + err.message) }
 }
 
 const deleteCollection = async (id: number) => {
@@ -499,9 +512,7 @@ const deleteCollection = async (id: number) => {
     const { error } = await supabase.from('episode_collections').delete().eq('id', id)
     if (error) throw error
     refresh()
-  } catch (e: any) {
-    alert(e.message)
-  }
+  } catch (e: any) { alert(e.message) }
 }
 
 // =========================================================
@@ -510,33 +521,18 @@ const deleteCollection = async (id: number) => {
 const showQuickAutoModal = ref(false)
 const isAutoSaving = ref(false)
 
-// Data của Collection mới
 const autoForm = reactive({
-  name: '',
-  name_ja: '',
-  type: 'sub',
-  audio_language: '',
-  subtitle_language: '',
-  provider_id: null as number | null,
-  is_default: false
+  name: '', name_ja: '', type: 'sub', audio_language: '', subtitle_language: '', provider_id: null as number | null, is_default: false
 })
 
-// Data của Generator
 const activeGenTab = ref<'video' | 'sub'>('video')
 const videoInput = ref('')
 const subInput = ref('')
-const genConfig = reactive({
-  pattern: '',
-  start: 1,
-  end: 12,
-  titlePrefix: '', 
-  titleSuffix: ''
-})
+const genConfig = reactive({ pattern: '', start: 1, end: 12, titlePrefix: '', titleSuffix: '' })
 
-// Computed
+// Computed Validation
 const videoLineCount = computed(() => videoInput.value.split('\n').filter(l => l.trim()).length)
 const subLineCount = computed(() => subInput.value.split('\n').filter(l => l.trim()).length)
-
 const errorMsg = computed(() => {
   if (subLineCount.value > 0 && subLineCount.value !== videoLineCount.value) {
     return `字幕数 (${subLineCount.value}) と 動画数 (${videoLineCount.value}) が一致しません！`
@@ -544,15 +540,48 @@ const errorMsg = computed(() => {
   return ''
 })
 
-// Functions
+// =========================================================
+//  [MỚI] QUẢN LÝ CÀI ĐẶT PATTERN BẰNG LOCAL STORAGE
+// =========================================================
+const showPatternSettings = ref(false)
+const savedVideoPattern = ref('')
+const savedSubPattern = ref('')
+
+onMounted(() => {
+  if (import.meta.client) { // Đảm bảo chỉ chạy trên client-side
+    savedVideoPattern.value = localStorage.getItem('defaultVideoPattern') || ''
+    savedSubPattern.value = localStorage.getItem('defaultSubPattern') || ''
+  }
+})
+
+const savePatternsToLocal = () => {
+  if (import.meta.client) {
+    localStorage.setItem('defaultVideoPattern', savedVideoPattern.value)
+    localStorage.setItem('defaultSubPattern', savedSubPattern.value)
+  }
+}
+
+const applyQuickPattern = () => {
+  const template = activeGenTab.value === 'video' ? savedVideoPattern.value : savedSubPattern.value
+  
+  if (!template) {
+    alert('Vui lòng cài đặt Default Pattern trong mục Bánh răng trước nhé!')
+    return
+  }
+  
+  // Tự động thay biến {slug} bằng slug của Series hiện tại
+  genConfig.pattern = template.replace(/{slug}/g, seriesSlug.value)
+}
+
+// =========================================================
+//  THỰC THI TẠO LINK VÀ LƯU DATABASE
+// =========================================================
 const runGenerator = () => {
   if (!genConfig.pattern) return
-  
   const links: string[] = []
   for (let i = genConfig.start; i <= genConfig.end; i++) {
     links.push(genConfig.pattern.replace('{n}', String(i)))
   }
-  
   const textToAppend = links.join('\n')
   
   if (activeGenTab.value === 'video') {
@@ -571,62 +600,43 @@ const handleAutoSave = async () => {
   isAutoSaving.value = true
   
   try {
-    // 1. Reset default cờ của các collection khác nếu cái này được set là mặc định
     if (autoForm.is_default) {
       await supabase.from('episode_collections').update({ is_default: false }).eq('series_id', seriesId)
     }
 
-    // 2. Tạo Collection mới
     const { data: newCol, error: colError } = await supabase.from('episode_collections').insert({
-      series_id: seriesId,
-      name: autoForm.name,
-      name_ja: autoForm.name_ja || null,
-      type: autoForm.type,
-      audio_language: autoForm.audio_language || null,
-      subtitle_language: autoForm.subtitle_language || null,
-      provider_id: autoForm.provider_id,
+      series_id: seriesId, name: autoForm.name, name_ja: autoForm.name_ja || null,
+      type: autoForm.type, audio_language: autoForm.audio_language || null,
+      subtitle_language: autoForm.subtitle_language || null, provider_id: autoForm.provider_id,
       is_default: autoForm.is_default
     }).select('id').single()
 
     if (colError) throw colError
     const newCollectionId = newCol.id
 
-    // 3. Chuẩn bị payload tạo Episodes
     const vLines = videoInput.value.split('\n').filter(l => l.trim())
     const sLines = subInput.value.split('\n').filter(l => l.trim())
 
     const epPayload = vLines.map((vUrl, idx) => {
       const currentNum = genConfig.start + idx
       const title = `${genConfig.titlePrefix}${currentNum}${genConfig.titleSuffix}`
-      
       const subtitles = []
       if (sLines[idx]) {
         subtitles.push({ src: sLines[idx], label: 'Japanese', lang: 'ja' })
       }
-
       return {
-        series_id: Number(seriesId),
-        collection_id: newCollectionId,
-        episode_number: currentNum,
-        title: title,
-        video_path: vUrl,
-        subtitles: subtitles,
-        duration_minutes: 0
+        series_id: Number(seriesId), collection_id: newCollectionId,
+        episode_number: currentNum, title: title, video_path: vUrl,
+        subtitles: subtitles, duration_minutes: 0
       }
     })
 
-    // 4. Đẩy toàn bộ Episodes vào DB
     const { error: epError } = await supabase.from('episodes').insert(epPayload)
     if (epError) throw epError
 
-    // Thành công
     showQuickAutoModal.value = false
-    autoForm.name = ''
-    autoForm.name_ja = ''
-    autoForm.audio_language = ''
-    autoForm.subtitle_language = ''
-    videoInput.value = ''
-    subInput.value = ''
+    autoForm.name = ''; autoForm.name_ja = ''; autoForm.audio_language = ''; autoForm.subtitle_language = '';
+    videoInput.value = ''; subInput.value = ''
     
     alert(`Thành công! Đã tạo Collection và ${epPayload.length} tập phim.`)
     refresh()
@@ -638,3 +648,13 @@ const handleAutoSave = async () => {
   }
 }
 </script>
+
+<style>
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
