@@ -26,7 +26,6 @@
             </NuxtLink>
           </div>
 
-          <!-- NÚT TẠO NHANH TẤT CẢ TRONG MỘT -->
           <button 
             @click="showQuickAutoModal = true"
             class="flex items-center gap-1.5 rounded bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 transition shadow-lg shadow-emerald-900/20"
@@ -39,7 +38,6 @@
         </div>
       </div>
 
-      <!-- Khu vực thêm collection thủ công cũ -->
       <div class="mb-8 rounded-lg border border-white/5 bg-zinc-950/70 p-4">
         <h2 class="mb-3 text-xs font-bold text-zinc-400 uppercase tracking-wider">手動で追加 (Add Manual)</h2>
         <form class="flex flex-col gap-3" @submit.prevent="addCollection">
@@ -216,11 +214,10 @@
       </form>
     </BaseModal>
 
-    <!-- MODAL TẠO NHANH COLLECTION & TẬP PHIM -->
+    <!-- [NÂNG CẤP] MODAL TẠO NHANH COLLECTION & TẬP PHIM -->
     <BaseModal v-model="showQuickAutoModal" title="コレクション＆エピソード自動一括作成" widthClass="max-w-5xl">
       <div class="space-y-6">
         
-        <!-- BƯỚC 1: THÔNG TIN COLLECTION -->
         <div class="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
           <h4 class="text-xs font-bold text-emerald-400 mb-4 uppercase tracking-wider border-b border-zinc-800 pb-2">1. コレクション情報 (Collection Info)</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -266,50 +263,30 @@
           </div>
         </div>
 
-        <!-- BƯỚC 2: CÔNG CỤ TẠO LINK TẬP PHIM -->
         <div class="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
           <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
             <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">2. エピソード生成 (Generate Episodes)</h4>
             
-            <!-- [MỚI] NÚT TỰ ĐỘNG ĐIỀN (QUICK FILL) & CÀI ĐẶT PATTERN -->
             <div class="flex gap-2">
-              <button 
-                @click="applyQuickPattern" 
-                title="Sử dụng Pattern mẫu"
-                class="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 px-2 py-1 rounded text-[10px] text-emerald-400 font-bold transition"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                </svg>
+              <button @click="applyQuickPattern" title="Sử dụng Pattern mẫu" class="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 px-2 py-1 rounded text-[10px] text-emerald-400 font-bold transition">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
                 自動入力 (Quick Fill)
               </button>
-              <button 
-                @click="showPatternSettings = !showPatternSettings" 
-                title="Cài đặt Pattern"
-                class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 p-1 rounded text-zinc-400 hover:text-white transition"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+              <button @click="showPatternSettings = !showPatternSettings" title="Cài đặt Pattern" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 p-1 rounded text-zinc-400 hover:text-white transition">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               </button>
             </div>
           </div>
 
-          <!-- BẢNG CÀI ĐẶT PATTERN (Chỉ hiện khi bấm bánh răng) -->
           <div v-if="showPatternSettings" class="mb-4 bg-black/40 border border-zinc-700 rounded-lg p-3 space-y-3 animate-fade-in">
-            <p class="text-[10px] text-zinc-400">
-              ※ Cài đặt này được lưu trữ tự động trên thiết bị của bạn. Hỗ trợ biến: 
-              <code class="text-emerald-400 bg-zinc-900 px-1 rounded">{slug}</code> (Thay bằng Slug Series) và 
-              <code class="text-emerald-400 bg-zinc-900 px-1 rounded">{n}</code> (Thay bằng số tập).
-            </p>
+            <p class="text-[10px] text-zinc-400">※ Cài đặt này được lưu trữ tự động trên thiết bị. Hỗ trợ biến: <code class="text-emerald-400 bg-zinc-900 px-1 rounded">{slug}</code> và <code class="text-emerald-400 bg-zinc-900 px-1 rounded">{n}</code>.</p>
             <div>
               <label class="block text-[10px] text-zinc-500 mb-1">Default Video Pattern</label>
-              <input v-model="savedVideoPattern" @change="savePatternsToLocal" type="text" placeholder="Ví dụ: /series/jp/1/{slug}/{n}/master.m3u8" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-emerald-400 focus:border-emerald-500 outline-none" />
+              <input v-model="savedVideoPattern" @change="savePatternsToLocal" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-emerald-400 focus:border-emerald-500 outline-none" />
             </div>
             <div>
               <label class="block text-[10px] text-zinc-500 mb-1">Default Subtitle Pattern</label>
-              <input v-model="savedSubPattern" @change="savePatternsToLocal" type="text" placeholder="Ví dụ: /series/jp/1/{slug}/{n}/sub.vtt" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-yellow-400 focus:border-yellow-500 outline-none" />
+              <input v-model="savedSubPattern" @change="savePatternsToLocal" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-yellow-400 focus:border-yellow-500 outline-none" />
             </div>
           </div>
 
@@ -321,8 +298,7 @@
           <div class="grid grid-cols-12 gap-3 items-end">
             <div class="col-span-12 md:col-span-8">
               <label class="block text-[10px] text-zinc-500 mb-1 uppercase">Link Pattern</label>
-              <input v-model="genConfig.pattern" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors" :class="activeGenTab === 'video' ? 'text-emerald-400 focus:border-emerald-500' : 'text-yellow-400 focus:border-yellow-500'" :placeholder="activeGenTab === 'video' ? 'https://host.com/ep{n}.m3u8' : 'https://host.com/ep{n}.vtt'" />
-              <p class="text-[9px] text-zinc-600 mt-1">Sử dụng <code>{n}</code> cho số tập. Ví dụ: <code>.../ep{n}.m3u8</code></p>
+              <input v-model="genConfig.pattern" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors" :class="activeGenTab === 'video' ? 'text-emerald-400 focus:border-emerald-500' : 'text-yellow-400 focus:border-yellow-500'" />
             </div>
             <div class="col-span-6 md:col-span-2">
               <label class="block text-[10px] text-zinc-500 mb-1">Start Ep</label>
@@ -333,35 +309,28 @@
               <input v-model.number="genConfig.end" type="number" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white text-center focus:border-emerald-500 outline-none" />
             </div>
             
-            <div class="col-span-12 md:col-span-12 border-t border-zinc-800 my-2"></div>
+            <div class="col-span-12 border-t border-zinc-800 my-2"></div>
             
             <div class="col-span-6 md:col-span-4">
                <div class="flex justify-between items-center mb-1">
                   <label class="block text-[10px] text-zinc-500 uppercase">Title Prefix</label>
-                  <button @click="genConfig.titlePrefix = '第'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700">第</button>
                </div>
-               <input v-model="genConfig.titlePrefix" type="text" placeholder="e.g. 第" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
+               <input v-model="genConfig.titlePrefix" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
             </div>
             <div class="col-span-6 md:col-span-4">
                <div class="flex justify-between items-center mb-1">
                   <label class="block text-[10px] text-zinc-500 uppercase">Title Suffix</label>
-                  <button @click="genConfig.titleSuffix = '話'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700">話</button>
                </div>
-               <input v-model="genConfig.titleSuffix" type="text" placeholder="e.g. 話" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
+               <input v-model="genConfig.titleSuffix" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
             </div>
             <div class="col-span-12 md:col-span-4">
-              <button 
-                @click="runGenerator"
-                class="w-full py-1.5 rounded text-xs font-bold text-white transition border shadow-lg flex items-center justify-center gap-1 h-[34px]"
-                :class="activeGenTab === 'video' ? 'bg-emerald-700 border-emerald-600 hover:bg-emerald-600' : 'bg-yellow-700 border-yellow-600 hover:bg-yellow-600'"
-              >
+              <button @click="runGenerator" class="w-full py-1.5 rounded text-xs font-bold text-white transition border shadow-lg flex items-center justify-center gap-1 h-[34px]" :class="activeGenTab === 'video' ? 'bg-emerald-700 border-emerald-600 hover:bg-emerald-600' : 'bg-yellow-700 border-yellow-600 hover:bg-yellow-600'">
                 <span>Generate Links</span>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- BƯỚC 3: TEXTAREA HIỂN THỊ LINK -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <div class="flex justify-between items-center mb-2">
@@ -387,11 +356,12 @@
           </div>
         </div>
 
-        <!-- LƯU LẠI -->
         <div class="flex items-center justify-between pt-4 border-t border-zinc-800">
            <div class="text-xs text-zinc-500">
-             <span v-if="errorMsg" class="text-red-400 font-bold">{{ errorMsg }}</span>
-             <span v-else>※ Kiểm tra kỹ số lượng link trước khi tạo</span>
+             <button @click="clearForm" class="text-red-400 hover:text-red-300 transition flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                全てクリア (Clear Form)
+             </button>
            </div>
           <div class="flex gap-3">
             <button @click="showQuickAutoModal = false" class="px-5 py-2.5 rounded text-xs font-bold text-zinc-400 hover:text-white transition">キャンセル</button>
@@ -413,7 +383,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useSupabaseClient, useAsyncData, definePageMeta } from '#imports'
 
 definePageMeta({ middleware: 'admin' })
@@ -425,26 +395,21 @@ const supabase = useSupabaseClient<any>()
 // =========================================================
 //  FETCH DỮ LIỆU CƠ BẢN
 // =========================================================
-
-// 1. Fetch Slug của Series hiện tại để phục vụ Quick Fill
 const { data: seriesData } = await useAsyncData(`series-slug-${seriesId}`, async () => {
   const { data } = await supabase.from('series').select('slug').eq('id', seriesId).single()
   return data
 })
 const seriesSlug = computed(() => seriesData.value?.slug || '')
 
-// 2. Fetch Providers
 const { data: providers } = await useAsyncData('providers-list', async () => {
   const { data } = await supabase.from('collection_providers').select('id, name').eq('is_active', true)
   return data || []
 })
 
-// 3. Fetch Collections
 const { data: collections, pending, refresh } = await useAsyncData(
   `collections-${seriesId}`,
   async () => {
-    const { data, error } = await supabase
-      .from('episode_collections')
+    const { data, error } = await supabase.from('episode_collections')
       .select(`*, collection_providers (name), episodes (count)`)
       .eq('series_id', seriesId)
       .order('created_at', { ascending: true })
@@ -456,9 +421,7 @@ const { data: collections, pending, refresh } = await useAsyncData(
 // =========================================================
 //  ADD COLLECTION THỦ CÔNG CŨ
 // =========================================================
-const createForm = reactive({
-  name: '', name_ja: '', type: 'sub', audio_language: '', subtitle_language: '', provider_id: null as number | null
-})
+const createForm = reactive({ name: '', name_ja: '', type: 'sub', audio_language: '', subtitle_language: '', provider_id: null as number | null })
 
 const addCollection = async () => {
   try {
@@ -468,7 +431,6 @@ const addCollection = async () => {
       subtitle_language: createForm.subtitle_language || null, provider_id: createForm.provider_id
     })
     if (error) throw error
-    
     createForm.name = ''; createForm.name_ja = ''; createForm.audio_language = ''; createForm.subtitle_language = ''
     refresh()
   } catch (e: any) { alert(e.message) }
@@ -484,8 +446,7 @@ const openEditModal = (col: any) => {
   editForm.id = col.id; editForm.name = col.name; editForm.name_ja = col.name_ja || '';
   editForm.type = col.type || 'sub'; editForm.audio_language = col.audio_language || '';
   editForm.subtitle_language = col.subtitle_language || ''; editForm.is_default = col.is_default;
-  editForm.provider_id = col.provider_id
-  showEditModal.value = true
+  editForm.provider_id = col.provider_id; showEditModal.value = true
 }
 
 const handleUpdate = async () => {
@@ -501,13 +462,17 @@ const handleUpdate = async () => {
 
     const { error } = await supabase.from('episode_collections').update(updatePayload).eq('id', editForm.id)
     if (error) throw error
+
     showEditModal.value = false
     refresh()
-  } catch (err: any) { alert('エラーが発生しました: ' + err.message) }
+  } catch (err: any) { 
+    // [ĐÃ SỬA] Đổi e.message thành err.message
+    alert('エラーが発生しました: ' + err.message) 
+  }
 }
 
 const deleteCollection = async (id: number) => {
-  if (!confirm('このコレクションを削除しますか？\n(含まれるエピソードも全て削除されます)')) return
+  if (!confirm('このコレクションを削除しますか？')) return
   try {
     const { error } = await supabase.from('episode_collections').delete().eq('id', id)
     if (error) throw error
@@ -516,21 +481,17 @@ const deleteCollection = async (id: number) => {
 }
 
 // =========================================================
-//  [MỚI] AUTO CREATE ALL (COLLECTION + EPISODES)
+//  AUTO CREATE ALL (COLLECTION + EPISODES)
 // =========================================================
 const showQuickAutoModal = ref(false)
 const isAutoSaving = ref(false)
 
-const autoForm = reactive({
-  name: '', name_ja: '', type: 'sub', audio_language: '', subtitle_language: '', provider_id: null as number | null, is_default: false
-})
-
+const autoForm = reactive({ name: '', name_ja: '', type: 'sub', audio_language: '', subtitle_language: '', provider_id: null as number | null, is_default: false })
 const activeGenTab = ref<'video' | 'sub'>('video')
 const videoInput = ref('')
 const subInput = ref('')
 const genConfig = reactive({ pattern: '', start: 1, end: 12, titlePrefix: '', titleSuffix: '' })
 
-// Computed Validation
 const videoLineCount = computed(() => videoInput.value.split('\n').filter(l => l.trim()).length)
 const subLineCount = computed(() => subInput.value.split('\n').filter(l => l.trim()).length)
 const errorMsg = computed(() => {
@@ -541,16 +502,24 @@ const errorMsg = computed(() => {
 })
 
 // =========================================================
-//  [MỚI] QUẢN LÝ CÀI ĐẶT PATTERN BẰNG LOCAL STORAGE
+//  QUẢN LÝ CÀI ĐẶT PATTERN & AUTO-SAVE BẰNG LOCAL STORAGE
 // =========================================================
 const showPatternSettings = ref(false)
 const savedVideoPattern = ref('')
 const savedSubPattern = ref('')
 
 onMounted(() => {
-  if (import.meta.client) { // Đảm bảo chỉ chạy trên client-side
+  if (import.meta.client) {
     savedVideoPattern.value = localStorage.getItem('defaultVideoPattern') || ''
     savedSubPattern.value = localStorage.getItem('defaultSubPattern') || ''
+
+    const savedAutoForm = localStorage.getItem('autoFormState')
+    if (savedAutoForm) {
+      try { Object.assign(autoForm, JSON.parse(savedAutoForm)) } catch (e) {}
+    }
+    
+    genConfig.titlePrefix = localStorage.getItem('genTitlePrefix') ?? ''
+    genConfig.titleSuffix = localStorage.getItem('genTitleSuffix') ?? ''
   }
 })
 
@@ -561,16 +530,33 @@ const savePatternsToLocal = () => {
   }
 }
 
+// Deep watch tự động lưu State của Form
+watch(autoForm, (newVal) => {
+  if (import.meta.client) localStorage.setItem('autoFormState', JSON.stringify(newVal))
+}, { deep: true })
+
+watch(() => genConfig.titlePrefix, (newVal) => {
+  if (import.meta.client) localStorage.setItem('genTitlePrefix', newVal)
+})
+
+watch(() => genConfig.titleSuffix, (newVal) => {
+  if (import.meta.client) localStorage.setItem('genTitleSuffix', newVal)
+})
+
 const applyQuickPattern = () => {
   const template = activeGenTab.value === 'video' ? savedVideoPattern.value : savedSubPattern.value
-  
   if (!template) {
     alert('Vui lòng cài đặt Default Pattern trong mục Bánh răng trước nhé!')
     return
   }
-  
-  // Tự động thay biến {slug} bằng slug của Series hiện tại
   genConfig.pattern = template.replace(/{slug}/g, seriesSlug.value)
+}
+
+const clearForm = () => {
+  if (!confirm('Tất cả nội dung sẽ bị xóa, bạn có chắc không?')) return
+  autoForm.name = ''; autoForm.name_ja = ''; autoForm.type = 'sub'; autoForm.audio_language = ''; autoForm.subtitle_language = ''; autoForm.provider_id = null; autoForm.is_default = false
+  genConfig.pattern = ''; genConfig.start = 1; genConfig.end = 12; genConfig.titlePrefix = ''; genConfig.titleSuffix = ''
+  videoInput.value = ''; subInput.value = ''
 }
 
 // =========================================================
@@ -596,7 +582,6 @@ const handleAutoSave = async () => {
     alert('コレクション名を入力してください (Vui lòng điền tên Collection)')
     return
   }
-
   isAutoSaving.value = true
   
   try {
@@ -635,12 +620,12 @@ const handleAutoSave = async () => {
     if (epError) throw epError
 
     showQuickAutoModal.value = false
-    autoForm.name = ''; autoForm.name_ja = ''; autoForm.audio_language = ''; autoForm.subtitle_language = '';
-    videoInput.value = ''; subInput.value = ''
+    // [ĐÃ SỬA] KHÔNG reset autoForm, titlePrefix và titleSuffix ở đây nữa để giữ nguyên cấu hình!
+    videoInput.value = ''
+    subInput.value = ''
     
     alert(`Thành công! Đã tạo Collection và ${epPayload.length} tập phim.`)
     refresh()
-
   } catch (err: any) {
     alert('エラー: ' + err.message)
   } finally {
