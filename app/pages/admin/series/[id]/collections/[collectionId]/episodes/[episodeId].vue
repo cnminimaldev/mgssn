@@ -26,7 +26,7 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-medium text-zinc-400 mb-1.5">話数 (Ep No.)</label>
-              <input v-model.number="form.episode_number" type="number" step="0.1" required class="w-full rounded bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white text-center font-bold" />
+              <input v-model.number="form.episode_number" type="number" step="0.1" min="0" required class="w-full rounded bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white text-center font-bold" />
             </div>
             <div>
               <label class="block text-xs font-medium text-zinc-400 mb-1.5">時間 (Duration - Minutes)</label>

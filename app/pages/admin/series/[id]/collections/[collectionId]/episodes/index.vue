@@ -8,6 +8,7 @@
             <span class="bg-zinc-800 px-2 py-0.5 rounded text-xs">Series: {{ seriesId }}</span>
             <span class="text-zinc-600">/</span>
             <span class="bg-zinc-800 px-2 py-0.5 rounded text-xs">Collection: {{ collectionId }}</span>
+            <span v-if="seriesSlug" class="text-zinc-600">| Slug: {{ seriesSlug }}</span>
           </p>
         </div>
         <div class="flex gap-2">
@@ -108,17 +109,42 @@
       </div>
     </div>
 
+    <!-- QUICK ADD MODAL -->
     <BaseModal 
       v-model="showQuickAdd" 
       title="エピソード一括追加 (Quick Add)"
       widthClass="max-w-6xl"
     >
-      <div class="space-y-6">
+      <div class="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
         
+        <!-- GENERATOR TOOLS -->
         <div class="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-          <h4 class="text-xs font-bold text-zinc-400 mb-3 uppercase tracking-wider">Generator Tools</h4>
-          
-          <div class="flex gap-4 mb-4 border-b border-zinc-700 pb-2">
+          <div class="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2">
+            <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Generator Tools</h4>
+            <div class="flex gap-2">
+              <button @click="applyQuickPattern" title="Sử dụng Pattern mẫu" class="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 px-2 py-1 rounded text-[10px] text-emerald-400 font-bold transition">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+                自動入力 (Quick Fill)
+              </button>
+              <button @click="showPatternSettings = !showPatternSettings" title="Cài đặt Pattern" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 p-1 rounded text-zinc-400 hover:text-white transition">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="showPatternSettings" class="mb-4 bg-black/40 border border-zinc-700 rounded-lg p-3 space-y-3 animate-fade-in">
+            <p class="text-[10px] text-zinc-400">※ Cài đặt này được lưu trữ tự động trên thiết bị. Hỗ trợ biến: <code class="text-emerald-400 bg-zinc-900 px-1 rounded">{slug}</code> và <code class="text-emerald-400 bg-zinc-900 px-1 rounded">{n}</code>.</p>
+            <div>
+              <label class="block text-[10px] text-zinc-500 mb-1">Default Video Pattern</label>
+              <input v-model="savedVideoPattern" @change="savePatternsToLocal" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-emerald-400 focus:border-emerald-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-zinc-500 mb-1">Default Subtitle Pattern</label>
+              <input v-model="savedSubPattern" @change="savePatternsToLocal" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-yellow-400 focus:border-yellow-500 outline-none" />
+            </div>
+          </div>
+
+          <div class="flex gap-4 mb-4">
             <button 
               @click="activeGenTab = 'video'" 
               class="text-xs font-bold px-3 py-1.5 rounded transition"
@@ -159,26 +185,27 @@
               <input v-model.number="genConfig.end" type="number" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white text-center focus:border-emerald-500 outline-none" />
             </div>
 
-            <div class="col-span-12 md:col-span-12 border-t border-zinc-800 my-2"></div>
+            <div class="col-span-12 border-t border-zinc-800 my-2"></div>
 
             <div class="col-span-6 md:col-span-4">
                <div class="flex justify-between items-center mb-1">
                   <label class="block text-[10px] text-zinc-500 uppercase">Title Prefix</label>
-                  <button @click="genConfig.titlePrefix = '第'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700" title="Click to use">第</button>
+                  <button type="button" @click="genConfig.titlePrefix = '第'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700" title="Click to use">第</button>
                </div>
-               <input v-model="genConfig.titlePrefix" type="text" placeholder="e.g. 第, Episode..." class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
+               <input v-model="genConfig.titlePrefix" type="text" placeholder="e.g. 第" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
             </div>
 
             <div class="col-span-6 md:col-span-4">
                <div class="flex justify-between items-center mb-1">
                   <label class="block text-[10px] text-zinc-500 uppercase">Title Suffix</label>
-                  <button @click="genConfig.titleSuffix = '話'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700" title="Click to use">話</button>
+                  <button type="button" @click="genConfig.titleSuffix = '話'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700" title="Click to use">話</button>
                </div>
                <input v-model="genConfig.titleSuffix" type="text" placeholder="e.g. 話" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
             </div>
 
             <div class="col-span-12 md:col-span-4">
               <button 
+                type="button"
                 @click="runGenerator"
                 class="w-full py-1.5 rounded text-xs font-bold text-white transition border shadow-lg flex items-center justify-center gap-1 h-[34px]"
                 :class="activeGenTab === 'video' ? 'bg-emerald-700 border-emerald-600 hover:bg-emerald-600' : 'bg-yellow-700 border-yellow-600 hover:bg-yellow-600'"
@@ -192,123 +219,71 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <label class="text-xs font-bold text-zinc-400 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                Video Links (1 line/link)
-              </label>
-              <button @click="videoInput = ''" class="text-[10px] text-zinc-500 hover:text-red-400 hover:underline">Clear</button>
-            </div>
-            <div class="relative">
-              <textarea 
-                v-model="videoInput" 
-                rows="8" 
-                class="w-full bg-black border border-zinc-700 rounded-lg p-3 text-[11px] font-mono text-emerald-400 focus:border-emerald-500 outline-none resize-none whitespace-pre leading-relaxed"
-                placeholder="https://server.com/ep1.m3u8&#10;https://server.com/ep2.m3u8"
-              ></textarea>
-              <div class="absolute bottom-2 right-3 text-[10px] text-zinc-600 bg-black/80 px-1 rounded">
-                {{ videoLineCount }} lines
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <label class="text-xs font-bold text-zinc-400 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
-                Subtitle Links (Optional)
-              </label>
-              <button @click="subInput = ''" class="text-[10px] text-zinc-500 hover:text-red-400 hover:underline">Clear</button>
-            </div>
-             <div class="relative">
-              <textarea 
-                v-model="subInput" 
-                rows="8" 
-                class="w-full bg-black border border-zinc-700 rounded-lg p-3 text-[11px] font-mono text-yellow-400 focus:border-yellow-500 outline-none resize-none whitespace-pre leading-relaxed"
-                placeholder="https://server.com/ep1.vtt&#10;https://server.com/ep2.vtt"
-              ></textarea>
-               <div class="absolute bottom-2 right-3 text-[10px] text-zinc-600 bg-black/80 px-1 rounded">
-                <span :class="{'text-red-500 font-bold': subLineCount > 0 && subLineCount !== videoLineCount}">
-                  {{ subLineCount }}
-                </span> lines
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="border-t border-zinc-800 pt-6">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-zinc-400">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Preview & Save
-            </h3>
-            <button @click="addManualRow" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded border border-zinc-700 transition flex items-center gap-1">
+        <!-- PREVIEW BẢNG ĐỂ CHỈNH SỬA TẬP PHIM -->
+        <div class="border border-zinc-800 rounded-lg bg-zinc-900 overflow-hidden mt-6">
+          <div class="flex justify-between items-center p-3 bg-zinc-950 border-b border-zinc-800">
+            <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Preview & Edit</h4>
+            <button @click="addManualRow" type="button" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded border border-zinc-700 transition flex items-center gap-1">
               <span>+</span> 手動で行を追加 (Add Row)
             </button>
           </div>
           
-          <div class="border border-zinc-800 rounded-lg bg-zinc-900 overflow-hidden max-h-[300px] overflow-y-auto">
-             <table class="w-full text-left text-xs text-zinc-400">
-               <thead class="bg-zinc-950 text-zinc-300 sticky top-0 z-10 shadow-sm">
+          <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+             <table class="w-full text-left text-xs text-zinc-400 min-w-[800px]">
+               <thead class="bg-zinc-950/80 text-zinc-300 sticky top-0 z-10 shadow-sm backdrop-blur">
                  <tr>
-                   <th class="px-3 py-2 w-12 text-center border-b border-zinc-800">Ep</th>
-                   <th class="px-3 py-2 w-1/4 border-b border-zinc-800">Title ({{ genConfig.titlePrefix }}{n}{{ genConfig.titleSuffix }})</th>
-                   <th class="px-3 py-2 border-b border-zinc-800">Video URL</th>
-                   <th class="px-3 py-2 border-b border-zinc-800">Sub URL</th>
+                   <th class="px-2 py-2 w-16 text-center border-b border-zinc-800">Ep</th>
+                   <th class="px-2 py-2 w-1/4 border-b border-zinc-800">Title</th>
+                   <th class="px-2 py-2 border-b border-zinc-800">Video URL</th>
+                   <th class="px-2 py-2 border-b border-zinc-800">Sub URL</th>
+                   <th class="px-2 py-2 w-28 text-center border-b border-zinc-800">操作</th>
                  </tr>
                </thead>
                <tbody class="divide-y divide-zinc-800">
                  <tr v-if="previewList.length === 0">
-                   <td colspan="4" class="px-4 py-12 text-center text-zinc-600 italic">
-                     Generate links or type in textareas to preview
+                   <td colspan="5" class="px-4 py-12 text-center text-zinc-600 italic">
+                     Generatorでリンクを生成するか、行を手動で追加してください。<br/>(Bấm Generate Links để tự sinh hoặc Add Row để thêm thủ công)
                    </td>
                  </tr>
-                 <tr v-for="(item, idx) in previewList" :key="idx" class="hover:bg-zinc-800/30 transition-colors">
-                   <td class="px-3 py-2 text-center font-mono text-zinc-500">{{ item.epNum }}</td>
-                   <td class="px-3 py-2">
-                      <input v-model="item.title" class="bg-transparent w-full text-zinc-300 focus:text-white outline-none border-b border-transparent focus:border-zinc-600 transition-colors" />
+                 <tr v-for="(item, idx) in previewList" :key="item.id" class="hover:bg-zinc-800/30 transition-colors">
+                   <td class="px-2 py-2">
+                      <input v-model.number="item.epNum" type="number" step="0.1" class="bg-zinc-950 border border-zinc-700 w-full text-center font-bold text-zinc-300 focus:text-white focus:border-emerald-500 rounded px-1 py-1.5 outline-none transition-colors" />
                    </td>
-                   <td class="px-3 py-2 font-mono text-emerald-500 truncate max-w-[200px]" :title="item.video">
-                     {{ item.video }}
+                   <td class="px-2 py-2">
+                      <input v-model="item.title" class="bg-zinc-950 border border-zinc-700 w-full text-zinc-300 focus:text-white focus:border-emerald-500 rounded px-2 py-1.5 outline-none transition-colors" />
                    </td>
-                   <td class="px-3 py-2 font-mono text-yellow-500 truncate max-w-[200px]" :title="item.sub">
-                     {{ item.sub }}
+                   <td class="px-2 py-2">
+                      <input v-model="item.video" placeholder="https://..." class="bg-zinc-950 border border-zinc-700 w-full font-mono text-[10px] text-emerald-500 focus:border-emerald-500 rounded px-2 py-1.5 outline-none transition-colors" />
+                   </td>
+                   <td class="px-2 py-2">
+                      <input v-model="item.sub" placeholder="https://..." class="bg-zinc-950 border border-zinc-700 w-full font-mono text-[10px] text-yellow-500 focus:border-yellow-500 rounded px-2 py-1.5 outline-none transition-colors" />
+                   </td>
+                   <td class="px-2 py-2 text-center">
+                     <div class="flex items-center justify-center gap-1">
+                        <button type="button" @click="moveUp(idx)" :disabled="idx === 0" class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-700 disabled:opacity-30 transition">▲</button>
+                        <button type="button" @click="moveDown(idx)" :disabled="idx === previewList.length - 1" class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-700 disabled:opacity-30 transition">▼</button>
+                        <button type="button" @click="insertAfter(idx)" class="p-1 rounded text-emerald-500 hover:text-white hover:bg-emerald-700 transition" title="下に挿入 (Insert)">＋</button>
+                        <button type="button" @click="removeRow(idx)" class="p-1 rounded text-red-500 hover:text-white hover:bg-red-700 transition" title="削除 (Delete)">✕</button>
+                     </div>
                    </td>
                  </tr>
                </tbody>
              </table>
           </div>
-
-          <div v-if="errorMsg" class="mt-3 text-xs text-red-400 font-bold bg-red-900/10 p-3 rounded border border-red-900/30 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-            </svg>
-            {{ errorMsg }}
-          </div>
         </div>
 
         <div class="flex items-center justify-between pt-4 border-t border-zinc-800">
-          <button 
-            @click="clearForm"
-            class="px-4 py-2.5 rounded text-xs font-bold text-red-400 hover:bg-red-900/20 hover:text-red-300 transition flex items-center gap-1.5 group"
-            title="Reset form data"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 group-hover:scale-110 transition-transform">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-            </svg>
-            全てクリア (Clear Form)
-          </button>
-
+           <div class="text-xs text-zinc-500">
+             <button type="button" @click="clearForm" class="text-red-400 hover:text-red-300 transition flex items-center gap-1 font-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                全てクリア (Clear All)
+             </button>
+           </div>
           <div class="flex gap-3">
-            <button @click="showQuickAdd = false" class="px-5 py-2.5 rounded text-xs font-bold text-zinc-400 hover:text-white transition">キャンセル</button>
+            <button type="button" @click="showQuickAdd = false" class="px-5 py-2.5 rounded text-xs font-bold text-zinc-400 hover:text-white transition">キャンセル</button>
             <button 
               @click="saveBulk" 
-              :disabled="!!errorMsg || previewList.length === 0 || isSaving"
+              :disabled="previewList.length === 0 || isSaving"
               class="px-8 py-2.5 rounded bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition shadow-lg shadow-emerald-900/20"
             >
               <span v-if="isSaving" class="animate-spin h-3 w-3 border-2 border-white/30 border-t-white rounded-full"></span>
@@ -316,13 +291,14 @@
             </button>
           </div>
         </div>
+
       </div>
     </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useSupabaseClient, useAsyncData, definePageMeta } from '#imports'
 
 definePageMeta({ middleware: 'admin' })
@@ -337,11 +313,30 @@ type Episode = {
   subtitles: any[]
 }
 
+type PreviewItem = { 
+  id: number; 
+  epNum: number; 
+  title: string; 
+  video: string; 
+  sub: string 
+}
+
 // --- SETUP ---
 const route = useRoute()
-const supabase = useSupabaseClient()
+// 1. Thêm <any> vào đây nếu file hiện tại chưa có
+const supabase = useSupabaseClient<any>() 
 const seriesId = route.params.id as string
 const collectionId = route.params.collectionId as string
+
+// 2. Ép kiểu rõ ràng cho block lấy Slug
+const { data: seriesData } = await useAsyncData<{ slug: string } | null>(
+  `series-slug-${seriesId}`, 
+  async () => {
+    const { data } = await supabase.from('series').select('slug').eq('id', seriesId).single()
+    return data as any // Ép kiểu để bypass lỗi SelectQueryError
+  }
+)
+const seriesSlug = computed(() => seriesData.value?.slug || '')
 
 // --- FETCH DATA ---
 const { data: episodes, pending, refresh } = await useAsyncData<Episode[]>(
@@ -377,13 +372,12 @@ const deleteAllEpisodes = async () => {
 }
 
 // =========================================================
-//  QUICK BULK ADD LOGIC
+//  QUICK BULK ADD LOGIC KÈM BẢNG PREVIEW
 // =========================================================
 const showQuickAdd = ref(false)
 const isSaving = ref(false)
 const activeGenTab = ref<'video' | 'sub'>('video')
-const videoInput = ref('')
-const subInput = ref('')
+const previewList = ref<PreviewItem[]>([])
 
 const genConfig = reactive({
   pattern: '',
@@ -393,81 +387,129 @@ const genConfig = reactive({
   titleSuffix: ''
 })
 
-// Generator Function
-const runGenerator = () => {
-  if (!genConfig.pattern) return
-  
-  const links: string[] = []
-  for (let i = genConfig.start; i <= genConfig.end; i++) {
-    links.push(genConfig.pattern.replace('{n}', String(i)))
+// === CÀI ĐẶT QUẢN LÝ PATTERN (LOCAL STORAGE) ===
+const showPatternSettings = ref(false)
+const savedVideoPattern = ref('')
+const savedSubPattern = ref('')
+
+onMounted(() => {
+  if (import.meta.client) {
+    savedVideoPattern.value = localStorage.getItem('defaultVideoPattern') || ''
+    savedSubPattern.value = localStorage.getItem('defaultSubPattern') || ''
+    genConfig.titlePrefix = localStorage.getItem('genTitlePrefix') ?? ''
+    genConfig.titleSuffix = localStorage.getItem('genTitleSuffix') ?? ''
   }
-  
-  const textToAppend = links.join('\n')
-  
-  if (activeGenTab.value === 'video') {
-    videoInput.value = videoInput.value ? videoInput.value + '\n' + textToAppend : textToAppend
-  } else {
-    subInput.value = subInput.value ? subInput.value + '\n' + textToAppend : textToAppend
+})
+
+const savePatternsToLocal = () => {
+  if (import.meta.client) {
+    localStorage.setItem('defaultVideoPattern', savedVideoPattern.value)
+    localStorage.setItem('defaultSubPattern', savedSubPattern.value)
   }
 }
 
-// Clear Form Function
+watch(() => genConfig.titlePrefix, (newVal) => {
+  if (import.meta.client) localStorage.setItem('genTitlePrefix', newVal)
+})
+
+watch(() => genConfig.titleSuffix, (newVal) => {
+  if (import.meta.client) localStorage.setItem('genTitleSuffix', newVal)
+})
+
+const applyQuickPattern = () => {
+  const template = activeGenTab.value === 'video' ? savedVideoPattern.value : savedSubPattern.value
+  if (!template) {
+    alert('Vui lòng cài đặt Default Pattern trong mục Bánh răng trước nhé!')
+    return
+  }
+  genConfig.pattern = template.replace(/{slug}/g, seriesSlug.value)
+}
+
+// Clear Form
 const clearForm = () => {
   if (!confirm('フォームの内容を全てクリアしますか？(Are you sure to clear all?)')) return
   genConfig.pattern = ''
   genConfig.start = 1
   genConfig.end = 12
-  genConfig.titlePrefix = ''
-  genConfig.titleSuffix = ''
-  videoInput.value = ''
-  subInput.value = ''
+  previewList.value = []
 }
 
-// Computed Lines
-const videoLineCount = computed(() => videoInput.value.split('\n').filter(l => l.trim()).length)
-const subLineCount = computed(() => subInput.value.split('\n').filter(l => l.trim()).length)
-
-// Preview List Logic
-const previewList = computed(() => {
-  const vLines = videoInput.value.split('\n').filter(l => l.trim())
-  const sLines = subInput.value.split('\n').filter(l => l.trim())
+// === TẠO VÀ CHỈNH SỬA TABLE PREVIEW ===
+const runGenerator = () => {
+  if (!genConfig.pattern) return
   
-  // Xác định số tập tiếp theo dựa trên tập cuối cùng hiện có
-  let startEpNum = 1
-  if (episodes.value && episodes.value.length > 0) {
-    const lastEp = episodes.value[episodes.value.length - 1]
-    if (lastEp) startEpNum = Number(lastEp.episode_number) + 1
-  }
+  for (let i = genConfig.start; i <= genConfig.end; i++) {
+    const url = genConfig.pattern.replace(/{n}/g, String(i))
+    const title = `${genConfig.titlePrefix}${i}${genConfig.titleSuffix}`
 
-  // Map ra object
-  return vLines.map((vUrl, idx) => {
-    const currentNum = startEpNum + idx
-    const title = `${genConfig.titlePrefix}${currentNum}${genConfig.titleSuffix}`
-    
-    return {
-      epNum: currentNum,
-      title: title,
-      video: vUrl,
-      sub: sLines[idx] || ''
+    const existing = previewList.value.find(item => item.epNum === i)
+    if (existing) {
+       if (activeGenTab.value === 'video') existing.video = url
+       if (activeGenTab.value === 'sub') existing.sub = url
+       if (!existing.title) existing.title = title
+    } else {
+       previewList.value.push({
+         id: Date.now() + Math.random(),
+         epNum: i,
+         title: title,
+         video: activeGenTab.value === 'video' ? url : '',
+         sub: activeGenTab.value === 'sub' ? url : ''
+       })
     }
-  })
-})
-
-// Add Manual Row
-const addManualRow = () => {
-  videoInput.value += '\n'
-  if (subInput.value) subInput.value += '\n'
+  }
+  previewList.value.sort((a, b) => a.epNum - b.epNum)
 }
 
-// Validation
-const errorMsg = computed(() => {
-  if (subLineCount.value > 0 && subLineCount.value !== videoLineCount.value) {
-    return `字幕リンク数 (${subLineCount.value}) と動画リンク数 (${videoLineCount.value}) が一致しません！`
-  }
-  return ''
-})
+const moveUp = (idx: number) => {
+    if (idx > 0) {
+        const temp = previewList.value[idx]!
+        previewList.value[idx] = previewList.value[idx - 1]!
+        previewList.value[idx - 1] = temp
+    }
+}
 
-// Save
+const moveDown = (idx: number) => {
+    if (idx < previewList.value.length - 1) {
+        const temp = previewList.value[idx]!
+        previewList.value[idx] = previewList.value[idx + 1]!
+        previewList.value[idx + 1] = temp
+    }
+}
+
+const insertAfter = (idx: number) => {
+    const currentEp = previewList.value[idx]!.epNum
+    previewList.value.splice(idx + 1, 0, {
+        id: Date.now() + Math.random(),
+        epNum: currentEp + 0.1, 
+        title: '',
+        video: '',
+        sub: ''
+    })
+}
+
+const removeRow = (idx: number) => {
+    previewList.value.splice(idx, 1)
+}
+
+const addManualRow = () => {
+    let nextEp = 1
+    if (previewList.value.length > 0) {
+        const lastItem = previewList.value[previewList.value.length - 1]!
+        nextEp = Math.floor(lastItem.epNum) + 1
+    } else if (episodes.value && episodes.value.length > 0) {
+        const lastEp = episodes.value[episodes.value.length - 1]!
+        nextEp = Math.floor(Number(lastEp.episode_number)) + 1
+    }
+    previewList.value.push({
+        id: Date.now() + Math.random(),
+        epNum: nextEp,
+        title: `${genConfig.titlePrefix}${nextEp}${genConfig.titleSuffix}`,
+        video: '',
+        sub: ''
+    })
+}
+
+// === LƯU XUỐNG DATABASE ===
 const saveBulk = async () => {
   if (previewList.value.length === 0) return
   isSaving.value = true
@@ -484,7 +526,7 @@ const saveBulk = async () => {
         episode_number: item.epNum,
         title: item.title,
         video_path: item.video,
-        subtitles: subtitles, // JSONB
+        subtitles: subtitles, 
         duration_minutes: 0
       }
     })
@@ -494,8 +536,7 @@ const saveBulk = async () => {
 
     // Success
     showQuickAdd.value = false
-    videoInput.value = ''
-    subInput.value = ''
+    previewList.value = []
     refresh()
     alert(`${payload.length} 件のエピソードを追加しました`)
 
@@ -506,3 +547,13 @@ const saveBulk = async () => {
   }
 }
 </script>
+
+<style>
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>

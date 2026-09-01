@@ -24,7 +24,8 @@
             <input
               v-model.number="form.episode_number"
               type="number"
-              min="1"
+              step="0.1" 
+              min="0" 
               class="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
               required
             />
