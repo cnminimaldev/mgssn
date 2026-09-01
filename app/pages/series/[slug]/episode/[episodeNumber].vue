@@ -1,395 +1,304 @@
 <template>
-  <div class="min-h-[calc(100vh-4rem)] bg-black text-white">
+  <div class="relative min-h-[calc(100vh-4rem)] bg-black text-white">
+    <!-- Hiệu ứng ảnh nền mờ (Cinematic Background) -->
     <div
-      v-if="status === 'pending'"
-      class="flex h-full items-center justify-center py-20 text-zinc-300"
-    >
+      class="absolute inset-0 bg-cover bg-center blur-2xl brightness-[0.2] pointer-events-none"
+      :style="heroBackgroundStyle"
+    />
+    <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/90 to-black pointer-events-none" />
+
+    <div class="relative z-10">
       <div
-        class="h-8 w-8 animate-spin rounded-full border-4 border-zinc-600 border-t-emerald-500"
-      ></div>
-    </div>
-
-    <div
-      v-else-if="error || errorMessage || !series"
-      class="flex h-full items-center justify-center py-20 text-zinc-200"
-    >
-      <div class="text-center">
-        <p class="text-sm">
-          {{ errorMessage || "エピソードが見つかりませんでした。" }}
-        </p>
-        <NuxtLink
-          to="/"
-          class="mt-4 inline-flex items-center text-xs text-emerald-400 hover:text-emerald-300"
-        >
-          ホームに戻る
-        </NuxtLink>
+        v-if="status === 'pending'"
+        class="flex h-screen items-center justify-center py-20 text-zinc-300"
+      >
+        <div class="h-8 w-8 animate-spin rounded-full border-4 border-zinc-600 border-t-emerald-500"></div>
       </div>
-    </div>
 
-    <div v-else>
-      <nav
-        aria-label="Breadcrumb"
-        class="border-b border-white/5 bg-zinc-900/30 px-4 py-2 sm:px-8"
+      <div
+        v-else-if="error || errorMessage || !series"
+        class="flex h-screen items-center justify-center py-20 text-zinc-200"
       >
-        <ol
-          class="mx-auto flex max-w-7xl flex-wrap items-center gap-2 text-[10px] text-zinc-400 sm:text-xs"
-        >
-          <li>
-            <NuxtLink to="/" class="hover:text-white hover:underline"
-              >ホーム</NuxtLink
-            >
-          </li>
-          <li><span class="text-zinc-600">/</span></li>
-          <li>
-            <NuxtLink
-              to="/search?type=series"
-              class="hover:text-white hover:underline"
-              >シリーズ</NuxtLink
-            >
-          </li>
-          <li><span class="text-zinc-600">/</span></li>
-          <li>
-            <NuxtLink
-              :to="`/series/${series?.slug}`"
-              class="hover:text-white hover:underline max-w-[150px] truncate sm:max-w-xs"
-            >
-              {{ series?.title }}
-            </NuxtLink>
-          </li>
-          <li><span class="text-zinc-600">/</span></li>
-          <li class="text-zinc-200" aria-current="page">
-            <span v-if="activeEpisode?.season_number"
-              >S{{ activeEpisode.season_number }}</span
-            >
-            第{{ currentEpisodeNumber }}話
-          </li>
-        </ol>
-      </nav>
-
-      <section class="px-4 pt-6 sm:px-8">
-        <div class="mx-auto max-w-7xl">
-          <h1
-            class="text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl"
-          >
-            {{ series?.title }}
-          </h1>
-          <p class="mt-1 text-xs text-zinc-400 sm:text-sm">
-            <span v-if="activeEpisode?.title">{{ activeEpisode.title }}</span>
-            <span v-else>第{{ currentEpisodeNumber }}話</span>
+        <div class="text-center">
+          <p class="text-sm">
+            {{ errorMessage || "エピソードが見つかりませんでした。" }}
           </p>
+          <NuxtLink
+            to="/"
+            class="mt-4 inline-flex items-center text-xs text-emerald-400 hover:text-emerald-300"
+          >
+            ホームに戻る
+          </NuxtLink>
         </div>
-      </section>
+      </div>
 
-      <section
-        class="mx-auto mt-4 flex max-w-7xl flex-col gap-6 px-4 pb-10 lg:flex-row lg:px-8"
-        data-player-root
-      >
-        <div class="flex flex-col gap-4 lg:w-2/3">
-          <div
-            v-if="collectionOptions.length"
-            class="mb-2 flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-300"
-          >
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="text-[11px] text-zinc-400">バージョン</span>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="opt in collectionOptions"
-                  :key="opt.id"
-                  type="button"
-                  class="rounded-full px-3 py-1 text-[11px] ring-1 transition sm:text-xs"
-                  :class="
-                    opt.id === selectedCollectionId
-                      ? 'bg-emerald-500 text-black ring-emerald-400'
-                      : 'bg-zinc-900 text-zinc-200 ring-zinc-700 hover:bg-zinc-800'
-                  "
-                  @click="selectedCollectionId = opt.id"
-                >
-                  {{ opt.label }}
-                </button>
+      <div v-else class="pb-10">
+        <!-- BREADCRUMB -->
+        <nav aria-label="Breadcrumb" class="px-4 py-3 sm:px-8">
+          <ol class="mx-auto flex max-w-7xl flex-wrap items-center gap-2 text-[10px] text-zinc-400 sm:text-xs">
+            <li><NuxtLink to="/" class="hover:text-white hover:underline">ホーム</NuxtLink></li>
+            <li><span class="text-zinc-600">/</span></li>
+            <li><NuxtLink to="/search?type=series" class="hover:text-white hover:underline">シリーズ</NuxtLink></li>
+            <li><span class="text-zinc-600">/</span></li>
+            <li>
+              <NuxtLink :to="`/series/${series?.slug}`" class="hover:text-white hover:underline max-w-[150px] truncate sm:max-w-xs">
+                {{ series?.title }}
+              </NuxtLink>
+            </li>
+            <li><span class="text-zinc-600">/</span></li>
+            <li class="text-zinc-200 font-medium" aria-current="page">
+              <span v-if="activeEpisode?.season_number">S{{ activeEpisode.season_number }} - </span>
+              第{{ currentEpisodeNumber }}話
+            </li>
+          </ol>
+        </nav>
+
+        <!-- PLAYER & SIDEBAR SECTION -->
+        <section class="mx-auto mt-2 flex max-w-7xl flex-col gap-6 px-4 lg:flex-row sm:px-8">
+          
+          <!-- CỘT TRÁI: KHU VỰC VIDEO PLAYER & THÔNG TIN -->
+          <div class="flex flex-col gap-4 lg:w-2/3">
+            
+            <AdSlot position="player_top_desktop" device="desktop" />
+            <AdSlot position="player_top_mobile" device="mobile" />
+
+            <!-- Khung Player -->
+            <div class="overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl ring-1 ring-white/5 aspect-video">
+              <ClientOnly>
+                <UniversalPlayer
+                  v-if="playerSrc"
+                  :key="playerKey"
+                  :src="playerSrc"
+                  :poster="playerPoster"
+                  :title="playerTitle"
+                  :startTime="episodeStartTime"
+                  :subtitles="activeEpisodeSubtitles"
+                  :content-id="activeEpisode?.id"
+                  content-type="series"
+                  :provider="activeProvider"
+                  @timeupdate="handlePlayerTimeUpdate"
+                  @ended="handlePlayerEnded"
+                />
+                <div v-else class="flex h-full items-center justify-center text-sm text-zinc-400">
+                  再生可能な動画ソースが登録されていません。
+                </div>
+              </ClientOnly>
+            </div>
+
+            <AdSlot position="player_bottom_desktop" device="desktop" />
+            <AdSlot position="player_bottom_mobile" device="mobile" />
+
+            <!-- Bộ chọn Phiên bản -->
+            <div v-if="collectionOptions.length" class="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-300 mt-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-[11px] text-zinc-400">バージョン</span>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in collectionOptions"
+                    :key="opt.id"
+                    type="button"
+                    class="rounded-full px-3 py-1 text-[11px] ring-1 transition sm:text-xs"
+                    :class="opt.id === selectedCollectionId ? 'bg-emerald-500 text-black ring-emerald-400' : 'bg-zinc-900 text-zinc-200 ring-zinc-700 hover:bg-zinc-800'"
+                    @click="selectedCollectionId = opt.id"
+                  >
+                    {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+              <div v-if="activeCollectionInfo" class="flex items-center gap-2 text-[11px] text-zinc-400">
+                <span v-if="activeCollectionInfo.providerName">Source: {{ activeCollectionInfo.providerName }}</span>
+                <span v-if="activeProvider?.player_type === 'embed'" class="rounded border border-yellow-800/50 bg-yellow-900/20 px-1 text-[10px] text-yellow-500 uppercase">External</span>
+                <span v-if="activeCollectionInfo.languages">・{{ activeCollectionInfo.languages }}</span>
               </div>
             </div>
-            <div v-if="activeCollectionInfo" class="flex items-center gap-2 text-[11px] text-zinc-400">
-              <span v-if="activeCollectionInfo.providerName">
-                Source: {{ activeCollectionInfo.providerName }}
-              </span>
-              <span 
-                v-if="activeProvider?.player_type === 'embed'"
-                class="rounded border border-yellow-800/50 bg-yellow-900/20 px-1 text-[10px] text-yellow-500 uppercase"
-              >
-                External
-              </span>
-              <span v-if="activeCollectionInfo.languages">
-                ・{{ activeCollectionInfo.languages }}
-              </span>
-            </div>
-          </div>
 
-          <AdSlot position="player_top_desktop" device="desktop" />
-          <AdSlot position="player_top_mobile" device="mobile" />
-          <div
-            class="overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-2xl aspect-video"
-          >
-            <ClientOnly>
-              <UniversalPlayer
-                v-if="playerSrc"
-                :key="playerKey"
-                :src="playerSrc"
-                :poster="playerPoster"
-                :title="playerTitle"
-                :startTime="episodeStartTime"
-                :subtitles="activeEpisodeSubtitles"
-                :content-id="activeEpisode?.id"
-                content-type="series"
-                :provider="activeProvider"
-                @timeupdate="handlePlayerTimeUpdate"
-                @ended="handlePlayerEnded"
-              />
-              <div
-                v-else
-                class="flex h-full items-center justify-center text-sm text-zinc-400"
-              >
-                再生可能な動画ソースが登録されていません。
-              </div>
-            </ClientOnly>
-          </div>
-          <AdSlot position="player_bottom_desktop" device="desktop" />
-          <AdSlot position="player_bottom_mobile" device="mobile" />
-
-          <div
-            class="flex items-center justify-between border-b border-white/5 pb-4"
-          >
-            <div class="flex gap-3">
+            <!-- Nút chức năng (Thêm nút Edit cho Admin) -->
+            <div class="flex flex-wrap items-center gap-3 border-b border-white/5 pb-4 mt-2">
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-4 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 hover:text-white transition"
+                class="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm font-medium text-white hover:bg-white/20 transition backdrop-blur-sm"
                 @click="handleToggleMyList"
               >
                 <span v-if="inMyList" class="text-emerald-400">✔</span>
-                <span v-else>+</span>
-                <span>マイリスト</span>
+                <span v-else>＋</span>
+                マイリスト
               </button>
+
               <button
                 type="button"
                 @click="handleShare"
-                class="inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-4 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 transition"
+                class="rounded-full bg-zinc-800 p-2 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+                title="共有"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
-                </svg>
-                <span>共有</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" /></svg>
               </button>
-            </div>
-          </div>
 
-          <div class="block lg:hidden">
-            <div class="rounded-xl bg-zinc-900/50 p-4 ring-1 ring-white/5">
-              <div class="mb-3 flex items-center justify-between">
-                <span class="text-sm font-semibold text-white">エピソード</span>
-                <span class="text-[10px] text-zinc-400"
-                  >全{{ episodesForSeason.length }}話</span
-                >
-              </div>
-
-              <div
-                v-if="seasons.length > 1"
-                class="mb-3 flex overflow-x-auto pb-2 gap-2 no-scrollbar"
+              <NuxtLink
+                v-if="isAdmin && series?.id"
+                :to="`/admin/series/${series.id}`"
+                class="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-5 py-2 text-sm font-medium text-amber-400 hover:bg-amber-500/20 transition backdrop-blur-sm border border-amber-500/20 ml-auto sm:ml-0"
+                title="管理画面で編集"
               >
-                <button
-                  v-for="s in seasons"
-                  :key="s"
-                  type="button"
-                  class="whitespace-nowrap rounded-full px-3 py-1 text-[11px] ring-1 transition"
-                  :class="
-                    s === selectedSeason
-                      ? 'bg-zinc-100 text-black ring-zinc-200'
-                      : 'bg-zinc-800 text-zinc-400 ring-zinc-700'
-                  "
-                  @click="selectedSeason = s"
-                >
-                  シーズン {{ s }}
-                </button>
-              </div>
-
-              <div
-                class="flex flex-wrap gap-2 p-2 max-h-60 overflow-y-auto custom-scrollbar border border-white/5 rounded-lg bg-black/20"
-              >
-                <NuxtLink
-                  v-for="ep in episodesForSeason"
-                  :key="ep.id"
-                  :to="episodeLink(ep)"
-                  :id="
-                    ep.episode_number === currentEpisodeNumber
-                      ? 'active-ep-mobile'
-                      : undefined
-                  "
-                  class="flex h-10 min-w-[3rem] items-center justify-center rounded-lg px-3 text-xs font-medium transition ring-1"
-                  :class="
-                    ep.episode_number === currentEpisodeNumber
-                      ? 'bg-emerald-600 text-white ring-emerald-400 font-bold'
-                      : 'bg-zinc-800 text-zinc-300 ring-zinc-700 hover:bg-zinc-700 hover:text-white hover:ring-zinc-500'
-                  "
-                >
-                  {{ ep.episode_number }}
-                </NuxtLink>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div>
-              <h3 class="mb-1 text-sm font-semibold text-white">あらすじ</h3>
-              <p class="text-xs leading-relaxed text-zinc-400 sm:text-sm">
-                {{
-                  series?.description || "あらすじはまだ登録されていません。"
-                }}
-              </p>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+                編集
+              </NuxtLink>
             </div>
 
-            <div
-              class="grid grid-cols-1 gap-y-3 gap-x-8 text-xs sm:grid-cols-2"
-            >
-              <div v-if="genres.length">
-                <span class="text-zinc-500 block mb-1">ジャンル</span>
-                <div class="flex flex-wrap gap-2">
-                  <NuxtLink
-                    v-for="g in genres"
-                    :key="g.slug"
-                    :to="`/search?genres=${g.slug}`"
-                    class="text-emerald-400 hover:underline hover:text-emerald-300"
+            <!-- Khối danh sách tập cho Mobile -->
+            <div class="block lg:hidden mt-2">
+              <div class="rounded-xl bg-zinc-900/50 p-4 ring-1 ring-white/5 backdrop-blur-sm">
+                <div class="mb-3 flex items-center justify-between">
+                  <span class="text-sm font-semibold text-white">エピソード</span>
+                  <span class="text-[10px] text-zinc-400">全{{ episodesForSeason.length }}話</span>
+                </div>
+
+                <div v-if="seasons.length > 1" class="mb-3 flex overflow-x-auto pb-2 gap-2 no-scrollbar">
+                  <button
+                    v-for="s in seasons"
+                    :key="s"
+                    type="button"
+                    class="whitespace-nowrap rounded-full px-3 py-1 text-[11px] ring-1 transition"
+                    :class="s === selectedSeason ? 'bg-zinc-100 text-black ring-zinc-200' : 'bg-zinc-800 text-zinc-400 ring-zinc-700'"
+                    @click="selectedSeason = s"
                   >
-                    {{ g.label }}
-                  </NuxtLink>
+                    シーズン {{ s }}
+                  </button>
                 </div>
-              </div>
 
-              <!-- [NÂNG CẤP] Chuyển đổi sang truy xuất dữ liệu Casts mới -->
-              <div v-if="casts.length">
-                <span class="text-zinc-500 block mb-1">キャスト</span>
-                <div class="flex flex-wrap gap-1 text-zinc-300">
-                  <template v-for="(actor, idx) in casts" :key="actor.id">
-                    <NuxtLink
-                      :to="`/person/${actor.id}`"
-                      class="hover:text-white hover:underline"
-                      >{{ actor.name }}</NuxtLink
-                    >
-                    <span v-if="idx < casts.length - 1" class="text-zinc-600"
-                      >,</span
-                    >
-                  </template>
-                </div>
-              </div>
-
-              <!-- [NÂNG CẤP] Chuyển đổi sang truy xuất dữ liệu Directors mới -->
-              <div v-if="directors.length">
-                <span class="text-zinc-500 block mb-1">監督</span>
-                <div class="flex flex-wrap gap-1 text-zinc-300">
-                  <template v-for="(dir, idx) in directors" :key="dir.id">
-                    <NuxtLink
-                      :to="`/person/${dir.id}`"
-                      class="hover:text-white hover:underline"
-                    >
-                      {{ dir.name }}
-                    </NuxtLink>
-                    <span v-if="idx < directors.length - 1" class="text-zinc-600">,</span>
-                  </template>
-                </div>
-              </div>
-
-              <div>
-                <span class="text-zinc-500 block mb-1">情報</span>
-                <div class="flex flex-wrap gap-3 text-zinc-300">
-                  <span v-if="series?.year">
-                    <NuxtLink
-                      :to="`/search?year=${series.year}`"
-                      class="hover:text-white hover:underline"
-                      >{{ series.year }}年</NuxtLink
-                    >
-                  </span>
-                  <span v-if="countryLabel">
-                    <NuxtLink
-                      :to="`/search?countries=${series?.origin_country}`"
-                      class="hover:text-white hover:underline"
-                      >{{ countryLabel }}</NuxtLink
-                    >
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <aside class="hidden w-full lg:block lg:w-1/3">
-          <div
-            class="sticky top-20 rounded-2xl bg-zinc-900/50 p-4 ring-1 ring-white/5"
-          >
-            <div
-              v-if="seasons.length > 1"
-              class="mb-4 flex flex-wrap items-center gap-2"
-            >
-              <span class="text-[11px] text-zinc-400">シーズン</span>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="s in seasons"
-                  :key="s"
-                  type="button"
-                  class="rounded-full px-3 py-1 text-[11px] ring-1 transition"
-                  :class="
-                    s === selectedSeason
-                      ? 'bg-zinc-100 text-black ring-zinc-200'
-                      : 'bg-zinc-800 text-zinc-400 ring-zinc-700 hover:bg-zinc-700'
-                  "
-                  @click="selectedSeason = s"
-                >
-                  {{ s }}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <p class="mb-3 text-xs font-medium text-zinc-400">
-                エピソード (全{{ episodesForSeason.length }}話)
-              </p>
-              <div
-                class="max-h-[calc(100vh-200px)] overflow-y-auto p-2 custom-scrollbar border border-white/5 rounded-lg bg-black/20"
-              >
-                <div class="flex flex-wrap gap-2 pb-2">
+                <div class="flex flex-wrap gap-2 p-2 max-h-60 overflow-y-auto custom-scrollbar border border-white/5 rounded-lg bg-black/20">
                   <NuxtLink
                     v-for="ep in episodesForSeason"
                     :key="ep.id"
                     :to="episodeLink(ep)"
-                    :id="
-                      ep.episode_number === currentEpisodeNumber
-                        ? 'active-ep-desktop'
-                        : undefined
-                    "
+                    :id="ep.episode_number === currentEpisodeNumber ? 'active-ep-mobile' : undefined"
                     class="flex h-10 min-w-[3rem] items-center justify-center rounded-lg px-3 text-xs font-medium transition ring-1"
-                    :class="
-                      ep.episode_number === currentEpisodeNumber
-                        ? 'bg-emerald-600 text-white ring-emerald-400 font-bold'
-                        : 'bg-zinc-800 text-zinc-300 ring-zinc-700 hover:bg-zinc-700 hover:text-white hover:ring-zinc-500'
-                    "
-                    :title="ep.title || `第${ep.episode_number}話`"
+                    :class="ep.episode_number === currentEpisodeNumber ? 'bg-emerald-600 text-white ring-emerald-400 font-bold' : 'bg-zinc-800 text-zinc-300 ring-zinc-700 hover:bg-zinc-700 hover:text-white hover:ring-zinc-500'"
                   >
                     {{ ep.episode_number }}
                   </NuxtLink>
                 </div>
               </div>
             </div>
-          </div>
-        </aside>
-      </section>
 
-      <section
-        v-if="relatedSeries.length"
-        class="mt-10 max-w-7xl mx-auto px-4 pb-12 sm:px-8"
-      >
-        <MovieRow
-          title="あなたにおすすめ"
-          :movies="relatedRowItems"
-          sub-label="この作品に似ているシリーズ・映画"
-        />
-      </section>
+            <!-- Thông tin Series & Tập phim -->
+            <div class="mt-4 space-y-4 bg-zinc-900/20 p-4 rounded-xl border border-white/5">
+              <div>
+                <h1 class="text-xl font-bold tracking-tight text-white sm:text-3xl drop-shadow-md">
+                  {{ series?.title }}
+                </h1>
+                <p class="mt-2 text-sm text-emerald-400 font-medium">
+                  <span v-if="activeEpisode?.title">{{ activeEpisode.title }}</span>
+                  <span v-else>第{{ currentEpisodeNumber }}話</span>
+                </p>
+                <div class="mt-2 text-xs text-zinc-400 space-y-1">
+                  <p v-if="series?.original_title">原題：{{ series?.original_title }}</p>
+                  <p v-if="series?.title_kana">{{ series?.title_kana }}</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 class="mb-1 text-sm font-semibold text-white">あらすじ</h3>
+                <p class="text-xs leading-relaxed text-zinc-300 sm:text-sm">
+                  {{ series?.description || "あらすじはまだ登録されていません。" }}
+                </p>
+              </div>
+
+              <div class="grid grid-cols-1 gap-y-3 gap-x-8 text-xs sm:grid-cols-2 pt-2 border-t border-white/5 mt-4">
+                <div v-if="genres.length">
+                  <span class="text-zinc-500 block mb-1">ジャンル</span>
+                  <div class="flex flex-wrap gap-2">
+                    <NuxtLink v-for="g in genres" :key="g.slug" :to="`/search?genres=${g.slug}`" class="text-emerald-400 hover:underline hover:text-emerald-300">
+                      {{ g.label }}
+                    </NuxtLink>
+                  </div>
+                </div>
+
+                <div v-if="casts.length">
+                  <span class="text-zinc-500 block mb-1">キャスト</span>
+                  <div class="flex flex-wrap gap-1 text-zinc-300">
+                    <template v-for="(actor, idx) in casts" :key="actor.id">
+                      <NuxtLink :to="`/person/${actor.id}`" class="hover:text-white hover:underline">{{ actor.name }}</NuxtLink>
+                      <span v-if="idx < casts.length - 1" class="text-zinc-600">,</span>
+                    </template>
+                  </div>
+                </div>
+
+                <div v-if="directors.length">
+                  <span class="text-zinc-500 block mb-1">監督</span>
+                  <div class="flex flex-wrap gap-1 text-zinc-300">
+                    <template v-for="(dir, idx) in directors" :key="dir.id">
+                      <NuxtLink :to="`/person/${dir.id}`" class="hover:text-white hover:underline">{{ dir.name }}</NuxtLink>
+                      <span v-if="idx < directors.length - 1" class="text-zinc-600">,</span>
+                    </template>
+                  </div>
+                </div>
+
+                <div>
+                  <span class="text-zinc-500 block mb-1">情報</span>
+                  <div class="flex flex-wrap gap-3 text-zinc-300">
+                    <span v-if="series?.year">
+                      <NuxtLink :to="`/search?year=${series.year}`" class="hover:text-white hover:underline">{{ series.year }}年</NuxtLink>
+                    </span>
+                    <span v-if="countryLabel">
+                      <NuxtLink :to="`/search?countries=${series?.origin_country}`" class="hover:text-white hover:underline">{{ countryLabel }}</NuxtLink>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CỘT PHẢI: DANH SÁCH TẬP PHIM (DESKTOP) -->
+          <aside class="hidden w-full lg:block lg:w-1/3">
+            <div class="sticky top-20 rounded-2xl bg-zinc-900/50 p-4 ring-1 ring-white/5 backdrop-blur-md">
+              <div v-if="seasons.length > 1" class="mb-4 flex flex-wrap items-center gap-2">
+                <span class="text-[11px] text-zinc-400">シーズン</span>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="s in seasons"
+                    :key="s"
+                    type="button"
+                    class="rounded-full px-3 py-1 text-[11px] ring-1 transition"
+                    :class="s === selectedSeason ? 'bg-zinc-100 text-black ring-zinc-200' : 'bg-zinc-800 text-zinc-400 ring-zinc-700 hover:bg-zinc-700'"
+                    @click="selectedSeason = s"
+                  >
+                    {{ s }}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <p class="mb-3 text-xs font-medium text-zinc-400">
+                  エピソード (全{{ episodesForSeason.length }}話)
+                </p>
+                <div class="max-h-[calc(100vh-200px)] overflow-y-auto p-2 custom-scrollbar border border-white/5 rounded-lg bg-black/40">
+                  <div class="flex flex-wrap gap-2 pb-2">
+                    <NuxtLink
+                      v-for="ep in episodesForSeason"
+                      :key="ep.id"
+                      :to="episodeLink(ep)"
+                      :id="ep.episode_number === currentEpisodeNumber ? 'active-ep-desktop' : undefined"
+                      class="flex h-10 min-w-[3rem] items-center justify-center rounded-lg px-3 text-xs font-medium transition ring-1"
+                      :class="ep.episode_number === currentEpisodeNumber ? 'bg-emerald-600 text-white ring-emerald-400 font-bold' : 'bg-zinc-800 text-zinc-300 ring-zinc-700 hover:bg-zinc-700 hover:text-white hover:ring-zinc-500'"
+                      :title="ep.title || `第${ep.episode_number}話`"
+                    >
+                      {{ ep.episode_number }}
+                    </NuxtLink>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <!-- RELATED SERIES -->
+        <section v-if="relatedSeries.length" class="mt-10 max-w-7xl mx-auto px-4 pb-12 sm:px-8">
+          <MovieRow title="あなたにおすすめ" :movies="relatedRowItems" sub-label="この作品に似ているシリーズ・映画" />
+        </section>
+      </div>
     </div>
+    
+    <ShareModal v-model="showShareModal" :title="shareTitle" :url="shareUrl" />
   </div>
   <ClientOnly>
     <GlobalScripts position="popunder_player" target="body" />
@@ -402,6 +311,7 @@ import {
   useRoute,
   useRouter,
   useSupabaseClient,
+  useSupabaseUser,
   useSeoMeta,
   useHead,
   navigateTo,
@@ -411,14 +321,17 @@ import {
 } from "#imports";
 import UniversalPlayer from "~/components/UniversalPlayer.vue";
 import MovieRow from "~/components/MovieRow.vue";
+import ShareModal from "~/components/ShareModal.vue";
 import { useContinueWatching } from "~/composables/useContinueWatching";
 import { useMyList } from "~/composables/useMyList";
 import { getResizedUrl } from "~/utils/image";
 
-// [NÂNG CẤP] Khai báo kiểu cho Nhân vật
+// Khởi tạo User để check phân quyền Admin
+const user = useSupabaseUser();
+const isAdmin = computed(() => !!user.value);
+
 type CrewMember = { id: number; name: string };
 
-// --- Types ---
 type SeriesRow = {
   id: number;
   slug: string;
@@ -495,10 +408,9 @@ const supabase = useSupabaseClient<any>();
 
 const errorMessage = ref("");
 
-// Reactive Refs
 const series = ref<SeriesRow | null>(null);
-const directors = ref<CrewMember[]>([]); // [NÂNG CẤP]
-const casts = ref<CrewMember[]>([]);     // [NÂNG CẤP]
+const directors = ref<CrewMember[]>([]); 
+const casts = ref<CrewMember[]>([]);     
 const collections = ref<EpisodeCollectionRow[]>([]);
 const episodes = ref<EpisodeRow[]>([]);
 const providers = ref<ProviderRow[]>([]);
@@ -707,14 +619,11 @@ const config = useRuntimeConfig();
 const playerSrc = computed(() => {
   const path = activeEpisode.value?.video_path || "";
   if (!path) return "";
-  
-  // Nếu là link ngoài (embed, youtube) thì giữ nguyên, không ghép
   if (path.startsWith('http')) return path; 
-  
-  // Tự động ghép tên miền Streaming vào đường dẫn tương đối
   const baseUrl = config.public.streamUrl;
   return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
 });
+
 const playerPoster = computed(() => {
   if (activeEpisode.value?.thumbnail_url) {
     return getResizedUrl(activeEpisode.value.thumbnail_url, 1280, 720, "cover");
@@ -725,6 +634,14 @@ const playerPoster = computed(() => {
   return series.value?.poster_url
     ? getResizedUrl(series.value.poster_url, 1280, 720, "contain")
     : "/images/fallback-poster.webp";
+});
+
+// Tính toán Ảnh nền mờ Cinematic (Hero Background)
+const heroBackgroundStyle = computed(() => {
+  const bgRaw = series.value?.banner_url || series.value?.poster_url;
+  if (!bgRaw) return "";
+  const bgOptimized = getResizedUrl(bgRaw, 1920, 1080, "cover");
+  return `background-image: url('${bgOptimized}')`;
 });
 
 const playerTitle = computed(() => {
@@ -813,8 +730,8 @@ const {
     const nuxtApp = useNuxtApp();
     const result = {
       series: null as SeriesRow | null,
-      directors: [] as CrewMember[], // [NÂNG CẤP]
-      casts: [] as CrewMember[],     // [NÂNG CẤP]
+      directors: [] as CrewMember[], 
+      casts: [] as CrewMember[],     
       collections: [] as EpisodeCollectionRow[],
       episodes: [] as EpisodeRow[],
       providers: [] as ProviderRow[],
@@ -834,7 +751,6 @@ const {
       return result;
     }
 
-    // Đã xóa cột director và main_cast ở đây
     const { data: seriesData, error: seriesError } = await supabase
       .from("series")
       .select(
@@ -850,7 +766,6 @@ const {
 
     result.series = seriesData as unknown as SeriesRow;
 
-    // [NÂNG CẤP] Truy vấn bảng trung gian lấy Đạo diễn & Diễn viên
     const { data: crewData } = await supabase
       .from("content_crew")
       .select("role, persons(id, name)")
@@ -893,7 +808,6 @@ const {
       .order("episode_number", { ascending: true });
     result.episodes = (epData ?? []) as EpisodeRow[];
 
-    // Related
     // @ts-ignore
     const currentGenreSlugs =
       seriesData.series_genres
@@ -912,7 +826,6 @@ const {
         .select(
           "id, slug, title, poster_url, banner_url, type, year, origin_country, genre_label, description, episode_count"
         );
-
       relData = (data as any[]) || [];
     } else {
       const { data } = await supabase
@@ -923,10 +836,8 @@ const {
         .neq("id", result.series.id)
         .order("created_at", { ascending: false })
         .limit(12);
-
       relData = (data as any[]) || [];
     }
-
     result.relatedSeries = (relData ?? []) as RelatedItem[];
 
     return result;
@@ -943,8 +854,8 @@ watch(
       }
 
       series.value = newData.series;
-      directors.value = newData.directors; // [NÂNG CẤP]
-      casts.value = newData.casts;         // [NÂNG CẤP]
+      directors.value = newData.directors; 
+      casts.value = newData.casts;         
       collections.value = newData.collections;
       episodes.value = newData.episodes;
       providers.value = newData.providers;
@@ -1122,7 +1033,6 @@ useHead({
           description: activeEpisode.value?.title || series.value?.description,
           image: playerPoster.value,
           datePublished: activeEpisode.value?.created_at, 
-          // [NÂNG CẤP] Cập nhật thành phần truyền cấu trúc diễn viên/đạo diễn cho SEO
           director: directors.value.length
             ? directors.value.map(d => ({ "@type": "Person", name: d.name }))
             : undefined,
@@ -1167,9 +1077,7 @@ useSeoMeta({
 
 onMounted(async () => {
   await nextTick();
-  const el = document.querySelector("[data-player-root]") as HTMLElement | null;
-  if (!el) return;
-  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Đã xóa hàm cuộn trang scrollToPlayer vì player giờ nằm trên cùng
   scrollToActiveEpisode();
 });
 </script>
