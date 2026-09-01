@@ -214,9 +214,9 @@
       </form>
     </BaseModal>
 
-    <!-- [NÂNG CẤP] MODAL TẠO NHANH COLLECTION & TẬP PHIM -->
-    <BaseModal v-model="showQuickAutoModal" title="コレクション＆エピソード自動一括作成" widthClass="max-w-5xl">
-      <div class="space-y-6">
+    <!-- NÂNG CẤP MODAL TẠO NHANH COLLECTION & TẬP PHIM KÈM PREVIEW -->
+    <BaseModal v-model="showQuickAutoModal" title="コレクション＆エピソード自動一括作成" widthClass="max-w-6xl">
+      <div class="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
         
         <div class="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
           <h4 class="text-xs font-bold text-emerald-400 mb-4 uppercase tracking-wider border-b border-zinc-800 pb-2">1. コレクション情報 (Collection Info)</h4>
@@ -266,7 +266,6 @@
         <div class="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
           <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
             <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">2. エピソード生成 (Generate Episodes)</h4>
-            
             <div class="flex gap-2">
               <button @click="applyQuickPattern" title="Sử dụng Pattern mẫu" class="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 px-2 py-1 rounded text-[10px] text-emerald-400 font-bold transition">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
@@ -314,75 +313,94 @@
             <div class="col-span-6 md:col-span-4">
                <div class="flex justify-between items-center mb-1">
                   <label class="block text-[10px] text-zinc-500 uppercase">Title Prefix</label>
-                  <!-- Khôi phục lại nút bấm ở đây -->
-                  <button type="button" @click="genConfig.titlePrefix = '第'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700" title="Click để tự điền">第</button>
+                  <button type="button" @click="genConfig.titlePrefix = '第'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700">第</button>
                </div>
                <input v-model="genConfig.titlePrefix" type="text" placeholder="e.g. 第" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
             </div>
-            
             <div class="col-span-6 md:col-span-4">
                <div class="flex justify-between items-center mb-1">
                   <label class="block text-[10px] text-zinc-500 uppercase">Title Suffix</label>
-                  <!-- Khôi phục lại nút bấm ở đây -->
-                  <button type="button" @click="genConfig.titleSuffix = '話'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700" title="Click để tự điền">話</button>
+                  <button type="button" @click="genConfig.titleSuffix = '話'" class="text-[9px] bg-zinc-800 px-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 border border-zinc-700">話</button>
                </div>
                <input v-model="genConfig.titleSuffix" type="text" placeholder="e.g. 話" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:border-emerald-500 outline-none" />
             </div>
-            
             <div class="col-span-12 md:col-span-4">
-              <button 
-                type="button"
-                @click="runGenerator" 
-                class="w-full py-1.5 rounded text-xs font-bold text-white transition border shadow-lg flex items-center justify-center gap-1 h-[34px]" 
-                :class="activeGenTab === 'video' ? 'bg-emerald-700 border-emerald-600 hover:bg-emerald-600' : 'bg-yellow-700 border-yellow-600 hover:bg-yellow-600'"
-              >
+              <button @click="runGenerator" type="button" class="w-full py-1.5 rounded text-xs font-bold text-white transition border shadow-lg flex items-center justify-center gap-1 h-[34px]" :class="activeGenTab === 'video' ? 'bg-emerald-700 border-emerald-600 hover:bg-emerald-600' : 'bg-yellow-700 border-yellow-600 hover:bg-yellow-600'">
                 <span>Generate Links</span>
               </button>
             </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <label class="text-xs font-bold text-zinc-400 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>Video Links</label>
-              <button @click="videoInput = ''" class="text-[10px] text-zinc-500 hover:text-red-400 hover:underline">Clear</button>
-            </div>
-            <div class="relative">
-              <textarea v-model="videoInput" rows="8" class="w-full bg-black border border-zinc-700 rounded-lg p-3 text-[11px] font-mono text-emerald-400 focus:border-emerald-500 outline-none resize-none whitespace-pre leading-relaxed"></textarea>
-              <div class="absolute bottom-2 right-3 text-[10px] text-zinc-600 bg-black/80 px-1 rounded">{{ videoLineCount }} lines</div>
-            </div>
+        <!-- BƯỚC 3: PREVIEW BẢNG ĐỂ CHỈNH SỬA TẬP PHIM -->
+        <div class="border border-zinc-800 rounded-lg bg-zinc-900 overflow-hidden">
+          <div class="flex justify-between items-center p-3 bg-zinc-950 border-b border-zinc-800">
+            <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">3. プレビュー＆編集 (Preview & Edit)</h4>
+            <button @click="addManualRow" type="button" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded border border-zinc-700 transition flex items-center gap-1">
+              <span>+</span> 手動で行を追加 (Add Row)
+            </button>
           </div>
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <label class="text-xs font-bold text-zinc-400 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-yellow-500"></span>Subtitle Links (Optional)</label>
-              <button @click="subInput = ''" class="text-[10px] text-zinc-500 hover:text-red-400 hover:underline">Clear</button>
-            </div>
-             <div class="relative">
-              <textarea v-model="subInput" rows="8" class="w-full bg-black border border-zinc-700 rounded-lg p-3 text-[11px] font-mono text-yellow-400 focus:border-yellow-500 outline-none resize-none whitespace-pre leading-relaxed"></textarea>
-               <div class="absolute bottom-2 right-3 text-[10px] text-zinc-600 bg-black/80 px-1 rounded">
-                <span :class="{'text-red-500 font-bold': subLineCount > 0 && subLineCount !== videoLineCount}">{{ subLineCount }}</span> lines
-              </div>
-            </div>
+          
+          <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+             <table class="w-full text-left text-xs text-zinc-400 min-w-[800px]">
+               <thead class="bg-zinc-950/80 text-zinc-300 sticky top-0 z-10 shadow-sm backdrop-blur">
+                 <tr>
+                   <th class="px-2 py-2 w-16 text-center border-b border-zinc-800">Ep</th>
+                   <th class="px-2 py-2 w-1/4 border-b border-zinc-800">Title</th>
+                   <th class="px-2 py-2 border-b border-zinc-800">Video URL</th>
+                   <th class="px-2 py-2 border-b border-zinc-800">Sub URL</th>
+                   <th class="px-2 py-2 w-28 text-center border-b border-zinc-800">操作</th>
+                 </tr>
+               </thead>
+               <tbody class="divide-y divide-zinc-800">
+                 <tr v-if="previewList.length === 0">
+                   <td colspan="5" class="px-4 py-12 text-center text-zinc-600 italic">
+                     Generatorでリンクを生成するか、行を手動で追加してください。<br/>(Bấm Generate Links để tự sinh hoặc Add Row để thêm thủ công)
+                   </td>
+                 </tr>
+                 <tr v-for="(item, idx) in previewList" :key="item.id" class="hover:bg-zinc-800/30 transition-colors">
+                   <td class="px-2 py-2">
+                      <input v-model.number="item.epNum" type="number" step="0.1" class="bg-zinc-950 border border-zinc-700 w-full text-center font-bold text-zinc-300 focus:text-white focus:border-emerald-500 rounded px-1 py-1.5 outline-none transition-colors" />
+                   </td>
+                   <td class="px-2 py-2">
+                      <input v-model="item.title" class="bg-zinc-950 border border-zinc-700 w-full text-zinc-300 focus:text-white focus:border-emerald-500 rounded px-2 py-1.5 outline-none transition-colors" />
+                   </td>
+                   <td class="px-2 py-2">
+                      <input v-model="item.video" placeholder="https://..." class="bg-zinc-950 border border-zinc-700 w-full font-mono text-[10px] text-emerald-500 focus:border-emerald-500 rounded px-2 py-1.5 outline-none transition-colors" />
+                   </td>
+                   <td class="px-2 py-2">
+                      <input v-model="item.sub" placeholder="https://..." class="bg-zinc-950 border border-zinc-700 w-full font-mono text-[10px] text-yellow-500 focus:border-yellow-500 rounded px-2 py-1.5 outline-none transition-colors" />
+                   </td>
+                   <td class="px-2 py-2 text-center">
+                     <div class="flex items-center justify-center gap-1">
+                        <button type="button" @click="moveUp(idx)" :disabled="idx === 0" class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-700 disabled:opacity-30 transition">▲</button>
+                        <button type="button" @click="moveDown(idx)" :disabled="idx === previewList.length - 1" class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-700 disabled:opacity-30 transition">▼</button>
+                        <button type="button" @click="insertAfter(idx)" class="p-1 rounded text-emerald-500 hover:text-white hover:bg-emerald-700 transition" title="下に挿入 (Insert)">＋</button>
+                        <button type="button" @click="removeRow(idx)" class="p-1 rounded text-red-500 hover:text-white hover:bg-red-700 transition" title="削除 (Delete)">✕</button>
+                     </div>
+                   </td>
+                 </tr>
+               </tbody>
+             </table>
           </div>
         </div>
 
         <div class="flex items-center justify-between pt-4 border-t border-zinc-800">
            <div class="text-xs text-zinc-500">
-             <button @click="clearForm" class="text-red-400 hover:text-red-300 transition flex items-center gap-1">
+             <button type="button" @click="clearForm" class="text-red-400 hover:text-red-300 transition flex items-center gap-1 font-bold">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-                全てクリア (Clear Form)
+                全てクリア (Clear All)
              </button>
            </div>
           <div class="flex gap-3">
-            <button @click="showQuickAutoModal = false" class="px-5 py-2.5 rounded text-xs font-bold text-zinc-400 hover:text-white transition">キャンセル</button>
+            <button type="button" @click="showQuickAutoModal = false" class="px-5 py-2.5 rounded text-xs font-bold text-zinc-400 hover:text-white transition">キャンセル</button>
             <button 
               @click="handleAutoSave" 
-              :disabled="!!errorMsg || videoLineCount === 0 || isAutoSaving"
+              :disabled="previewList.length === 0 || isAutoSaving"
               class="px-8 py-2.5 rounded bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition shadow-lg shadow-emerald-900/20"
             >
               <span v-if="isAutoSaving" class="animate-spin h-3 w-3 border-2 border-white/30 border-t-white rounded-full"></span>
-              保存する (Create Collection & {{ videoLineCount }} Eps)
+              保存する (Create Collection & {{ previewList.length }} Eps)
             </button>
           </div>
         </div>
@@ -462,24 +480,17 @@ const openEditModal = (col: any) => {
 
 const handleUpdate = async () => {
   try {
-    if (editForm.is_default) {
-      await supabase.from('episode_collections').update({ is_default: false }).eq('series_id', seriesId)
-    }
+    if (editForm.is_default) await supabase.from('episode_collections').update({ is_default: false }).eq('series_id', seriesId)
     const updatePayload = {
       name: editForm.name, name_ja: editForm.name_ja || null, type: editForm.type || null,
       audio_language: editForm.audio_language || null, subtitle_language: editForm.subtitle_language || null,
       provider_id: editForm.provider_id || null, is_default: editForm.is_default
     } as any
-
     const { error } = await supabase.from('episode_collections').update(updatePayload).eq('id', editForm.id)
     if (error) throw error
-
     showEditModal.value = false
     refresh()
-  } catch (err: any) { 
-    // [ĐÃ SỬA] Đổi e.message thành err.message
-    alert('エラーが発生しました: ' + err.message) 
-  }
+  } catch (err: any) { alert('エラーが発生しました: ' + err.message) }
 }
 
 const deleteCollection = async (id: number) => {
@@ -492,29 +503,18 @@ const deleteCollection = async (id: number) => {
 }
 
 // =========================================================
-//  AUTO CREATE ALL (COLLECTION + EPISODES)
+//  [MỚI] AUTO CREATE ALL + PREVIEW TABLE LOGIC
 // =========================================================
 const showQuickAutoModal = ref(false)
 const isAutoSaving = ref(false)
 
 const autoForm = reactive({ name: '', name_ja: '', type: 'sub', audio_language: '', subtitle_language: '', provider_id: null as number | null, is_default: false })
 const activeGenTab = ref<'video' | 'sub'>('video')
-const videoInput = ref('')
-const subInput = ref('')
 const genConfig = reactive({ pattern: '', start: 1, end: 12, titlePrefix: '', titleSuffix: '' })
 
-const videoLineCount = computed(() => videoInput.value.split('\n').filter(l => l.trim()).length)
-const subLineCount = computed(() => subInput.value.split('\n').filter(l => l.trim()).length)
-const errorMsg = computed(() => {
-  if (subLineCount.value > 0 && subLineCount.value !== videoLineCount.value) {
-    return `字幕数 (${subLineCount.value}) と 動画数 (${videoLineCount.value}) が一致しません！`
-  }
-  return ''
-})
+type PreviewItem = { id: number; epNum: number; title: string; video: string; sub: string }
+const previewList = ref<PreviewItem[]>([])
 
-// =========================================================
-//  QUẢN LÝ CÀI ĐẶT PATTERN & AUTO-SAVE BẰNG LOCAL STORAGE
-// =========================================================
 const showPatternSettings = ref(false)
 const savedVideoPattern = ref('')
 const savedSubPattern = ref('')
@@ -541,7 +541,6 @@ const savePatternsToLocal = () => {
   }
 }
 
-// Deep watch tự động lưu State của Form
 watch(autoForm, (newVal) => {
   if (import.meta.client) localStorage.setItem('autoFormState', JSON.stringify(newVal))
 }, { deep: true })
@@ -567,27 +566,83 @@ const clearForm = () => {
   if (!confirm('Tất cả nội dung sẽ bị xóa, bạn có chắc không?')) return
   autoForm.name = ''; autoForm.name_ja = ''; autoForm.type = 'sub'; autoForm.audio_language = ''; autoForm.subtitle_language = ''; autoForm.provider_id = null; autoForm.is_default = false
   genConfig.pattern = ''; genConfig.start = 1; genConfig.end = 12; genConfig.titlePrefix = ''; genConfig.titleSuffix = ''
-  videoInput.value = ''; subInput.value = ''
+  previewList.value = []
 }
 
-// =========================================================
-//  THỰC THI TẠO LINK VÀ LƯU DATABASE
-// =========================================================
+// Hàm Generate Link bắn thẳng vào mảng Preview
 const runGenerator = () => {
   if (!genConfig.pattern) return
-  const links: string[] = []
-  for (let i = genConfig.start; i <= genConfig.end; i++) {
-    links.push(genConfig.pattern.replace('{n}', String(i)))
-  }
-  const textToAppend = links.join('\n')
   
-  if (activeGenTab.value === 'video') {
-    videoInput.value = videoInput.value ? videoInput.value + '\n' + textToAppend : textToAppend
-  } else {
-    subInput.value = subInput.value ? subInput.value + '\n' + textToAppend : textToAppend
+  for (let i = genConfig.start; i <= genConfig.end; i++) {
+    const url = genConfig.pattern.replace(/{n}/g, String(i))
+    const title = `${genConfig.titlePrefix}${i}${genConfig.titleSuffix}`
+    
+    const existing = previewList.value.find(item => item.epNum === i)
+    if (existing) {
+       if (activeGenTab.value === 'video') existing.video = url
+       if (activeGenTab.value === 'sub') existing.sub = url
+       if (!existing.title) existing.title = title
+    } else {
+       previewList.value.push({
+         id: Date.now() + Math.random(),
+         epNum: i,
+         title: title,
+         video: activeGenTab.value === 'video' ? url : '',
+         sub: activeGenTab.value === 'sub' ? url : ''
+       })
+    }
   }
+  previewList.value.sort((a, b) => a.epNum - b.epNum)
 }
 
+// Bảng Preview Actions
+const moveUp = (idx: number) => {
+    if (idx > 0) {
+        const temp = previewList.value[idx]!
+        previewList.value[idx] = previewList.value[idx - 1]!
+        previewList.value[idx - 1] = temp
+    }
+}
+
+const moveDown = (idx: number) => {
+    if (idx < previewList.value.length - 1) {
+        const temp = previewList.value[idx]!
+        previewList.value[idx] = previewList.value[idx + 1]!
+        previewList.value[idx + 1] = temp
+    }
+}
+
+const insertAfter = (idx: number) => {
+    const currentEp = previewList.value[idx]!.epNum
+    previewList.value.splice(idx + 1, 0, {
+        id: Date.now() + Math.random(),
+        epNum: currentEp + 0.1, 
+        title: '',
+        video: '',
+        sub: ''
+    })
+}
+
+const removeRow = (idx: number) => {
+    previewList.value.splice(idx, 1)
+}
+
+const addManualRow = () => {
+    let nextEp = 1
+    if (previewList.value.length > 0) {
+        const lastItem = previewList.value[previewList.value.length - 1]!
+        nextEp = Math.floor(lastItem.epNum) + 1
+    }
+    previewList.value.push({
+        id: Date.now() + Math.random(),
+        epNum: nextEp,
+        title: `${genConfig.titlePrefix}${nextEp}${genConfig.titleSuffix}`,
+        video: '',
+        sub: ''
+    })
+}
+
+// Submit
 const handleAutoSave = async () => {
   if (!autoForm.name) {
     alert('コレクション名を入力してください (Vui lòng điền tên Collection)')
@@ -610,20 +665,19 @@ const handleAutoSave = async () => {
     if (colError) throw colError
     const newCollectionId = newCol.id
 
-    const vLines = videoInput.value.split('\n').filter(l => l.trim())
-    const sLines = subInput.value.split('\n').filter(l => l.trim())
-
-    const epPayload = vLines.map((vUrl, idx) => {
-      const currentNum = genConfig.start + idx
-      const title = `${genConfig.titlePrefix}${currentNum}${genConfig.titleSuffix}`
+    const epPayload = previewList.value.map((item) => {
       const subtitles = []
-      if (sLines[idx]) {
-        subtitles.push({ src: sLines[idx], label: 'Japanese', lang: 'ja' })
+      if (item.sub) {
+        subtitles.push({ src: item.sub, label: 'Japanese', lang: 'ja' })
       }
       return {
-        series_id: Number(seriesId), collection_id: newCollectionId,
-        episode_number: currentNum, title: title, video_path: vUrl,
-        subtitles: subtitles, duration_minutes: 0
+        series_id: Number(seriesId),
+        collection_id: newCollectionId,
+        episode_number: item.epNum, 
+        title: item.title, 
+        video_path: item.video,
+        subtitles: subtitles, 
+        duration_minutes: 0
       }
     })
 
@@ -631,9 +685,7 @@ const handleAutoSave = async () => {
     if (epError) throw epError
 
     showQuickAutoModal.value = false
-    // [ĐÃ SỬA] KHÔNG reset autoForm, titlePrefix và titleSuffix ở đây nữa để giữ nguyên cấu hình!
-    videoInput.value = ''
-    subInput.value = ''
+    previewList.value = []
     
     alert(`Thành công! Đã tạo Collection và ${epPayload.length} tập phim.`)
     refresh()
