@@ -64,25 +64,23 @@
 
             <!-- Khung Player -->
             <div class="overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl ring-1 ring-white/5 aspect-video">
-              <ClientOnly>
-                <UniversalPlayer
-                  v-if="playerSrc"
-                  :key="playerKey"
-                  :src="playerSrc"
-                  :poster="playerPoster"
-                  :title="playerTitle"
-                  :startTime="episodeStartTime"
-                  :subtitles="activeEpisodeSubtitles"
-                  :content-id="activeEpisode?.id"
-                  content-type="series"
-                  :provider="activeProvider"
-                  @timeupdate="handlePlayerTimeUpdate"
-                  @ended="handlePlayerEnded"
-                />
-                <div v-else class="flex h-full items-center justify-center text-sm text-zinc-400">
-                  再生可能な動画ソースが登録されていません。
-                </div>
-              </ClientOnly>
+              <UniversalPlayer
+                v-if="playerSrc"
+                :key="playerKey"
+                :src="playerSrc"
+                :poster="playerPoster"
+                :title="playerTitle"
+                :startTime="episodeStartTime"
+                :subtitles="activeEpisodeSubtitles"
+                :content-id="activeEpisode?.id"
+                content-type="series"
+                :provider="activeProvider"
+                @timeupdate="handlePlayerTimeUpdate"
+                @ended="handlePlayerEnded"
+              />
+              <div v-else class="flex h-full items-center justify-center text-sm text-zinc-400">
+                再生可能な動画ソースが登録されていません。
+              </div>
             </div>
 
             <AdSlot position="player_bottom_desktop" device="desktop" />
@@ -342,6 +340,7 @@ type SeriesRow = {
   description?: string | null;
   poster_url?: string | null;
   banner_url?: string | null;
+  duration_minutes?: number | null;
   year?: number | null;
   created_at?: string;
   series_genres?: {
@@ -754,7 +753,7 @@ const {
     const { data: seriesData, error: seriesError } = await supabase
       .from("series")
       .select(
-        "id, slug, title, original_title, title_kana, origin_country, description, poster_url, banner_url, year, created_at, series_genres(genre:genres(slug, name, name_ja))"
+        "id, slug, title, original_title, title_kana, origin_country, description, poster_url, banner_url, duration_minutes, year, created_at, series_genres(genre:genres(slug, name, name_ja))"
       )
       .eq("slug", slug)
       .single();
@@ -962,20 +961,28 @@ const seoTitle = computed(() => {
   return `${series.value.title} ${epLabel} 無料動画 | NoriTV`;
 });
 
-const seoDescription = computed(
-  () =>
-    series.value?.description ?? "映画やドラマをオンラインで楽しめるNoriTV。"
-);
+const seoDescription = computed(() => {
+  const epLabel = activeEpisode.value?.title 
+    ? activeEpisode.value.title 
+    : `第${currentEpisodeNumber.value}話`
+  const baseDesc = series.value?.description ?? "映画やドラマをオンラインで楽しめるNoriTV。"
+  
+  // Trả về ví dụ: 【第6話】Đây là mô tả của bộ phim...
+  return `【${epLabel}】${baseDesc}`
+});
 
 const seoImage = computed(
   () =>
     series.value?.banner_url || series.value?.poster_url || "/images/banner.jpg"
 );
 
+const SITE_URL = 'https://noritv.com';
+
 const toAbsoluteUrl = (path: string | null | undefined) => {
   if (!path) return undefined;
   if (path.startsWith('http')) return path;
-  return `${url.origin}${path.startsWith('/') ? '' : '/'}${path}`;
+  // Dùng trực tiếp tên miền thay vì url.origin
+  return `${SITE_URL}${path.startsWith('/') ? '' : '/'}${path}`; 
 };
 
 useHead({
@@ -1046,17 +1053,19 @@ useHead({
           },
         };
 
+        const finalDuration = activeEpisode.value?.duration_minutes || series.value?.duration_minutes;
+
         const schemaVideo = {
           "@context": "https://schema.org",
           "@type": "VideoObject",
           name: `${series.value?.title} - Episode ${currentEpisodeNumber.value}`,
-          description: series.value?.description || 'No description',
+          description: seoDescription.value,
           thumbnailUrl: [absThumbnail],
           uploadDate: isoDate,
-          duration: activeEpisode.value?.duration_minutes
-            ? `PT${activeEpisode.value.duration_minutes}M`
-            : undefined,
+          // Áp dụng biến finalDuration vừa tạo
+          duration: finalDuration ? `PT${finalDuration}M` : undefined, 
           contentUrl: absVideoSrc,
+          embedUrl: canonicalUrl.value
         };
 
         return JSON.stringify([schemaBreadcrumb, schemaEpisode, schemaVideo]);
@@ -1072,6 +1081,9 @@ useSeoMeta({
   ogDescription: seoDescription,
   ogImage: seoImage,
   ogUrl: canonicalUrl,
+  ogType: 'video.episode',
+  ogSiteName: 'NoriTV',
+  ogLocale: 'ja_JP',
   twitterCard: "summary_large_image",
 });
 

@@ -844,10 +844,13 @@ const seoImage = computed(
     movie.value?.banner_url || movie.value?.poster_url || "/images/banner.jpg"
 );
 
+const SITE_URL = 'https://noritv.com';
+
 const toAbsoluteUrl = (path: string | null | undefined) => {
   if (!path) return undefined;
   if (path.startsWith('http')) return path;
-  return `${url.origin}${path.startsWith('/') ? '' : '/'}${path}`;
+  // Dùng trực tiếp tên miền thay vì url.origin
+  return `${SITE_URL}${path.startsWith('/') ? '' : '/'}${path}`; 
 };
 
 useHead({
