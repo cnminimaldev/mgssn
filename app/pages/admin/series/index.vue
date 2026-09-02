@@ -24,7 +24,7 @@
       >
         <div class="p-4 border-b border-white/5">
           <input
-            v-model="keyword"
+            v-model="searchInput"
             @keydown.enter="handleSearch"
             type="text"
             placeholder="タイトルで検索..."
@@ -153,22 +153,23 @@ definePageMeta({
 });
 
 const page = ref(1);
-const keyword = ref("");
+const searchInput = ref("");   // Biến gắn với ô nhập liệu
+const activeKeyword = ref(""); // Biến truyền vào API
 const supabase = useSupabaseClient<any>();
 
 const { data, pending, refresh } = await useFetch("/api/movies", {
   params: {
     page,
-    q: keyword,
+    q: activeKeyword, // Truyền biến activeKeyword vào đây
     type: "series", 
     sort: "created_at",
     pageSize: 20,
     isAdmin: "true",
   },
-  watch: [page],
+  // Khai báo cho Nuxt tự động gọi API khi page hoặc activeKeyword thay đổi
+  watch: [page, activeKeyword], 
 });
 
-// [ĐÃ SỬA] Đổi từ computed sang ref cục bộ 
 const seriesList = ref<any[]>([]);
 const total = ref(0);
 
@@ -180,14 +181,16 @@ watch(data, (newData) => {
 }, { immediate: true });
 
 const handleSearch = () => {
+  // Gán từ khóa vừa nhập vào biến API
+  activeKeyword.value = searchInput.value;
+  // Reset về trang 1
   page.value = 1;
-  refresh();
+  
+  // Không cần gọi refresh() nữa vì watcher sẽ tự động lo việc đó!
 };
 
 const togglePublicStatus = async (item: any) => {
   const newStatus = !item.isPublic;
-  
-  // [MỚI] Optimistic UI: Cập nhật giao diện ngay lập tức
   item.isPublic = newStatus;
 
   try {
@@ -198,7 +201,6 @@ const togglePublicStatus = async (item: any) => {
 
     if (error) throw error;
   } catch (e: any) {
-    // Hoàn tác nếu lỗi
     item.isPublic = !newStatus;
     alert("Trạng thái cập nhật thất bại: " + e.message);
   }
