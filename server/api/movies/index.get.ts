@@ -25,7 +25,7 @@ type ApiMediaItem = {
   genre: string
   episodeCount?: number
   createdAt: string
-  isPublic: boolean // [MỚI] Thêm thuộc tính trạng thái
+  isPublic: boolean
 }
 
 export default defineEventHandler(async (event) => {
@@ -57,7 +57,6 @@ export default defineEventHandler(async (event) => {
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1
   const pageSize = Number.isFinite(pageSizeParam) && pageSizeParam > 0 && pageSizeParam <= 100 ? pageSizeParam : 24
 
-  // [MỚI] Bắt cờ kiểm tra Admin
   const isAdmin = query.isAdmin === 'true'
 
   // --- 2. Build Query ---
@@ -67,8 +66,6 @@ export default defineEventHandler(async (event) => {
   const recommendedOrder: Record<string, number> = {}
 
   // --- 3. Filter (Áp dụng bộ lọc) ---
-  
-  // [MỚI] Lọc nội dung Công khai/Riêng tư
   if (!isAdmin) {
     dbQuery = dbQuery.eq('is_public', true)
   }
@@ -86,7 +83,7 @@ export default defineEventHandler(async (event) => {
     dbQuery = dbQuery.eq('year', yearNum)
   }
 
-  // TÌM KIẾM DIỄN VIÊN / ĐẠO DIỄN QUA BẢNG CHUẨN
+  // TÌM KIẾM DIỄN VIÊN / ĐẠO DIỄN
   if (castParam || directorParam) {
     const roleFilter = castParam ? 'cast' : 'director';
     const searchName = castParam || directorParam;
@@ -115,16 +112,18 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  let totalSearchResults = 0
+  // TÌM KIẾM BẰNG TỪ KHÓA (SỬ DỤNG RPC)
+  let isCustomRelevanceSort = false
 
   if (search) {
-    const from = (page - 1) * pageSize
-
+    isCustomRelevanceSort = sortParam === 'recommended'
+    
+    // [ĐÃ SỬA] Tắt phân trang ở RPC. Lấy tối đa 1000 ID khớp từ khóa để DB tự đếm số Public
     const { data: searchResults, error: searchError } = await client
       .rpc('search_japanese_media', { 
         search_term: search,
-        p_limit: pageSize,
-        p_offset: from
+        p_limit: 1000, 
+        p_offset: 0
       })
     
     if (searchError) {
@@ -135,14 +134,13 @@ export default defineEventHandler(async (event) => {
       return { items: [], total: 0, page, pageSize }
     }
 
-    totalSearchResults = Number(searchResults[0]?.total_count || 0)
-
     const movieIds: number[] = []
     const seriesIds: number[] = []
     
-    searchResults.forEach((item: any) => {
+    searchResults.forEach((item: any, index: number) => {
       const key = `${item.type}-${item.id}`
       highlightMap[key] = item.highlighted_title
+      recommendedOrder[key] = index // Lưu lại thứ tự ưu tiên của thuật toán tìm kiếm
       
       if (item.type === 'movie') movieIds.push(item.id)
       if (item.type === 'series') seriesIds.push(item.id)
@@ -152,12 +150,15 @@ export default defineEventHandler(async (event) => {
     if (movieIds.length > 0) orFilters.push(`and(type.eq.movie,id.in.(${movieIds.join(',')}))`)
     if (seriesIds.length > 0) orFilters.push(`and(type.eq.series,id.in.(${seriesIds.join(',')}))`)
     
-    dbQuery = dbQuery.or(orFilters.join(','))
+    if (orFilters.length > 0) {
+      dbQuery = dbQuery.or(orFilters.join(','))
+    } else {
+      dbQuery = dbQuery.eq('id', -1)
+    }
   }
 
-  // --- 4. Sorting & Pagination ---
-  const isCustomRelevanceSort = search && sortParam === 'recommended'
-
+  // --- 4. Sorting & Pagination (DB Side) ---
+  // Chỉ phân trang bằng Database nếu không dùng bộ lọc Recommended
   if (!isCustomRelevanceSort) {
     if (sortParam === 'year_desc') {
       dbQuery = dbQuery.order('year', { ascending: false })
@@ -209,14 +210,17 @@ export default defineEventHandler(async (event) => {
       genre: row.genre_label || 'その他',
       episodeCount: row.episode_count || 0,
       createdAt: row.created_at,
-      isPublic: row.is_public !== false // [MỚI] Trả về trạng thái (mặc định true nếu null)
+      isPublic: row.is_public !== false
     }
   })
 
   // --- 7. Sắp xếp và Phân trang Bằng Javascript ---
-  let finalTotal = search ? totalSearchResults : (count ?? 0)
+  // [ĐÃ SỬA] count bây giờ là số lượng chính xác 100% của các phim đang Public
+  let finalTotal = count ?? 0
 
-  if (isCustomRelevanceSort && !search) {
+  // [ĐÃ SỬA] Sửa lỗi if logic bị sai (!search -> search)
+  if (isCustomRelevanceSort) {
+    // Trả lại thứ tự chuẩn cho kết quả tìm kiếm
     items.sort((a, b) => {
       const orderA = recommendedOrder[`${a.type}-${a.id}`] ?? 9999
       const orderB = recommendedOrder[`${b.type}-${b.id}`] ?? 9999
@@ -225,6 +229,7 @@ export default defineEventHandler(async (event) => {
     
     finalTotal = items.length
     
+    // Áp dụng phân trang thủ công do nãy ta đã ngắt phân trang của DB
     const from = (page - 1) * pageSize
     items = items.slice(from, from + pageSize)
   }
