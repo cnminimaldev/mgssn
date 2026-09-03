@@ -264,6 +264,20 @@ export default defineEventHandler(async (event) => {
     items = items.slice(from, from + pageSize)
   }
 
+  // ==========================================
+  // [MỚI] GHI LOG LỊCH SỬ TÌM KIẾM (CHẠY NGẦM)
+  // ==========================================
+  if (searchRaw && searchRaw.trim() !== '') {
+    // Không dùng await để tránh làm tăng thời gian phản hồi (Latency) của API
+    client.from('search_history').insert({
+      keyword: searchRaw.trim(),
+      result_count: finalTotal
+    }).then(({ error }) => {
+      if (error) console.error('Lỗi lưu lịch sử tìm kiếm:', error.message)
+    })
+  }
+  // ==========================================
+
   return {
     items,
     total: finalTotal,
