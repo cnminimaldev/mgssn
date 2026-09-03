@@ -947,9 +947,11 @@ watch(selectedCollectionId, (val) => {
 });
 
 // --- SEO Configuration ---
-const url = useRequestURL();
+const SITE_URL = 'https://noritv.com';
+
+// Bỏ dòng: const url = useRequestURL();
 const canonicalUrl = computed(() => {
-  return `${url.origin}/series/${slugParam.value}/episode/${currentEpisodeNumber.value}`;
+  return `${SITE_URL}/series/${slugParam.value}/episode/${currentEpisodeNumber.value}`;
 });
 
 const seoTitle = computed(() => {
@@ -975,8 +977,6 @@ const seoImage = computed(
   () =>
     series.value?.banner_url || series.value?.poster_url || "/images/banner.jpg"
 );
-
-const SITE_URL = 'https://noritv.com';
 
 const toAbsoluteUrl = (path: string | null | undefined) => {
   if (!path) return undefined;
@@ -1006,19 +1006,19 @@ useHead({
               "@type": "ListItem",
               position: 1,
               name: "Home",
-              item: url.origin,
+              item: SITE_URL, // Sửa ở đây
             },
             {
               "@type": "ListItem",
               position: 2,
               name: "Series",
-              item: `${url.origin}/search?type=series`,
+              item: `${SITE_URL}/search?type=series`, // Sửa ở đây
             },
             {
               "@type": "ListItem",
               position: 3,
               name: series.value?.title,
-              item: `${url.origin}/series/${slugParam.value}`,
+              item: `${SITE_URL}/series/${slugParam.value}`, // Sửa ở đây
             },
             {
               "@type": "ListItem",
@@ -1049,7 +1049,7 @@ useHead({
           partOfSeries: {
             "@type": "TVSeries",
             name: series.value?.title,
-            url: `${url.origin}/series/${slugParam.value}`,
+            url: `${SITE_URL}/series/${slugParam.value}`, // Sửa ở đây
           },
         };
 

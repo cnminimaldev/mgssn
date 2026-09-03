@@ -625,10 +625,17 @@ watch(
   { immediate: true }
 );
 
-const url = useRequestURL();
+const SITE_URL = 'https://noritv.com';
+
+// Bổ sung hàm chuyển đổi đường dẫn tuyệt đối
+const toAbsoluteUrl = (path: string | null | undefined) => {
+  if (!path) return undefined;
+  if (path.startsWith('http')) return path;
+  return `${SITE_URL}${path.startsWith('/') ? '' : '/'}${path}`; 
+};
 
 const canonicalUrl = computed(() => {
-  return `${url.origin}/series/${slugParam.value}`;
+  return `${SITE_URL}/series/${slugParam.value}`; // Sửa lại thành SITE_URL
 });
 
 const seoTitle = computed(() =>
@@ -664,7 +671,7 @@ useHead({
           name: series.value?.title,
           alternateName: series.value?.original_title,
           description: series.value?.description,
-          image: posterUrl.value,
+          image: toAbsoluteUrl(posterUrl.value),
           startDate: series.value?.year?.toString(),
           countryOfOrigin: {
             "@type": "Country",
@@ -701,13 +708,13 @@ useHead({
               "@type": "ListItem",
               position: 1,
               name: "Home",
-              item: url.origin,
+              item: SITE_URL, // Đổi thành SITE_URL
             },
             {
               "@type": "ListItem",
               position: 2,
               name: "Series",
-              item: `${url.origin}/search?type=series`,
+              item: `${SITE_URL}/search?type=series`, // Đổi thành SITE_URL
             },
             {
               "@type": "ListItem",

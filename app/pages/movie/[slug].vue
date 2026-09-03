@@ -821,10 +821,8 @@ onMounted(async () => {
   if (import.meta.server) return;
 });
 
-const url = useRequestURL();
-
 const canonicalUrl = computed(() => {
-  return `${url.origin}/movie/${routeSlug.value}`;
+  return `${SITE_URL}/movie/${routeSlug.value}`;
 });
 
 const seoTitle = computed(() =>
@@ -916,6 +914,7 @@ useHead({
             ? `PT${movie.value.duration_minutes}M`
             : undefined,
           contentUrl: absVideoUrl, 
+          embedUrl: canonicalUrl.value,
           interactionStatistic: {
             "@type": "InteractionCounter",
             interactionType: { "@type": "WatchAction" },
@@ -927,8 +926,8 @@ useHead({
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           itemListElement: [
-            { "@type": "ListItem", position: 1, name: "Home", item: url.origin },
-            { "@type": "ListItem", position: 2, name: "Movies", item: `${url.origin}/search?type=movie` },
+            { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+            { "@type": "ListItem", position: 2, name: "Movies", item: `${SITE_URL}/search?type=movie` },
             { "@type": "ListItem", position: 3, name: movie.value.title, item: canonicalUrl.value },
           ],
         };
