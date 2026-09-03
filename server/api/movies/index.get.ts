@@ -1,14 +1,14 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { getQuery, createError } from 'h3'
 
-// 1. Helper: Chuyển Katakana -> Hiragana
+// Helper 1: Chuyển đổi toàn bộ Katakana sang Hiragana
 function toHiragana(input: string) {
   return input.replace(/[\u30A1-\u30F6]/g, (ch) =>
     String.fromCharCode(ch.charCodeAt(0) - 0x60),
   )
 }
 
-// 2. Helper: Chuyển Hiragana -> Katakana
+// Helper 2: Chuyển đổi toàn bộ Hiragana sang Katakana
 function toKatakana(input: string) {
   return input.replace(/[\u3041-\u3096]/g, (ch) =>
     String.fromCharCode(ch.charCodeAt(0) + 0x60),
@@ -190,6 +190,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // --- 4. Sorting & Pagination (DB Side) ---
+  // Chỉ phân trang bằng Database nếu không dùng bộ lọc Recommended
   if (!isCustomRelevanceSort) {
     if (sortParam === 'year_desc') {
       dbQuery = dbQuery.order('year', { ascending: false })
@@ -249,7 +250,7 @@ export default defineEventHandler(async (event) => {
   let finalTotal = searchRaw ? totalSearchResults : (count ?? 0)
 
   if (isCustomRelevanceSort) {
-    // Trả lại thứ tự chuẩn cho kết quả tìm kiếm (Ưu tiên từ khóa gốc -> Hiragana -> Katakana)
+    // Trả lại thứ tự chuẩn cho kết quả tìm kiếm
     items.sort((a, b) => {
       const orderA = recommendedOrder[`${a.type}-${a.id}`] ?? 9999
       const orderB = recommendedOrder[`${b.type}-${b.id}`] ?? 9999
@@ -258,6 +259,7 @@ export default defineEventHandler(async (event) => {
     
     finalTotal = items.length
     
+    // Áp dụng phân trang thủ công do nãy ta đã ngắt phân trang của DB
     const from = (page - 1) * pageSize
     items = items.slice(from, from + pageSize)
   }
