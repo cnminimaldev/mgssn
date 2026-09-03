@@ -34,7 +34,8 @@ export default defineEventHandler(async (event) => {
 
   // --- 1. Params ---
   const searchRaw = typeof query.q === 'string' ? query.q.trim() : ''
-  const search = searchRaw ? toHiragana(searchRaw) : ''
+  // Bỏ const search = searchRaw ? toHiragana(searchRaw) : ''
+  const search = searchRaw
 
   const castParam = typeof query.cast === 'string' ? query.cast.trim() : ''
   const directorParam = typeof query.director === 'string' ? query.director.trim() : ''
