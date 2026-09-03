@@ -1,10 +1,17 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { getQuery, createError } from 'h3'
 
-// Helper chuyển đổi toàn bộ Katakana sang Hiragana
+// 1. Helper: Chuyển Katakana -> Hiragana
 function toHiragana(input: string) {
   return input.replace(/[\u30A1-\u30F6]/g, (ch) =>
     String.fromCharCode(ch.charCodeAt(0) - 0x60),
+  )
+}
+
+// 2. Helper: Chuyển Hiragana -> Katakana
+function toKatakana(input: string) {
+  return input.replace(/[\u3041-\u3096]/g, (ch) =>
+    String.fromCharCode(ch.charCodeAt(0) + 0x60),
   )
 }
 
@@ -33,9 +40,8 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
 
   // --- 1. Params ---
+  // Lấy nguyên bản từ khóa người dùng gõ
   const searchRaw = typeof query.q === 'string' ? query.q.trim() : ''
-  // Bỏ const search = searchRaw ? toHiragana(searchRaw) : ''
-  const search = searchRaw
 
   const castParam = typeof query.cast === 'string' ? query.cast.trim() : ''
   const directorParam = typeof query.director === 'string' ? query.director.trim() : ''
@@ -113,39 +119,64 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // TÌM KIẾM BẰNG TỪ KHÓA (SỬ DỤNG RPC)
+  // TÌM KIẾM BẰNG TỪ KHÓA ĐA BIẾN THỂ (MULTI-TERM PARALLEL SEARCH)
   let isCustomRelevanceSort = false
+  let totalSearchResults = 0
 
-  if (search) {
+  if (searchRaw) {
     isCustomRelevanceSort = sortParam === 'recommended'
     
-    // [ĐÃ SỬA] Tắt phân trang ở RPC. Lấy tối đa 1000 ID khớp từ khóa để DB tự đếm số Public
-    const { data: searchResults, error: searchError } = await client
-      .rpc('search_japanese_media', { 
-        search_term: search,
+    // Tạo mảng chứa 3 phiên bản từ khóa. 
+    // Dùng Set() để tự động xóa trùng lặp (nếu gõ Romaji/Tiếng Anh thì cả 3 cái giống nhau)
+    const searchTerms = Array.from(new Set([
+      searchRaw,
+      toHiragana(searchRaw),
+      toKatakana(searchRaw)
+    ]))
+
+    // Tạo các lệnh gọi Database song song để tối ưu tốc độ
+    const searchPromises = searchTerms.map(term => 
+      client.rpc('search_japanese_media', { 
+        search_term: term,
         p_limit: 1000, 
         p_offset: 0
       })
-    
-    if (searchError) {
-      throw createError({ statusCode: 500, statusMessage: searchError.message })
-    }
+    )
 
-    if (!searchResults || searchResults.length === 0) {
+    // Đợi tất cả truy vấn hoàn thành
+    const results = await Promise.all(searchPromises)
+    
+    const movieIds: number[] = []
+    const seriesIds: number[] = []
+    const seenIds = new Set<string>() // Biến này để chống trùng lặp kết quả
+    let orderIndex = 0
+
+    // Gộp kết quả của cả 3 bản tìm kiếm lại
+    results.forEach(({ data, error }) => {
+      if (!error && data) {
+        data.forEach((item: any) => {
+          const key = `${item.type}-${item.id}`
+          
+          // Nếu phim này chưa có trong danh sách thì mới thêm vào
+          if (!seenIds.has(key)) {
+            seenIds.add(key)
+            highlightMap[key] = item.highlighted_title
+            
+            // Từ khóa gốc (vị trí 0) sẽ luôn được ưu tiên đứng trên cùng nhờ logic này
+            recommendedOrder[key] = orderIndex++
+            
+            if (item.type === 'movie') movieIds.push(item.id)
+            if (item.type === 'series') seriesIds.push(item.id)
+          }
+        })
+      }
+    })
+
+    if (seenIds.size === 0) {
       return { items: [], total: 0, page, pageSize }
     }
 
-    const movieIds: number[] = []
-    const seriesIds: number[] = []
-    
-    searchResults.forEach((item: any, index: number) => {
-      const key = `${item.type}-${item.id}`
-      highlightMap[key] = item.highlighted_title
-      recommendedOrder[key] = index // Lưu lại thứ tự ưu tiên của thuật toán tìm kiếm
-      
-      if (item.type === 'movie') movieIds.push(item.id)
-      if (item.type === 'series') seriesIds.push(item.id)
-    })
+    totalSearchResults = seenIds.size
 
     const orFilters = []
     if (movieIds.length > 0) orFilters.push(`and(type.eq.movie,id.in.(${movieIds.join(',')}))`)
@@ -159,7 +190,6 @@ export default defineEventHandler(async (event) => {
   }
 
   // --- 4. Sorting & Pagination (DB Side) ---
-  // Chỉ phân trang bằng Database nếu không dùng bộ lọc Recommended
   if (!isCustomRelevanceSort) {
     if (sortParam === 'year_desc') {
       dbQuery = dbQuery.order('year', { ascending: false })
@@ -216,12 +246,10 @@ export default defineEventHandler(async (event) => {
   })
 
   // --- 7. Sắp xếp và Phân trang Bằng Javascript ---
-  // [ĐÃ SỬA] count bây giờ là số lượng chính xác 100% của các phim đang Public
-  let finalTotal = count ?? 0
+  let finalTotal = searchRaw ? totalSearchResults : (count ?? 0)
 
-  // [ĐÃ SỬA] Sửa lỗi if logic bị sai (!search -> search)
   if (isCustomRelevanceSort) {
-    // Trả lại thứ tự chuẩn cho kết quả tìm kiếm
+    // Trả lại thứ tự chuẩn cho kết quả tìm kiếm (Ưu tiên từ khóa gốc -> Hiragana -> Katakana)
     items.sort((a, b) => {
       const orderA = recommendedOrder[`${a.type}-${a.id}`] ?? 9999
       const orderB = recommendedOrder[`${b.type}-${b.id}`] ?? 9999
@@ -230,7 +258,6 @@ export default defineEventHandler(async (event) => {
     
     finalTotal = items.length
     
-    // Áp dụng phân trang thủ công do nãy ta đã ngắt phân trang của DB
     const from = (page - 1) * pageSize
     items = items.slice(from, from + pageSize)
   }
