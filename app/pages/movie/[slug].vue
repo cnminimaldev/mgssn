@@ -213,6 +213,7 @@
   </div>
   <ClientOnly>
     <GlobalScripts position="popunder_player" target="body" />
+    <GlobalScripts :key="route.fullPath" position="global_body" target="body" />
   </ClientOnly>
 </template>
 

@@ -353,7 +353,7 @@
     <TheFooter />
 
     <ClientOnly>
-      <GlobalScripts />
+      <GlobalScripts position="global_head" target="body" />
     </ClientOnly>
   </div>
 </template>
