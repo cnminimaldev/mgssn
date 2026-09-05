@@ -341,7 +341,6 @@
       </div>
     </Teleport>
 
-    // AdSlot Placement
     <AdSlot position="sticky_left" />
     <AdSlot position="sticky_right" />
 

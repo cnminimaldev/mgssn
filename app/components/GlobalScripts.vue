@@ -6,22 +6,22 @@
 import { onMounted, onBeforeUnmount } from 'vue'
 import { useAds } from '~~/app/composables/useAds'
 
-// 1. Khai báo Props để nhận lệnh từ Component cha
 const props = defineProps({
   position: {
     type: String,
-    default: '' // VD: 'global_body', 'popunder_player'...
+    default: ''
   },
   target: {
     type: String,
-    default: 'body' // 'head' hoặc 'body'
+    default: 'body'
   }
 })
 
 const { getAdCode } = useAds()
 
-// 2. Tạo mảng theo dõi các Node đã được bơm vào DOM
-const injectedNodes: Node[] = []
+// Mảng chứa "danh sách đen" (Tất cả script bơm vào và rác do quảng cáo tự sinh ra)
+const garbageNodes: Node[] = []
+let domObserver: MutationObserver | null = null
 
 const injectToElement = (code: string | null, targetElement: HTMLElement) => {
   if (!code) return
@@ -29,54 +29,72 @@ const injectToElement = (code: string | null, targetElement: HTMLElement) => {
   const tempDiv = document.createElement('div')
   tempDiv.innerHTML = code
   
-  // Bơm các thẻ HTML thường (div, span, img...)
   Array.from(tempDiv.childNodes).forEach(node => {
     if (node.nodeName.toLowerCase() !== 'script') {
       const clonedNode = node.cloneNode(true)
       targetElement.appendChild(clonedNode)
-      injectedNodes.push(clonedNode) // Ghi sổ để dọn dẹp
+      garbageNodes.push(clonedNode) // Ghi sổ
     }
   })
 
-  // Bơm và kích hoạt các thẻ <script>
   const scripts = tempDiv.getElementsByTagName('script')
   Array.from(scripts).forEach(oldScript => {
     const newScript = document.createElement('script')
-    
     Array.from(oldScript.attributes).forEach(attr => {
       newScript.setAttribute(attr.name, attr.value)
     })
-    
-    if (oldScript.text) {
-      newScript.text = oldScript.text
-    }
+    if (oldScript.text) newScript.text = oldScript.text
     
     targetElement.appendChild(newScript)
-    injectedNodes.push(newScript) // Ghi sổ để dọn dẹp
+    garbageNodes.push(newScript) // Ghi sổ
   })
 }
 
 onMounted(() => {
-  // 3. Nếu có truyền prop `position`, chỉ chạy riêng mã đó
+  // 1. Bật RADAR THEO DÕI trước khi quảng cáo chạy
+  domObserver = new MutationObserver((mutations) => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        // Nếu có thẻ bị nhét thêm vào body/head (bởi script quảng cáo)
+        if (mutation.target === document.body || mutation.target === document.head) {
+          
+          // Bỏ qua các thành phần cốt lõi của Nuxt (tránh xóa nhầm web)
+          if (node instanceof HTMLElement) {
+            if (node.id === '__nuxt' || node.id === 'teleports') return
+            if (node.tagName.toLowerCase() === 'script' && node.id.includes('nuxt')) return
+          }
+          
+          // Đưa tàn dư quảng cáo vào danh sách đen để tiêu diệt
+          garbageNodes.push(node)
+        }
+      })
+    })
+  })
+
+  // Kích hoạt Radar soi toàn bộ thẻ body và head
+  domObserver.observe(document.body, { childList: true })
+  domObserver.observe(document.head, { childList: true })
+
+  // 2. Bắt đầu bơm mã quảng cáo
   if (props.position) {
     const code = getAdCode(props.position)
     const targetElement = props.target === 'head' ? document.head : document.body
     if (code) injectToElement(code, targetElement)
-  } 
-  // 4. Nếu gọi <GlobalScripts /> trống (thường dùng ở file layout app.vue)
-  else {
+  } else {
     const headCode = getAdCode('global_head')
     const bodyCode = getAdCode('global_body')
-    
     if (headCode) injectToElement(headCode, document.head)
     if (bodyCode) injectToElement(bodyCode, document.body)
   }
 })
 
-// 5. [QUAN TRỌNG] Quét dọn rác DOM ngay trước khi Component bị hủy (khi chuyển trang)
 onBeforeUnmount(() => {
-  injectedNodes.forEach(node => {
-    if (node.parentNode) {
+  // 1. Tắt Radar
+  if (domObserver) domObserver.disconnect()
+  
+  // 2. Lệnh hành quyết: Đốt sạch mọi tàn dư trong "Danh sách đen"
+  garbageNodes.forEach(node => {
+    if (node && node.parentNode) {
       node.parentNode.removeChild(node)
     }
   })
