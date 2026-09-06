@@ -217,9 +217,72 @@
               </button>
               <!-- Nội dung menu phụ đề giữ nguyên, tôi không copy lại để code đỡ rối -->
               <div v-if="showSubsMenu" class="absolute bottom-full right-0 mb-3 w-64 overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
-                <div class="p-2 space-y-4">
-                  <!-- Giữ nguyên block phụ đề của bạn ở đây -->
+                <!-- Khởi đầu menu phụ đề -->
+              <div v-if="showSubsMenu" class="absolute bottom-full right-0 mb-3 w-64 overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md cursor-default" @click.stop>
+                <div class="p-2">
+                  <!-- 1. Chọn Track Phụ đề -->
+                  <div class="border-b border-white/10 pb-3 mb-3">
+                    <div class="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">字幕トラック (Track)</div>
+                    <div class="space-y-0.5 max-h-32 overflow-y-auto custom-scrollbar">
+                      <button
+                        class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs text-zinc-300 hover:bg-white/10 transition-colors"
+                        @click="changeTrack(-1)"
+                      >
+                        <span>オフ (Off)</span>
+                        <span v-if="activeTrackIndex === -1" class="text-emerald-400 font-bold">✓</span>
+                      </button>
+                      <button
+                        v-for="(sub, index) in subtitles"
+                        :key="index"
+                        class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs text-zinc-300 hover:bg-white/10 transition-colors"
+                        @click="changeTrack(index)"
+                      >
+                        <span>{{ sub.label }}</span>
+                        <span v-if="activeTrackIndex === index" class="text-emerald-400 font-bold">✓</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 2. Tùy chỉnh Kích thước (Size) -->
+                  <div class="mb-3 px-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500">文字サイズ (Size)</span>
+                      <span class="text-[10px] text-zinc-400 font-mono">{{ subSettings.fontSize }}%</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="50" max="200" step="10" 
+                      v-model.number="subSettings.fontSize" 
+                      class="w-full h-1 accent-emerald-400 bg-zinc-700 rounded-full appearance-none cursor-pointer" 
+                    />
+                  </div>
+
+                  <!-- 3. Tùy chỉnh Font chữ -->
+                  <div class="mb-3 px-2">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">フォント (Font)</span>
+                    <select v-model="subSettings.fontFamily" class="w-full bg-black border border-zinc-700 text-xs text-zinc-300 rounded p-1.5 focus:border-emerald-500 focus:outline-none">
+                      <option v-for="f in fontOptions" :key="f.val" :value="f.val">{{ f.label }}</option>
+                    </select>
+                  </div>
+
+                  <!-- 4. Tùy chỉnh Nền (Background) -->
+                  <div class="mb-3 px-2">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">背景 (Background)</span>
+                    <select v-model="subSettings.bgOpacity" class="w-full bg-black border border-zinc-700 text-xs text-zinc-300 rounded p-1.5 focus:border-emerald-500 focus:outline-none">
+                      <option v-for="b in bgOptions" :key="b.val" :value="b.val">{{ b.label }}</option>
+                    </select>
+                  </div>
+
+                  <!-- 5. Tùy chỉnh Viền/Bóng (Edge Style) -->
+                  <div class="px-2 pb-1">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">装飾 (Style)</span>
+                    <select v-model="subSettings.edgeStyle" class="w-full bg-black border border-zinc-700 text-xs text-zinc-300 rounded p-1.5 focus:border-emerald-500 focus:outline-none">
+                      <option v-for="e in edgeOptions" :key="e.val" :value="e.val">{{ e.label }}</option>
+                    </select>
+                  </div>
                 </div>
+              </div>
+              <!-- Kết thúc menu phụ đề -->
               </div>
             </div>
 
