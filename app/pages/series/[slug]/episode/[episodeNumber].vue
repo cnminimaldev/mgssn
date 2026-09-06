@@ -299,8 +299,8 @@
     <ShareModal v-model="showShareModal" :title="shareTitle" :url="shareUrl" />
   </div>
   <ClientOnly>
-    <GlobalScripts position="popunder_player" target="body" />
-    <GlobalScripts position="global_body" target="body" />
+    <GlobalScripts :key="`ad-pop-${route.fullPath}`" position="popunder_player" target="body" />
+    <GlobalScripts :key="`ad-body-${route.fullPath}`" position="global_body" target="body" />
   </ClientOnly>
 </template>
 
