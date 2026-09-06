@@ -193,15 +193,16 @@
           </div>
 
           <div class="flex items-center gap-0 sm:gap-2">
-            <!-- Settings button -->
+            <!-- Cụm Nút 1: Settings button -->
             <div class="relative">
               <button class="text-white hover:text-emerald-400 transition-colors p-1.5 sm:p-2 rounded-full hover:bg-white/10" :class="{ 'text-emerald-400': showSettings }" @click.stop="toggleSettings" title="画質設定">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 sm:h-6 sm:w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.212 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               </button>
-              <!-- Nội dung menu chất lượng giữ nguyên -->
-              <div v-if="showSettings" class="absolute bottom-full right-0 mb-3 w-48 overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
-                <div class="px-3 py-2 text-[10px] font-bold uppercase text-zinc-500 border-b border-white/10 mb-1">画質 (Quality)</div>
-                <div class="space-y-0.5 max-h-60 overflow-y-auto">
+              
+              <!-- [FIX MOBILE] MENU CHẤT LƯỢNG -->
+              <div v-if="showSettings" class="absolute bottom-full right-0 mb-2 sm:mb-3 w-40 sm:w-48 max-h-[140px] sm:max-h-[300px] flex flex-col overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
+                <div class="px-3 py-1.5 sm:py-2 text-[10px] font-bold uppercase text-zinc-500 border-b border-white/10 mb-1 shrink-0">画質 (Quality)</div>
+                <div class="space-y-0.5 overflow-y-auto custom-scrollbar flex-1">
                   <button v-for="lvl in qualityLevels" :key="lvl.id" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs text-zinc-300 hover:bg-white/10 transition-colors" @click="changeQuality(lvl.id)">
                     <span>{{ lvl.label }}</span>
                     <span v-if="currentQuality === lvl.id" class="text-emerald-400 font-bold">✓</span>
@@ -210,31 +211,24 @@
               </div>
             </div>
 
-            <!-- Subtitle button -->
+            <!-- Cụm Nút 2: Subtitle button -->
             <div class="relative" v-if="subtitles && subtitles.length > 0">
               <button class="text-white hover:text-emerald-400 transition-colors p-1.5 sm:p-2 rounded-full hover:bg-white/10" :class="{ 'text-emerald-400': showSubsMenu || activeTrackIndex !== -1 }" @click.stop="toggleSubsMenu" title="字幕">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 sm:h-6 sm:w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.375.028.716.223.93.531L12 21l2.755-4.133c.214-.32.555-.515.93-.53 1.129-.045 2.294-.213 3.423-.379 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
               </button>
-              <!-- Khởi đầu menu phụ đề -->
-              <div v-if="showSubsMenu" class="absolute bottom-full right-0 mb-3 w-64 overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md cursor-default" @click.stop>
-                <div class="p-2">
+              
+              <!-- [FIX MOBILE] MENU PHỤ ĐỀ -->
+              <div v-if="showSubsMenu" class="absolute bottom-full right-0 mb-2 sm:mb-3 w-56 sm:w-64 max-h-[140px] sm:max-h-[350px] flex flex-col rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md cursor-default" @click.stop>
+                <div class="overflow-y-auto custom-scrollbar flex-1 p-1 sm:p-2">
                   <!-- 1. Chọn Track Phụ đề -->
-                  <div class="border-b border-white/10 pb-3 mb-3">
+                  <div class="border-b border-white/10 pb-2 mb-2 sm:pb-3 sm:mb-3">
                     <div class="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">字幕トラック (Track)</div>
-                    <div class="space-y-0.5 max-h-32 overflow-y-auto custom-scrollbar">
-                      <button
-                        class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs text-zinc-300 hover:bg-white/10 transition-colors"
-                        @click="changeTrack(-1)"
-                      >
+                    <div class="space-y-0.5">
+                      <button class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs text-zinc-300 hover:bg-white/10 transition-colors" @click="changeTrack(-1)">
                         <span>オフ (Off)</span>
                         <span v-if="activeTrackIndex === -1" class="text-emerald-400 font-bold">✓</span>
                       </button>
-                      <button
-                        v-for="(sub, index) in subtitles"
-                        :key="index"
-                        class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs text-zinc-300 hover:bg-white/10 transition-colors"
-                        @click="changeTrack(index)"
-                      >
+                      <button v-for="(sub, index) in subtitles" :key="index" class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs text-zinc-300 hover:bg-white/10 transition-colors" @click="changeTrack(index)">
                         <span>{{ sub.label }}</span>
                         <span v-if="activeTrackIndex === index" class="text-emerald-400 font-bold">✓</span>
                       </button>
@@ -242,31 +236,26 @@
                   </div>
 
                   <!-- 2. Tùy chỉnh Kích thước (Size) -->
-                  <div class="mb-3 px-2">
+                  <div class="mb-2 sm:mb-3 px-2">
                     <div class="flex justify-between items-center mb-1">
                       <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500">文字サイズ (Size)</span>
                       <span class="text-[10px] text-zinc-400 font-mono">{{ subSettings.fontSize }}%</span>
                     </div>
-                    <input 
-                      type="range" 
-                      min="50" max="200" step="10" 
-                      v-model.number="subSettings.fontSize" 
-                      class="w-full h-1 accent-emerald-400 bg-zinc-700 rounded-full appearance-none cursor-pointer" 
-                    />
+                    <input type="range" min="50" max="200" step="10" v-model.number="subSettings.fontSize" class="w-full h-1 accent-emerald-400 bg-zinc-700 rounded-full appearance-none cursor-pointer" />
                   </div>
 
                   <!-- 3. Tùy chỉnh Font chữ -->
-                  <div class="mb-3 px-2">
+                  <div class="mb-2 sm:mb-3 px-2">
                     <span class="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">フォント (Font)</span>
-                    <select v-model="subSettings.fontFamily" class="w-full bg-black border border-zinc-700 text-xs text-zinc-300 rounded p-1.5 focus:border-emerald-500 focus:outline-none">
+                    <select v-model="subSettings.fontFamily" class="w-full bg-black border border-zinc-700 text-xs text-zinc-300 rounded p-1 sm:p-1.5 focus:border-emerald-500 focus:outline-none">
                       <option v-for="f in fontOptions" :key="f.val" :value="f.val">{{ f.label }}</option>
                     </select>
                   </div>
 
                   <!-- 4. Tùy chỉnh Nền (Background) -->
-                  <div class="mb-3 px-2">
+                  <div class="mb-2 sm:mb-3 px-2">
                     <span class="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">背景 (Background)</span>
-                    <select v-model="subSettings.bgOpacity" class="w-full bg-black border border-zinc-700 text-xs text-zinc-300 rounded p-1.5 focus:border-emerald-500 focus:outline-none">
+                    <select v-model="subSettings.bgOpacity" class="w-full bg-black border border-zinc-700 text-xs text-zinc-300 rounded p-1 sm:p-1.5 focus:border-emerald-500 focus:outline-none">
                       <option v-for="b in bgOptions" :key="b.val" :value="b.val">{{ b.label }}</option>
                     </select>
                   </div>
@@ -274,16 +263,15 @@
                   <!-- 5. Tùy chỉnh Viền/Bóng (Edge Style) -->
                   <div class="px-2 pb-1">
                     <span class="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">装飾 (Style)</span>
-                    <select v-model="subSettings.edgeStyle" class="w-full bg-black border border-zinc-700 text-xs text-zinc-300 rounded p-1.5 focus:border-emerald-500 focus:outline-none">
+                    <select v-model="subSettings.edgeStyle" class="w-full bg-black border border-zinc-700 text-xs text-zinc-300 rounded p-1 sm:p-1.5 focus:border-emerald-500 focus:outline-none">
                       <option v-for="e in edgeOptions" :key="e.val" :value="e.val">{{ e.label }}</option>
                     </select>
                   </div>
                 </div>
               </div>
-              <!-- Kết thúc menu phụ đề -->
             </div>
 
-            <!-- Fullscreen button -->
+            <!-- Cụm Nút 3: Fullscreen button -->
             <button class="text-white hover:text-emerald-400 transition-colors p-1.5 sm:p-2 rounded-full hover:bg-white/10" @click.stop="toggleFullscreen" title="全画面">
               <svg v-if="!isFullscreen" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 sm:h-6 sm:w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" /></svg>
               <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 sm:h-6 sm:w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5M15 15l5.25 5.25" /></svg>
