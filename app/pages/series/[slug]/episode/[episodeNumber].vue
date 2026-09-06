@@ -380,12 +380,15 @@ type EpisodeRow = {
   created_at?: string;
 };
 
+// [CẬP NHẬT] Thêm type cho stream_domains và stream_routing
 type ProviderRow = {
   id: number;
   name: string;
   website_url: string | null;
   player_type: string;
   embed_pattern: string | null;
+  stream_domains: string | null;
+  stream_routing: string | null;
 };
 
 type RelatedItem = {
@@ -551,11 +554,8 @@ const activeEpisode = computed<EpisodeRow | null>(() => {
   return variants[0] ?? null;
 });
 
-const activeEpisodeSubtitles = computed(() => {
-  const ep = activeEpisode.value;
-  if (!ep || !ep.subtitles || !Array.isArray(ep.subtitles)) return [];
-  return ep.subtitles;
-});
+// [CẬP NHẬT] Đã di dời logic xuống phía dưới (sau computed resolvedStreamBaseUrl)
+// để nó có thể sử dụng chung Base URL với playerSrc
 
 const currentEpisodeNumber = computed(() => {
   const ep = activeEpisode.value;
@@ -616,12 +616,61 @@ const activeProvider = computed(() => {
 
 const config = useRuntimeConfig();
 
+// [THÊM MỚI] Tính toán Base URL chuẩn cho TẤT CẢ stream (Video + Subtitle)
+const resolvedStreamBaseUrl = computed(() => {
+  // 1. Mặc định luôn có đường lui về file .env
+  let baseUrl = config.public.streamUrl;
+  
+  const rawDomains = activeProvider.value?.stream_domains;
+  const routingMode = activeProvider.value?.stream_routing || 'random';
+
+  // 2. Chạy thuật toán điều hướng nếu Provider có cấu hình
+  if (rawDomains && activeProvider.value?.player_type === 'direct') {
+    const domainList = rawDomains.split(',').map(d => d.trim()).filter(Boolean);
+    
+    if (domainList.length > 0) {
+      if (routingMode === 'random') {
+        const randomIndex = Math.floor(Math.random() * domainList.length);
+        baseUrl = domainList[randomIndex];
+      } else if (domainList.includes(routingMode)) {
+        baseUrl = routingMode;
+      } else {
+        baseUrl = domainList[0]; 
+      }
+    }
+  }
+  return baseUrl;
+});
+
+// [CẬP NHẬT] Áp dụng Base URL chung cho Video
 const playerSrc = computed(() => {
   const path = activeEpisode.value?.video_path || "";
   if (!path) return "";
   if (path.startsWith('http')) return path; 
-  const baseUrl = config.public.streamUrl;
+  
+  const baseUrl = resolvedStreamBaseUrl.value;
   return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+});
+
+// [CẬP NHẬT] Áp dụng Base URL chung cho Phụ đề (Subtitles)
+const activeEpisodeSubtitles = computed(() => {
+  const ep = activeEpisode.value;
+  if (!ep || !ep.subtitles || !Array.isArray(ep.subtitles)) return [];
+  
+  const baseUrl = resolvedStreamBaseUrl.value;
+  
+  // Duyệt qua từng file phụ đề và nối chuỗi y hệt như nối chuỗi video
+  return ep.subtitles.map(sub => {
+    // Nếu phụ đề lưu URL tương đối (Bắt đầu bằng /series...)
+    if (sub.src && !sub.src.startsWith('http')) {
+      return {
+        ...sub,
+        src: `${baseUrl}${sub.src.startsWith('/') ? '' : '/'}${sub.src}`
+      };
+    }
+    // Nếu lưu sẵn URL tuyệt đối (http) thì giữ nguyên
+    return sub;
+  });
 });
 
 const playerPoster = computed(() => {
@@ -792,9 +841,10 @@ const {
       .order("created_at", { ascending: true });
     result.collections = (colData ?? []) as EpisodeCollectionRow[];
 
+    // [CẬP NHẬT] Thêm thuộc tính truy vấn stream_domains, stream_routing
     const { data: provData } = await supabase
       .from("collection_providers")
-      .select("id, name, website_url, player_type, embed_pattern")
+      .select("id, name, website_url, player_type, embed_pattern, stream_domains, stream_routing")
       .order("name", { ascending: true });
     result.providers = (provData ?? []) as ProviderRow[];
 
@@ -950,7 +1000,6 @@ watch(selectedCollectionId, (val) => {
 // --- SEO Configuration ---
 const SITE_URL = 'https://noritv.com';
 
-// Bỏ dòng: const url = useRequestURL();
 const canonicalUrl = computed(() => {
   return `${SITE_URL}/series/${slugParam.value}/episode/${currentEpisodeNumber.value}`;
 });
@@ -969,8 +1018,6 @@ const seoDescription = computed(() => {
     ? activeEpisode.value.title 
     : `第${currentEpisodeNumber.value}話`
   const baseDesc = series.value?.description ?? "映画やドラマをオンラインで楽しめるNoriTV。"
-  
-  // Trả về ví dụ: 【第6話】Đây là mô tả của bộ phim...
   return `【${epLabel}】${baseDesc}`
 });
 
@@ -982,7 +1029,6 @@ const seoImage = computed(
 const toAbsoluteUrl = (path: string | null | undefined) => {
   if (!path) return undefined;
   if (path.startsWith('http')) return path;
-  // Dùng trực tiếp tên miền thay vì url.origin
   return `${SITE_URL}${path.startsWith('/') ? '' : '/'}${path}`; 
 };
 
@@ -1007,19 +1053,19 @@ useHead({
               "@type": "ListItem",
               position: 1,
               name: "Home",
-              item: SITE_URL, // Sửa ở đây
+              item: SITE_URL,
             },
             {
               "@type": "ListItem",
               position: 2,
               name: "Series",
-              item: `${SITE_URL}/search?type=series`, // Sửa ở đây
+              item: `${SITE_URL}/search?type=series`,
             },
             {
               "@type": "ListItem",
               position: 3,
               name: series.value?.title,
-              item: `${SITE_URL}/series/${slugParam.value}`, // Sửa ở đây
+              item: `${SITE_URL}/series/${slugParam.value}`,
             },
             {
               "@type": "ListItem",
@@ -1050,7 +1096,7 @@ useHead({
           partOfSeries: {
             "@type": "TVSeries",
             name: series.value?.title,
-            url: `${SITE_URL}/series/${slugParam.value}`, // Sửa ở đây
+            url: `${SITE_URL}/series/${slugParam.value}`,
           },
         };
 
@@ -1063,7 +1109,6 @@ useHead({
           description: seoDescription.value,
           thumbnailUrl: [absThumbnail],
           uploadDate: isoDate,
-          // Áp dụng biến finalDuration vừa tạo
           duration: finalDuration ? `PT${finalDuration}M` : undefined, 
           contentUrl: absVideoSrc,
           embedUrl: canonicalUrl.value
@@ -1090,7 +1135,6 @@ useSeoMeta({
 
 onMounted(async () => {
   await nextTick();
-  // Đã xóa hàm cuộn trang scrollToPlayer vì player giờ nằm trên cùng
   scrollToActiveEpisode();
 });
 </script>

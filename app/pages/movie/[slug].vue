@@ -222,7 +222,7 @@ import { computed, ref, nextTick, watch, onMounted } from "vue";
 import {
   useRoute,
   useSupabaseClient,
-  useSupabaseUser, // [THÊM MỚI] Import composable lấy user
+  useSupabaseUser,
   useSeoMeta,
   useHead,
   navigateTo,
@@ -238,9 +238,7 @@ import { useMyList } from "~/composables/useMyList";
 import { useContinueWatching } from "~/composables/useContinueWatching";
 import { getResizedUrl } from "~/utils/image";
 
-// [THÊM MỚI] Khởi tạo User để check phân quyền
 const user = useSupabaseUser();
-// Kiểm tra xem có người đang đăng nhập hay không
 const isAdmin = computed(() => !!user.value);
 
 type SubtitleItem = { src: string; label: string; lang: string };
@@ -301,6 +299,8 @@ type ProviderRow = {
   website_url: string | null;
   player_type: string;
   embed_pattern: string | null;
+  stream_domains: string | null;
+  stream_routing: string | null;
 };
 
 type RelatedItem = {
@@ -499,12 +499,6 @@ const activePart = computed<MoviePartRow | null>(() => {
   return first ?? null;
 });
 
-const activePartSubtitles = computed(() => {
-  const part = activePart.value;
-  if (!part || !part.subtitles || !Array.isArray(part.subtitles)) return [];
-  return part.subtitles;
-});
-
 const activeCollectionInfo = computed(() => {
   if (selectedCollectionId.value == null) return null;
   const c = collections.value.find(
@@ -534,17 +528,58 @@ const activeProvider = computed(() => {
 
 const config = useRuntimeConfig();
 
+// [THÊM MỚI] Tính toán Base URL chuẩn cho cả Video và Subtitle (Tương tự Series)
+const resolvedStreamBaseUrl = computed(() => {
+  let baseUrl = config.public.streamUrl;
+  
+  const rawDomains = activeProvider.value?.stream_domains;
+  const routingMode = activeProvider.value?.stream_routing || 'random';
+
+  if (rawDomains && activeProvider.value?.player_type === 'direct') {
+    const domainList = rawDomains.split(',').map(d => d.trim()).filter(Boolean);
+    
+    if (domainList.length > 0) {
+      if (routingMode === 'random') {
+        const randomIndex = Math.floor(Math.random() * domainList.length);
+        baseUrl = domainList[randomIndex];
+      } else if (domainList.includes(routingMode)) {
+        baseUrl = routingMode;
+      } else {
+        baseUrl = domainList[0]; 
+      }
+    }
+  }
+  return baseUrl;
+});
+
+// [CẬP NHẬT] Áp dụng Base URL chung cho Video
 const playerSrc = computed(() => {
   const path = activePart.value?.video_path || "";
   if (!path) return "";
-  
-  // Nếu là link ngoài (embed, youtube) thì giữ nguyên, không ghép
   if (path.startsWith('http')) return path; 
   
-  // Tự động ghép tên miền Streaming vào đường dẫn tương đối
-  const baseUrl = config.public.streamUrl;
+  const baseUrl = resolvedStreamBaseUrl.value;
   return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
 });
+
+// [CẬP NHẬT] Áp dụng Base URL chung cho Phụ đề (Subtitles)
+const activePartSubtitles = computed(() => {
+  const part = activePart.value;
+  if (!part || !part.subtitles || !Array.isArray(part.subtitles)) return [];
+  
+  const baseUrl = resolvedStreamBaseUrl.value;
+  
+  return part.subtitles.map(sub => {
+    if (sub.src && !sub.src.startsWith('http')) {
+      return {
+        ...sub,
+        src: `${baseUrl}${sub.src.startsWith('/') ? '' : '/'}${sub.src}`
+      };
+    }
+    return sub;
+  });
+});
+
 const playerPoster = computed(() => {
   if (activePart.value?.thumbnail_url) {
     return getResizedUrl(activePart.value.thumbnail_url, 1280, 720, "cover");
@@ -704,9 +739,10 @@ const {
 
     result.parts = (partData ?? []) as MoviePartRow[];
 
+    // [CẬP NHẬT] Thêm thuộc tính truy vấn stream_domains, stream_routing
     const { data: provData } = await supabase
       .from("collection_providers")
-      .select("id, name, website_url, player_type, embed_pattern")
+      .select("id, name, website_url, player_type, embed_pattern, stream_domains, stream_routing")
       .order("name", { ascending: true });
 
     result.providers = (provData ?? []) as ProviderRow[];
@@ -848,7 +884,6 @@ const SITE_URL = 'https://noritv.com';
 const toAbsoluteUrl = (path: string | null | undefined) => {
   if (!path) return undefined;
   if (path.startsWith('http')) return path;
-  // Dùng trực tiếp tên miền thay vì url.origin
   return `${SITE_URL}${path.startsWith('/') ? '' : '/'}${path}`; 
 };
 
