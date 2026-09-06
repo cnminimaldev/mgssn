@@ -62,26 +62,50 @@
               </select>
             </div>
 
+            <!-- NHÁNH 1: EMBED -->
             <div class="md:col-span-9" v-if="form.player_type === 'embed'">
               <label class="mb-1 block text-[10px] text-zinc-500 uppercase font-bold">
                 埋め込みパターン (Embed Pattern) 
-                <span class="normal-case font-normal text-zinc-600">- URLの {id} がエピソードの動画パスに置換されます</span>
+                <span class="normal-case font-normal text-zinc-600">- URLの {id} が置換されます</span>
               </label>
               <input
                 v-model="form.embed_pattern"
                 type="text"
-                placeholder="例: https://server.com/embed/{id} (空欄の場合は動画パスをそのまま使用)"
+                placeholder="例: https://server.com/embed/{id}"
                 class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-yellow-400 focus:border-yellow-500 focus:outline-none font-mono"
               />
             </div>
-            <div class="md:col-span-9" v-else>
-              <p class="text-[11px] text-zinc-600 mt-6">
-                ※ Direct Stream は StreamingPlayer.vue (HLS/MP4) を使用します。
-              </p>
+
+            <!-- NHÁNH 2: DIRECT STREAM LỰA CHỌN DOMAIN VÀ ROUTING -->
+            <div class="md:col-span-9 grid grid-cols-1 md:grid-cols-2 gap-4" v-else>
+              <div>
+                <label class="mb-1 block text-[10px] text-zinc-500 uppercase font-bold">
+                  Streaming Domains
+                  <span class="normal-case font-normal text-zinc-600">- カンマ(,)区切り</span>
+                </label>
+                <input
+                  v-model="form.stream_domains"
+                  type="text"
+                  placeholder="例: https://s1.noritv.com, https://s2.noritv.com"
+                  class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-emerald-400 focus:border-emerald-500 focus:outline-none font-mono"
+                />
+              </div>
+              <div>
+                <label class="mb-1 block text-[10px] text-zinc-500 uppercase font-bold">
+                  ルーティング (Routing Mode)
+                </label>
+                <select 
+                  v-model="form.stream_routing"
+                  class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="random">ランダム (Random Load Balancer)</option>
+                  <option v-for="d in formDomainList" :key="d" :value="d">固定 (Fixed): {{ d }}</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <div class="md:col-span-10">
+          <div class="md:col-span-10 mt-2">
             <label class="mb-1 block text-[10px] text-zinc-500 uppercase font-bold">メモ (Note)</label>
             <textarea
               v-model="form.note"
@@ -91,7 +115,7 @@
             ></textarea>
           </div>
 
-          <div class="md:col-span-2 self-end">
+          <div class="md:col-span-2 self-end mt-2">
             <button
               type="submit"
               :disabled="loading"
@@ -118,7 +142,7 @@
                 <th class="px-4 py-3 w-12 text-center">ID</th>
                 <th class="px-4 py-3">名前</th>
                 <th class="px-4 py-3">タイプ</th>
-                <th class="px-4 py-3">設定</th>
+                <th class="px-4 py-3">設定 (Domains/Pattern)</th>
                 <th class="px-4 py-3 text-right">操作</th>
               </tr>
             </thead>
@@ -148,6 +172,16 @@
                   <div v-if="p.player_type === 'embed' && p.embed_pattern" class="max-w-[200px] truncate text-zinc-500" :title="p.embed_pattern">
                     Pattern: <span class="font-mono text-zinc-400">{{ p.embed_pattern }}</span>
                   </div>
+                  <div v-else-if="p.player_type === 'direct' && p.stream_domains" class="text-zinc-500">
+                    <div class="max-w-[200px] truncate" :title="p.stream_domains">
+                      Domains: <span class="font-mono text-emerald-400/80">{{ p.stream_domains }}</span>
+                    </div>
+                    <div class="mt-1 flex items-center gap-1">
+                      <span class="px-1.5 py-0.5 rounded-sm bg-white/5 border border-white/10 text-[9px] uppercase">
+                        Route: {{ p.stream_routing === 'random' ? 'Random' : 'Fixed' }}
+                      </span>
+                    </div>
+                  </div>
                   <div v-else-if="p.website_url" class="max-w-[200px] truncate text-zinc-500">
                     <a :href="p.website_url" target="_blank" class="hover:text-emerald-400 hover:underline">
                       {{ p.website_url }}
@@ -158,24 +192,11 @@
 
                 <td class="px-4 py-3 text-right">
                   <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      @click="openEditModal(p)"
-                      class="p-1.5 text-zinc-400 hover:text-indigo-400 hover:bg-zinc-800 rounded transition"
-                      title="編集"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                      </svg>
+                    <button @click="openEditModal(p)" class="p-1.5 text-zinc-400 hover:text-indigo-400 hover:bg-zinc-800 rounded transition" title="編集">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
                     </button>
-
-                    <button 
-                      @click="deleteProvider(p.id)"
-                      class="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded transition"
-                      title="削除"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                      </svg>
+                    <button @click="deleteProvider(p.id)" class="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded transition" title="削除">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                     </button>
                   </div>
                 </td>
@@ -239,6 +260,23 @@
               class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-yellow-400 focus:border-yellow-500 focus:outline-none font-mono"
             />
           </div>
+          <div v-else>
+            <label class="mb-1 block text-xs text-zinc-500">Streaming Domains (カンマ区切り)</label>
+            <input
+              v-model="editForm.stream_domains"
+              type="text"
+              placeholder="https://s1.noritv.com, https://s2.noritv.com"
+              class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-emerald-400 focus:border-emerald-500 focus:outline-none font-mono mb-3"
+            />
+            <label class="mb-1 block text-xs text-zinc-500">ルーティング (Routing Mode)</label>
+            <select 
+              v-model="editForm.stream_routing"
+              class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+            >
+              <option value="random">ランダム (Random Load Balancer)</option>
+              <option v-for="d in editDomainList" :key="d" :value="d">固定 (Fixed): {{ d }}</option>
+            </select>
+          </div>
         </div>
 
         <div>
@@ -251,19 +289,8 @@
         </div>
 
         <div class="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            @click="showEditModal = false"
-            class="rounded border border-zinc-700 bg-transparent px-4 py-2 text-sm font-bold text-zinc-300 hover:bg-zinc-800"
-          >
-            キャンセル
-          </button>
-          <button
-            type="submit"
-            class="rounded bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500"
-          >
-            保存する
-          </button>
+          <button type="button" @click="showEditModal = false" class="rounded border border-zinc-700 bg-transparent px-4 py-2 text-sm font-bold text-zinc-300 hover:bg-zinc-800">キャンセル</button>
+          <button type="submit" class="rounded bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500">保存する</button>
         </div>
       </form>
     </BaseModal>
@@ -271,7 +298,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useSupabaseClient, useAsyncData, definePageMeta } from '#imports'
 
 definePageMeta({ middleware: 'admin' })
@@ -286,10 +313,16 @@ const form = reactive({
   website_url: '',
   note: '',
   player_type: 'direct',
-  embed_pattern: ''
+  embed_pattern: '',
+  stream_domains: '',
+  stream_routing: 'random' // Thêm mới
 })
 
-// Edit State
+const formDomainList = computed(() => {
+  if (!form.stream_domains) return []
+  return form.stream_domains.split(',').map(d => d.trim()).filter(Boolean)
+})
+
 const showEditModal = ref(false)
 const editForm = reactive({
   id: 0,
@@ -298,10 +331,16 @@ const editForm = reactive({
   website_url: '',
   note: '',
   player_type: 'direct',
-  embed_pattern: ''
+  embed_pattern: '',
+  stream_domains: '',
+  stream_routing: 'random' // Thêm mới
 })
 
-// Fetch Data
+const editDomainList = computed(() => {
+  if (!editForm.stream_domains) return []
+  return editForm.stream_domains.split(',').map(d => d.trim()).filter(Boolean)
+})
+
 const { data: providers, pending, refresh } = await useAsyncData('admin-providers', async () => {
   const { data, error } = await supabase
     .from('collection_providers')
@@ -312,7 +351,6 @@ const { data: providers, pending, refresh } = await useAsyncData('admin-provider
   return data || []
 })
 
-// Add
 const handleAdd = async () => {
   loading.value = true
   errorMsg.value = ''
@@ -324,18 +362,21 @@ const handleAdd = async () => {
       website_url: form.website_url || null,
       note: form.note || null,
       player_type: form.player_type,
-      embed_pattern: form.embed_pattern || null
+      embed_pattern: form.embed_pattern || null,
+      stream_domains: form.stream_domains || null,
+      stream_routing: form.stream_routing || 'random'
     })
 
     if (error) throw error
 
-    // Reset
     form.name = ''
     form.code = ''
     form.website_url = ''
     form.note = ''
     form.player_type = 'direct'
     form.embed_pattern = ''
+    form.stream_domains = ''
+    form.stream_routing = 'random'
     refresh()
   } catch (e: any) {
     errorMsg.value = 'Error: ' + e.message
@@ -344,7 +385,6 @@ const handleAdd = async () => {
   }
 }
 
-// Edit Action
 const openEditModal = (p: any) => {
   editForm.id = p.id
   editForm.name = p.name
@@ -353,6 +393,8 @@ const openEditModal = (p: any) => {
   editForm.note = p.note || ''
   editForm.player_type = p.player_type || 'direct'
   editForm.embed_pattern = p.embed_pattern || ''
+  editForm.stream_domains = p.stream_domains || ''
+  editForm.stream_routing = p.stream_routing || 'random'
   showEditModal.value = true
 }
 
@@ -366,7 +408,9 @@ const handleUpdate = async () => {
         website_url: editForm.website_url || null,
         note: editForm.note || null,
         player_type: editForm.player_type,
-        embed_pattern: editForm.embed_pattern || null
+        embed_pattern: editForm.embed_pattern || null,
+        stream_domains: editForm.stream_domains || null,
+        stream_routing: editForm.stream_routing || 'random'
       })
       .eq('id', editForm.id)
 
@@ -379,16 +423,10 @@ const handleUpdate = async () => {
   }
 }
 
-// Delete
 const deleteProvider = async (id: number) => {
   if (!confirm(`このプロバイダー(ID:${id})を削除しますか？`)) return
-
   try {
-    const { error } = await supabase
-      .from('collection_providers')
-      .delete()
-      .eq('id', id)
-    
+    const { error } = await supabase.from('collection_providers').delete().eq('id', id)
     if (error) throw error
     refresh()
   } catch (e: any) {
