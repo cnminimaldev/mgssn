@@ -215,9 +215,7 @@
               <button class="text-white hover:text-emerald-400 transition-colors p-1.5 sm:p-2 rounded-full hover:bg-white/10" :class="{ 'text-emerald-400': showSubsMenu || activeTrackIndex !== -1 }" @click.stop="toggleSubsMenu" title="字幕">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 sm:h-6 sm:w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.375.028.716.223.93.531L12 21l2.755-4.133c.214-.32.555-.515.93-.53 1.129-.045 2.294-.213 3.423-.379 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
               </button>
-              <!-- Nội dung menu phụ đề giữ nguyên, tôi không copy lại để code đỡ rối -->
-              <div v-if="showSubsMenu" class="absolute bottom-full right-0 mb-3 w-64 overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
-                <!-- Khởi đầu menu phụ đề -->
+              <!-- Khởi đầu menu phụ đề -->
               <div v-if="showSubsMenu" class="absolute bottom-full right-0 mb-3 w-64 overflow-hidden rounded-xl bg-zinc-900/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur-md cursor-default" @click.stop>
                 <div class="p-2">
                   <!-- 1. Chọn Track Phụ đề -->
@@ -283,7 +281,6 @@
                 </div>
               </div>
               <!-- Kết thúc menu phụ đề -->
-              </div>
             </div>
 
             <!-- Fullscreen button -->
