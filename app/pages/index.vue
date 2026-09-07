@@ -149,6 +149,22 @@
           </section>
         </ClientOnly>
 
+        <!-- ============================================== -->
+        <!-- [MỚI] DANH MỤC SERIES ĐANG CHIẾU -->
+        <!-- ============================================== -->
+        <!-- Điều kiện logic: Chỉ hiển thị Section này nếu đang pending HOẶC mảng phim có dữ liệu -->
+        <section v-if="pendingOngoing || ongoingSeries.length > 0" class="px-4 sm:px-12 lg:px-20">
+          <SkeletonMovieRow v-if="pendingOngoing" title="放送中のシリーズ" />
+          <MovieRow
+            v-else
+            title="放送中のシリーズ"
+            :movies="ongoingSeries"
+            sub-label="最新エピソード追加"
+            view-all-link="/search?ongoing=true&type=series"
+            :is-ongoing-row="true" 
+          />
+        </section>
+
         <section class="px-4 sm:px-12 lg:px-20">
           <SkeletonMovieRow v-if="pendingFeatured" title="注目の作品" />
           <MovieRow
@@ -183,7 +199,7 @@ import SkeletonMovieRow from "~/components/SkeletonMovieRow.vue";
 import { useContinueWatching } from "~/composables/useContinueWatching";
 import { useMyList } from "~/composables/useMyList";
 
-// -- Types (Cập nhật đủ trường) --
+// -- Types --
 type ApiMovie = {
   id: number;
   type: "movie" | "series";
@@ -195,8 +211,11 @@ type ApiMovie = {
   posterUrl?: string;
   year: number;
   genre: string;
-  country?: string; // [UPDATE] Thêm trường này
+  country?: string; 
   episodeCount?: number;
+  // [UPDATE] Bổ sung hai trường dữ liệu mới
+  isOngoing?: boolean;
+  latestEpisodeText?: string | null;
 };
 
 type MoviesResponse = {
@@ -239,8 +258,7 @@ const {
 const hasError = computed(() => !!error.value);
 const allMovies = computed(() => moviesData.value?.items ?? []);
 
-// -- 3. [MỚI] Fetch Featured Movies (Random từ API riêng) --
-// Sử dụng lazy load để không chặn render
+// -- 3. Fetch Featured Movies (Random từ API riêng) --
 const { data: featuredData, pending: pendingFeatured } = await useAsyncData<ApiMovie[]>(
   "featured-random",
   () => $fetch("/api/featured/random"),
@@ -250,6 +268,26 @@ const { data: featuredData, pending: pendingFeatured } = await useAsyncData<ApiM
   }
 );
 const featuredMovies = computed(() => featuredData.value || []);
+
+
+// -- 4. [MỚI] Fetch Ongoing Series --
+const { data: ongoingData, pending: pendingOngoing } = await useAsyncData<MoviesResponse>(
+  "ongoing-series",
+  () => $fetch("/api/movies", {
+    params: {
+      ongoing: 'true', // Cờ lọc phim đang chiếu
+      type: 'series',  // Chỉ lấy series
+      sort: 'updated_at_desc', // Sắp xếp theo ngày cập nhật mới nhất
+      pageSize: 12
+    }
+  }),
+  {
+    lazy: true, // Tránh chặn quá trình render trang chủ
+    default: () => ({ items: [] })
+  }
+);
+const ongoingSeries = computed(() => ongoingData.value?.items || []);
+
 
 // New Movies: Lấy từ list chung, sắp xếp theo năm
 const newMovies = computed(() =>
@@ -291,10 +329,9 @@ const { sorted: continueList } = useContinueWatching();
 const continueMovies = computed<ApiMovie[]>(() => {
   if (!continueList.value.length) return [];
   
-  // [UPDATE] Map từ cả Featured và New Movies để tìm phim
-  // Giúp hiển thị đúng thông tin phim trong mục Continue Watching
+  // Map từ cả Featured, New Movies và Ongoing Series để tìm phim
   const map = new Map<number, ApiMovie>();
-  const combinedSource = [...allMovies.value, ...featuredMovies.value];
+  const combinedSource = [...allMovies.value, ...featuredMovies.value, ...ongoingSeries.value];
   
   for (const m of combinedSource) {
     if(!map.has(m.id)) map.set(m.id, m);
