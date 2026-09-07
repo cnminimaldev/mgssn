@@ -36,7 +36,11 @@
         class="card-wrapper"
         @click.capture="onCardClick"
       >
-        <MovieCard :item="movie" />
+        <!-- [MỚI] Truyền prop isOngoingRow xuống MovieCard -->
+        <MovieCard 
+          :item="movie" 
+          :is-ongoing-row="isOngoingRow" 
+        />
       </div>
     </div>
   </section>
@@ -58,17 +62,22 @@ interface Movie {
   country?: string
   episodeCount?: number
   description?: string
+  // [MỚI] Cập nhật interface để khớp với dữ liệu truyền xuống
+  latestEpisodeText?: string | null
 }
 
 defineProps<{
   title: string
   movies: Movie[]
   subLabel?: string
-  viewAllLink?: string // UPDATE: Thêm prop nhận link
+  viewAllLink?: string
+  // [MỚI] Trạm trung chuyển để báo cho MovieCard
+  isOngoingRow?: boolean 
 }>()
 
-// ... (Giữ nguyên toàn bộ logic Drag & Scroll cũ bên dưới không thay đổi) ...
-
+// ==========================================
+// GIỮ NGUYÊN TOÀN BỘ LOGIC DRAG & SCROLL CŨ
+// ==========================================
 const rowRef = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
 const isPointerDown = ref(false)
@@ -198,7 +207,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Giữ nguyên style cũ */
+/* ==========================================
+   GIỮ NGUYÊN TOÀN BỘ CSS CŨ
+   ========================================== */
 .row {
   margin-bottom: 24px;
 }
@@ -230,19 +241,18 @@ onBeforeUnmount(() => {
   color: #e4e4e7;
 }
 
-/* Cập nhật style cho NuxtLink (thẻ a) */
 .row-view-all {
   display: none;
   align-items: center;
   gap: 4px;
   font-size: 0.7rem;
   color: #a1a1aa;
-  text-decoration: none; /* Thêm: bỏ gạch chân */
+  text-decoration: none;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  transition: color 0.2s; /* Thêm: hiệu ứng mượt */
+  transition: color 0.2s;
 }
 
 .row-view-all-arrow {

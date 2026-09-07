@@ -67,6 +67,25 @@
       loading="lazy"
     />
 
+    <!-- [MỚI] ĐẶC QUYỀN CHO ROW ĐANG CHIẾU (Góc trên bên trái) -->
+    <div v-if="isOngoingRow" class="absolute top-1 left-1 z-10 flex flex-col gap-1 items-start">
+      <!-- Nhãn Tập mới nhất -->
+      <span 
+        v-if="item.latestEpisodeText" 
+        class="rounded bg-gradient-to-r from-amber-500 to-orange-600 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white shadow-md shadow-black/50"
+      >
+        {{ item.latestEpisodeText }}
+      </span>
+      <!-- Nhãn Quốc gia -->
+      <span 
+        v-if="item.country" 
+        class="rounded bg-black/50 backdrop-blur-md border border-white/10 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-zinc-200 shadow-sm"
+      >
+        {{ item.country }}
+      </span>
+    </div>
+
+    <!-- Nhãn SERIES góc trên bên phải (Giữ nguyên) -->
     <div v-if="item.type === 'series'" class="absolute right-1 top-1 z-10">
       <span
         class="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-white shadow-sm backdrop-blur-sm"
@@ -105,6 +124,13 @@
         <div
           class="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent opacity-60"
         ></div>
+
+        <!-- [MỚI] Hiển thị tập mới nhất trên Popup nếu thuộc Row Đang chiếu -->
+        <div v-if="isOngoingRow && item.latestEpisodeText" class="absolute top-2 left-2">
+          <span class="rounded bg-gradient-to-r from-amber-500 to-orange-600 px-2 py-1 text-[10px] font-bold tracking-wide text-white shadow-lg">
+            {{ item.latestEpisodeText }}
+          </span>
+        </div>
 
         <div class="absolute bottom-3 left-3 right-3">
           <h3
@@ -213,6 +239,7 @@ import { useMyList } from "~/composables/useMyList";
 import { navigateTo, useRoute } from "#imports";
 import type { CSSProperties } from "vue";
 
+// [MỚI] Khai báo thêm thuộc tính latestEpisodeText và isOngoingRow
 const props = defineProps<{
   item: {
     id: number;
@@ -226,7 +253,9 @@ const props = defineProps<{
     country?: string;
     episodeCount?: number;
     description?: string;
+    latestEpisodeText?: string | null; 
   };
+  isOngoingRow?: boolean; 
 }>();
 
 const route = useRoute();
@@ -242,18 +271,15 @@ const linkTo = computed(() =>
 const preventNextClick = ref(false);
 
 const handleClick = (e: MouseEvent) => {
-  // [MỚI] Hủy mọi timer ngay lập tức khi click để tránh popup hiện khi đang loading
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
   if (closeTimeout.value) clearTimeout(closeTimeout.value);
 
-  // Nếu cờ chặn đang bật (do vừa thả tay sau khi long-press thành công)
   if (preventNextClick.value) {
     e.preventDefault();
     e.stopPropagation();
-    preventNextClick.value = false; // Reset để lần click sau hoạt động bình thường
+    preventNextClick.value = false;
     return;
   }
-  // Nếu không bị chặn thì chuyển trang
   navigateTo(linkTo.value);
 };
 
@@ -275,9 +301,7 @@ const closeTimeout = ref<NodeJS.Timeout | null>(null);
 
 const coords = ref({ top: 0, left: 0, width: 0 });
 
-// Biến cờ xác định trạng thái Long Press
 const isLongPressTriggered = ref(false);
-// [MỚI] Biến cờ xác định đang thao tác bằng cảm ứng
 const isTouch = ref(false);
 
 const calculatePosition = () => {
@@ -319,12 +343,10 @@ const popupStyle = computed<CSSProperties>(() => ({
   transformOrigin: "center center",
 }));
 
-// --- DESKTOP HOVER ---
 const handleHoverLogic = (e: MouseEvent) => {
-  // [MỚI] Nếu là touch, bỏ qua sự kiện chuột giả lập
   if (isTouch.value) return;
 
-  if (e.buttons > 0) { // Đang kéo (drag)
+  if (e.buttons > 0) { 
     if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
     return;
   }
@@ -336,7 +358,6 @@ const handleHoverLogic = (e: MouseEvent) => {
 
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
 
-  // Debounce 500ms
   hoverTimeout.value = setTimeout(() => {
     calculatePosition();
     showPopup.value = true;
@@ -354,7 +375,6 @@ const handlePopupEnter = () => {
 };
 
 const handleMouseLeave = () => {
-  // Reset timer mở
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
@@ -370,19 +390,15 @@ const handleMouseLeave = () => {
   }, 300);
 };
 
-// --- MOBILE TOUCH ---
-
 const handleTouchStart = () => {
-  isTouch.value = true; // [MỚI] Đánh dấu touch
+  isTouch.value = true; 
   isLongPressTriggered.value = false;
   preventNextClick.value = false;
 
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value);
   if (closeTimeout.value) clearTimeout(closeTimeout.value);
 
-  // Bắt đầu đếm 500ms
   hoverTimeout.value = setTimeout(() => {
-    // Đã giữ đủ lâu -> Mở Popup
     isLongPressTriggered.value = true; 
     calculatePosition();
     showPopup.value = true;
@@ -391,7 +407,6 @@ const handleTouchStart = () => {
 };
 
 const handleTouchMove = () => {
-  // Nếu di chuyển tay (scroll), hủy Long Press
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
@@ -400,29 +415,21 @@ const handleTouchMove = () => {
 };
 
 const handleTouchEnd = () => {
-  // Xóa timer đang đếm (nếu chưa đủ 500ms)
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
     hoverTimeout.value = null;
   }
 
-  // Nếu Popup vừa được mở bằng Long Press:
   if (isLongPressTriggered.value) {
-    // 1. Đánh dấu để chặn sự kiện Click chuyển trang sắp xảy ra
     preventNextClick.value = true;
-    
-    // 2. KHÔNG gọi handleMouseLeave(). Giữ popup ở lại.
     return; 
   }
 
-  // Nếu là tap ngắn (chưa đủ 500ms) thì popup chưa hiện.
-  // Sự kiện Click sẽ xảy ra sau đây và kích hoạt navigateTo().
   if (showPopup.value && !isLongPressTriggered.value) {
     handleMouseLeave();
   }
 };
 
-// Global Click/Touch Outside để đóng Popup
 const handleGlobalTouch = (event: Event) => {
   if (!showPopup.value) return;
 

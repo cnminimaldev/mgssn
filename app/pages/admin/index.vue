@@ -1,229 +1,361 @@
 <template>
-  <div class="min-h-screen bg-[#05060a] text-zinc-300 p-4 sm:p-6">
-    <div class="mx-auto max-w-7xl">
-      
-      <header class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
-        <div>
-          <h1 class="text-xl font-bold text-white">管理ダッシュボード</h1>
-          <p class="text-xs text-zinc-500 mt-1">
-            システム全体の管理・設定
-          </p>
+  <div class="min-h-screen bg-[#05060a] text-white overflow-x-hidden">
+    <main>
+      <section class="relative h-[85vh] w-full overflow-hidden">
+        <div
+          class="absolute inset-0 bg-cover bg-center transition-transform duration-[20s] ease-linear hover:scale-105"
+          :style="heroBackgroundStyle"
+        ></div>
+
+        <div
+          class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent"
+        ></div>
+        <div
+          class="absolute inset-0 bg-gradient-to-t from-[#05060a] via-[#05060a]/20 to-transparent"
+        ></div>
+
+        <div
+          class="relative flex h-full flex-col justify-center px-4 sm:px-12 lg:px-20 pt-20"
+        >
+          <div class="max-w-2xl animate-fade-up" v-if="heroMovie">
+            <div class="mb-4 flex items-center gap-3">
+              <span
+                class="bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg shadow-emerald-900/50 backdrop-blur-md"
+              >
+                PICK UP
+              </span>
+              
+              <span
+                v-if="heroMovie.type === 'series'"
+                class="bg-indigo-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg shadow-indigo-900/50 backdrop-blur-md"
+              >
+                SERIES
+              </span>
+              <span
+                v-else
+                class="bg-orange-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg shadow-orange-900/50 backdrop-blur-md"
+              >
+                MOVIE
+              </span>
+
+              </div>
+
+            <h1
+              class="text-3xl font-black tracking-tight sm:text-5xl lg:text-6xl leading-tight drop-shadow-2xl text-transparent bg-clip-text bg-gradient-to-br from-white to-zinc-400"
+            >
+              {{ heroMovie.title }}
+            </h1>
+
+            <div
+              class="mt-6 flex items-center gap-4 text-sm font-medium text-zinc-300"
+            >
+              <span class="text-emerald-400 font-bold">{{
+                heroMovie.year
+              }}</span>
+              <span class="w-1 h-1 rounded-full bg-zinc-600"></span>
+              <span>{{ heroMovie.genre }}</span>
+              <span class="w-1 h-1 rounded-full bg-zinc-600"></span>
+              <span
+                class="border border-zinc-500 px-1.5 rounded text-[10px] tracking-wider"
+                >HD</span
+              >
+              <span v-if="heroMovie.country" class="hidden sm:inline-block border border-zinc-600 bg-zinc-800/50 px-1.5 rounded text-[10px] text-zinc-400">
+                {{ heroMovie.country }}
+              </span>
+            </div>
+
+            <p
+              class="mt-6 line-clamp-3 text-sm text-zinc-300 sm:text-lg sm:leading-relaxed max-w-xl drop-shadow-md"
+            >
+              {{ heroMovie.description }}
+            </p>
+
+            <div class="mt-8 flex flex-wrap gap-4">
+              <NuxtLink
+                :to="
+                  heroMovie.type === 'series'
+                    ? `/series/${heroMovie.slug}`
+                    : `/movie/${heroMovie.slug}`
+                "
+                class="group flex items-center gap-3 rounded-full bg-white px-8 py-3.5 text-base font-bold text-black hover:bg-zinc-200 transition shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  class="w-6 h-6 transition-transform group-hover:scale-110"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                再生
+              </NuxtLink>
+
+              <button
+                type="button"
+                class="group flex items-center gap-3 rounded-full bg-white/10 px-8 py-3.5 text-base font-bold text-white hover:bg-white/20 transition backdrop-blur-sm border border-white/10"
+                @click="toggleHeroList"
+              >
+                <span
+                  v-if="isInMyList(heroMovie.id, heroMovie.type)"
+                  class="text-emerald-400 font-bold"
+                >
+                  ✔
+                </span>
+                <span v-else class="text-xl leading-none font-light">＋</span>
+                <span>{{ isInMyList(heroMovie.id, heroMovie.type) ? "追加済み" : "マイリスト" }}</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </header>
+      </section>
 
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        
-        <div class="col-span-full mt-2 mb-1">
-          <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">コンテンツ (Content)</h2>
+      <section class="relative z-20 -mt-16 px-4 sm:px-12 lg:px-20 mb-12">
+        <div class="flex flex-wrap gap-3">
+          <NuxtLink
+            v-for="g in genreList"
+            :key="g.slug"
+            :to="`/search?genres=${g.slug}`"
+            class="rounded-full border border-white/10 bg-black/40 backdrop-blur-md px-5 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white hover:border-white/30 transition shadow-lg"
+          >
+            {{ g.label }}
+          </NuxtLink>
         </div>
+      </section>
 
-        <NuxtLink to="/admin/movies" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-emerald-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-black transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0118 18.375M20.625 4.5H3.375a1.125 1.125 0 00-1.125 1.125m17.25 0V18.375m-17.25-12.75V18.375m17.25-12.75c.621 0 1.125.504 1.125 1.125m-1.125-1.125h-1.5c-.621 0-1.125.504-1.125 1.125m-3.75 0c0 .621-.504 1.125-1.125 1.125h-1.5c-.621 0-1.125-.504-1.125-1.125M9 4.5c.621 0 1.125.504 1.125 1.125M13.5 4.5c.621 0 1.125.504 1.125 1.125" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-emerald-400">映画管理</h3>
-              <p class="text-[10px] text-zinc-500">Movies</p>
-            </div>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink to="/admin/series" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-blue-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-blue-400">シリーズ管理</h3>
-              <p class="text-[10px] text-zinc-500">Series</p>
-            </div>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink to="/admin/persons" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-teal-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400 group-hover:bg-teal-500 group-hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-teal-400">人物管理</h3>
-              <p class="text-[10px] text-zinc-500">Persons</p>
-            </div>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink to="/admin/featured" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-rose-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-400 group-hover:bg-rose-500 group-hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-rose-400">注目作品</h3>
-              <p class="text-[10px] text-zinc-500">Featured</p>
-            </div>
-          </div>
-        </NuxtLink>
-
-        <div class="col-span-full mt-4 mb-1">
-          <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">システム (System)</h2>
+      <section v-if="error" class="px-4 sm:px-12 lg:px-20 mb-8">
+        <div
+          class="rounded-xl border border-red-500/20 bg-red-900/10 p-4 text-sm text-red-400 text-center"
+        >
+          データの読み込みに失敗しました。再読み込みしてください。
         </div>
+      </section>
 
-        <NuxtLink to="/admin/messages" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-amber-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-black transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-amber-400">メッセージ管理</h3>
-              <p class="text-[10px] text-zinc-500">Inbox</p>
-            </div>
-          </div>
-        </NuxtLink>
+      <div class="space-y-12 pb-20">
+        <ClientOnly>
+          <section
+            v-if="!hasError && hasContinueWatching"
+            class="px-4 sm:px-12 lg:px-20"
+          >
+            <MovieRow
+              title="視聴中の作品"
+              :movies="continueMovies"
+              sub-label="続きから再生"
+              view-all-link="/my-list"
+            />
+          </section>
+        </ClientOnly>
 
-        <NuxtLink to="/admin/users" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-purple-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-purple-400">ユーザー管理</h3>
-              <p class="text-[10px] text-zinc-500">Users</p>
-            </div>
-          </div>
-        </NuxtLink>
+        <!-- ============================================== -->
+        <!-- [MỚI] DANH MỤC SERIES ĐANG CHIẾU -->
+        <!-- ============================================== -->
+        <!-- Điều kiện logic: Chỉ hiển thị Section này nếu đang pending HOẶC mảng phim có dữ liệu -->
+        <section v-if="pendingOngoing || ongoingSeries.length > 0" class="px-4 sm:px-12 lg:px-20">
+          <SkeletonMovieRow v-if="pendingOngoing" title="放送中のシリーズ" />
+          <MovieRow
+            v-else
+            title="放送中のシリーズ"
+            :movies="ongoingSeries"
+            sub-label="最新エピソード追加"
+            view-all-link="/search?ongoing=true&type=series"
+            :is-ongoing-row="true" 
+          />
+        </section>
 
-        <NuxtLink to="/admin/announcement" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-indigo-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0M3.124 7.5A8.969 8.969 0 015.292 3m13.416 0a8.969 8.969 0 012.168 4.5" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-indigo-400">お知らせ管理</h3>
-              <p class="text-[10px] text-zinc-500">Announcements</p>
-            </div>
-          </div>
-        </NuxtLink>
+        <section class="px-4 sm:px-12 lg:px-20">
+          <SkeletonMovieRow v-if="pendingFeatured" title="注目の作品" />
+          <MovieRow
+            v-else-if="featuredMovies.length"
+            title="注目の作品"
+            :movies="featuredMovies"
+            sub-label="NoriTVのおすすめ"
+            view-all-link="/search"
+          />
+        </section>
 
-        <NuxtLink to="/admin/settings" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-cyan-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-black transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.342 3.204a2.746 2.746 0 0 0-4.085 2.418v.172a2.746 2.746 0 0 1-1.375 2.383l-.15.086a2.746 2.746 0 0 0-1.373 3.44l.173.3a2.746 2.746 0 0 1 0 2.772l-.173.3a2.746 2.746 0 0 0 1.373 3.44l.15.086a2.746 2.746 0 0 1 1.375 2.383v.172a2.746 2.746 0 0 0 4.085 2.418h.273a2.746 2.746 0 0 1 2.505 1.637l.108.243a2.746 2.746 0 0 0 5.01 0l.108-.243a2.746 2.746 0 0 1 2.505-1.637h.273a2.746 2.746 0 0 0 4.085-2.418v-.172a2.746 2.746 0 0 1 1.375-2.383l.15-.086a2.746 2.746 0 0 0 1.373-3.44l-.173-.3a2.746 2.746 0 0 1 0-2.772l.173-.3a2.746 2.746 0 0 0-1.373-3.44l-.15-.086a2.746 2.746 0 0 1-1.375-2.383v-.172a2.746 2.746 0 0 0-4.085-2.418h-.273a2.746 2.746 0 0 1-2.505-1.637l-.108-.243a2.746 2.746 0 0 0-5.01 0l-.108.243a2.746 2.746 0 0 1-2.505 1.637h-.273Z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-cyan-400">サイト設定</h3>
-              <p class="text-[10px] text-zinc-500">Settings</p>
-            </div>
-          </div>
-        </NuxtLink>
-
-        <div class="col-span-full mt-4 mb-1">
-          <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">マスターデータ (Master)</h2>
-        </div>
-
-        <NuxtLink to="/admin/genres" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-pink-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/10 text-pink-400 group-hover:bg-pink-500 group-hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-pink-400">ジャンル</h3>
-              <p class="text-[10px] text-zinc-500">Genres</p>
-            </div>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink to="/admin/countries" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-orange-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10 text-orange-400 group-hover:bg-orange-500 group-hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S13.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-orange-400">国・地域</h3>
-              <p class="text-[10px] text-zinc-500">Countries</p>
-            </div>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink to="/admin/providers" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-yellow-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-black transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-yellow-400">プロバイダー</h3>
-              <p class="text-[10px] text-zinc-500">Providers</p>
-            </div>
-          </div>
-        </NuxtLink>
-
-        <div class="col-span-full mt-4 mb-1">
-          <h2 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">マーケティング (Marketing)</h2>
-        </div>
-
-        <NuxtLink to="/admin/ads" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-cyan-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-black transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.43 3 12c0 2.924 1.753 5.48 4.307 6.953l.76 3.123 3.65-2.072A9.155 9.155 0 0012 20.25z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h.008v.008H9V12zm3 0h.008v.008H12V12zm3 0h.008v.008H15V12z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-cyan-400">広告管理</h3>
-              <p class="text-[10px] text-zinc-500">Advertisements</p>
-            </div>
-          </div>
-        </NuxtLink>
-
-        <!-- [THÊM MỚI] Nút Điều hướng cho Phân tích Lịch sử Tìm kiếm -->
-        <NuxtLink to="/admin/search-history" class="group relative overflow-hidden rounded-xl bg-zinc-900/50 p-4 hover:bg-zinc-900 transition border border-white/5 hover:border-fuchsia-500/50 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-fuchsia-500/10 text-fuchsia-400 group-hover:bg-fuchsia-500 group-hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-white group-hover:text-fuchsia-400">検索履歴分析</h3>
-              <p class="text-[10px] text-zinc-500">Search Analytics</p>
-            </div>
-          </div>
-        </NuxtLink>
-
+        <section class="px-4 sm:px-12 lg:px-20">
+          <SkeletonMovieRow v-if="pending" title="新着の作品" />
+          <MovieRow
+            v-else-if="newMovies.length"
+            title="新着の作品"
+            :movies="newMovies"
+            sub-label="最近追加された作品"
+            view-all-link="/search?sort=year_desc"
+          />
+        </section>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { definePageMeta } from '#imports'
+import { computed, ref, onMounted } from "vue";
+import { useSeoMeta, useFetch, useAsyncData } from "#imports";
+import MovieRow from "~/components/MovieRow.vue";
+import SkeletonMovieRow from "~/components/SkeletonMovieRow.vue";
+import { useContinueWatching } from "~/composables/useContinueWatching";
+import { useMyList } from "~/composables/useMyList";
 
-definePageMeta({
-  middleware: 'admin',
-})
+// -- Types --
+type ApiMovie = {
+  id: number;
+  type: "movie" | "series";
+  slug: string;
+  title: string;
+  description?: string;
+  thumbnail: string;
+  bannerUrl?: string;
+  posterUrl?: string;
+  year: number;
+  genre: string;
+  country?: string; 
+  episodeCount?: number;
+  // [UPDATE] Bổ sung hai trường dữ liệu mới
+  isOngoing?: boolean;
+  latestEpisodeText?: string | null;
+};
+
+type MoviesResponse = {
+  items: ApiMovie[];
+};
+
+type FiltersResponse = {
+  genres: { slug: string; label: string }[];
+};
+
+// -- SEO --
+useSeoMeta({
+  title: "のりTV - 映画・ドラマ・アニメ見放題",
+  description:
+    "最新の映画、ドラマ、アニメを高品質で無料ストリーミング。登録不要ですぐに見られます。",
+});
+
+// -- 1. Fetch Genres --
+// @ts-ignore
+const { data: filterData } = await useAsyncData<FiltersResponse>(
+  "home-filters",
+  () =>
+    // @ts-ignore
+    $fetch("/api/movies/filters")
+);
+const genreList = computed(() => filterData.value?.genres || []);
+
+// -- 2. Fetch Movies (New Arrivals) --
+const {
+  data: moviesData,
+  pending,
+  error,
+} = await useFetch<MoviesResponse>("/api/movies", {
+  params: {
+    sort: "recommended",
+    pageSize: 50,
+  },
+});
+
+const hasError = computed(() => !!error.value);
+const allMovies = computed(() => moviesData.value?.items ?? []);
+
+// -- 3. Fetch Featured Movies (Random từ API riêng) --
+const { data: featuredData, pending: pendingFeatured } = await useAsyncData<ApiMovie[]>(
+  "featured-random",
+  () => $fetch("/api/featured/random"),
+  {
+    lazy: true,
+    default: () => []
+  }
+);
+const featuredMovies = computed(() => featuredData.value || []);
+
+
+// -- 4. [MỚI] Fetch Ongoing Series --
+const { data: ongoingData, pending: pendingOngoing } = await useAsyncData<MoviesResponse>(
+  "ongoing-series",
+  () => $fetch("/api/movies", {
+    params: {
+      ongoing: 'true', // Cờ lọc phim đang chiếu
+      type: 'series',  // Chỉ lấy series
+      sort: 'updated_at_desc', // Sắp xếp theo ngày cập nhật mới nhất
+      pageSize: 12
+    }
+  }),
+  {
+    lazy: true, // Tránh chặn quá trình render trang chủ
+    default: () => ({ items: [] })
+  }
+);
+const ongoingSeries = computed(() => ongoingData.value?.items || []);
+
+
+// New Movies: Lấy từ list chung, sắp xếp theo năm
+const newMovies = computed(() =>
+  [...allMovies.value].sort((a, b) => b.year - a.year).slice(0, 12)
+);
+
+// -- Hero Logic --
+const heroMovie = ref<ApiMovie | undefined>(undefined);
+
+onMounted(() => {
+  // Logic Hero: Ưu tiên lấy random từ Featured, nếu không có thì lấy từ New
+  const source = featuredMovies.value.length > 0 ? featuredMovies.value : allMovies.value;
+  
+  if (source.length > 0) {
+    const randomIdx = Math.floor(
+      Math.random() * Math.min(10, source.length)
+    );
+    heroMovie.value = source[randomIdx];
+  }
+});
+
+const heroBackgroundStyle = computed(() => {
+  if (!heroMovie.value)
+    return { backgroundImage: "linear-gradient(to bottom, #000, #000)" };
+  const bg = heroMovie.value.bannerUrl || heroMovie.value.thumbnail;
+  return { backgroundImage: `url(${bg})` };
+});
+
+// -- My List Logic --
+const { isInMyList, toggleMyList } = useMyList();
+const toggleHeroList = () => {
+  if (heroMovie.value) {
+    toggleMyList(heroMovie.value.id, heroMovie.value.type);
+  }
+};
+
+// -- Continue Watching Logic --
+const { sorted: continueList } = useContinueWatching();
+const continueMovies = computed<ApiMovie[]>(() => {
+  if (!continueList.value.length) return [];
+  
+  // Map từ cả Featured, New Movies và Ongoing Series để tìm phim
+  const map = new Map<number, ApiMovie>();
+  const combinedSource = [...allMovies.value, ...featuredMovies.value, ...ongoingSeries.value];
+  
+  for (const m of combinedSource) {
+    if(!map.has(m.id)) map.set(m.id, m);
+  }
+  
+  return continueList.value
+    .map((item) => map.get(item.movieId))
+    .filter((m): m is ApiMovie => !!m);
+});
+
+const hasContinueWatching = computed(() => continueMovies.value.length > 0);
 </script>
+
+<style scoped>
+.animate-fade-up {
+  animation: fadeUp 1s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

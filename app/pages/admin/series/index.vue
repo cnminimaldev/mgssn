@@ -22,14 +22,24 @@
       <div
         class="overflow-hidden rounded-xl border border-white/10 bg-zinc-900/50"
       >
-        <div class="p-4 border-b border-white/5">
+        <!-- [MỚI] Flexbox chứa ô tìm kiếm và bộ lọc -->
+        <div class="flex flex-col sm:flex-row gap-3 p-4 border-b border-white/5">
           <input
             v-model="searchInput"
-            @keydown.enter="handleSearch"
+            @keydown.enter="applyFilters"
             type="text"
             placeholder="タイトルで検索..."
-            class="w-full max-w-sm bg-black border border-zinc-700 rounded px-3 py-1.5 text-sm text-zinc-200 focus:border-emerald-500 outline-none"
+            class="w-full sm:max-w-sm bg-black border border-zinc-700 rounded px-3 py-1.5 text-sm text-zinc-200 focus:border-emerald-500 outline-none"
           />
+          
+          <select
+            v-model="filterOngoing"
+            @change="applyFilters"
+            class="bg-black border border-zinc-700 rounded px-3 py-1.5 text-sm text-zinc-200 focus:border-emerald-500 outline-none cursor-pointer hover:bg-zinc-900 transition"
+          >
+            <option value="">全て (Tất cả)</option>
+            <option value="true">放送中 (Chỉ hiện phim đang chiếu)</option>
+          </select>
         </div>
 
         <div class="overflow-x-auto">
@@ -39,7 +49,6 @@
                 <th class="px-6 py-4 font-medium w-20">Image</th>
                 <th class="px-6 py-4 font-medium">Title</th>
                 <th class="px-4 py-4 font-medium text-center">Status</th>
-                <!-- [MỚI] Cột Ongoing nhỏ gọn -->
                 <th class="px-4 py-4 font-medium text-center">Ongoing</th>
                 <th class="px-6 py-4 font-medium">Year</th>
                 <th class="px-6 py-4 font-medium">Country</th>
@@ -48,7 +57,6 @@
             </thead>
             <tbody class="divide-y divide-white/5">
               <tr v-if="pending" class="bg-black/20">
-                <!-- [MỚI] Tăng colspan lên 7 -->
                 <td colspan="7" class="px-6 py-10 text-center text-zinc-500">
                   <div
                     class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-emerald-500"
@@ -57,7 +65,6 @@
               </tr>
 
               <tr v-else-if="seriesList.length === 0" class="bg-black/20">
-                <!-- [MỚI] Tăng colspan lên 7 -->
                 <td colspan="7" class="px-6 py-10 text-center text-zinc-500">
                   データがありません (No Data)
                 </td>
@@ -100,7 +107,6 @@
                   </button>
                 </td>
 
-                <!-- [MỚI] Nút Toggle Ongoing -->
                 <td class="px-4 py-3 text-center">
                   <button
                     @click="toggleOngoingStatus(item)"
@@ -167,18 +173,25 @@ definePageMeta({
 const page = ref(1);
 const searchInput = ref("");
 const activeKeyword = ref("");
+
+// [MỚI] Khai báo biến cho bộ lọc
+const filterOngoing = ref(""); 
+const activeOngoing = ref(""); 
+
 const supabase = useSupabaseClient<any>();
 
 const { data, pending, refresh } = await useFetch("/api/movies", {
   params: {
     page,
     q: activeKeyword,
+    ongoing: activeOngoing, // [MỚI] Đẩy tham số này lên API
     type: "series", 
     sort: "created_at",
     pageSize: 20,
     isAdmin: "true",
   },
-  watch: [page, activeKeyword], 
+  // [MỚI] Thêm activeOngoing vào mảng theo dõi
+  watch: [page, activeKeyword, activeOngoing], 
 });
 
 const seriesList = ref<any[]>([]);
@@ -191,8 +204,10 @@ watch(data, (newData) => {
   }
 }, { immediate: true });
 
-const handleSearch = () => {
+// [MỚI] Gộp chung logic tìm kiếm và lọc
+const applyFilters = () => {
   activeKeyword.value = searchInput.value;
+  activeOngoing.value = filterOngoing.value;
   page.value = 1;
 };
 
@@ -213,9 +228,7 @@ const togglePublicStatus = async (item: any) => {
   }
 };
 
-// [MỚI] Hàm cập nhật trạng thái Đang chiếu
 const toggleOngoingStatus = async (item: any) => {
-  // Lật ngược trạng thái hiện tại (nếu undefined thì coi như false -> thành true)
   const newStatus = !item.isOngoing;
   item.isOngoing = newStatus;
 
@@ -227,7 +240,6 @@ const toggleOngoingStatus = async (item: any) => {
 
     if (error) throw error;
   } catch (e: any) {
-    // Nếu lỗi, trả về trạng thái cũ
     item.isOngoing = !newStatus;
     alert("Cập nhật trạng thái đang chiếu thất bại: " + e.message);
   }
