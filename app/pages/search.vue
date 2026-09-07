@@ -347,6 +347,7 @@ const searchPlaceholder = computed(() => {
 });
 
 const selectedType = ref(route.query.type?.toString() || "");
+const ongoing = ref(route.query.ongoing?.toString() || "")
 const selectedGenres = ref<string[]>(getQueryArray(route.query.genres));
 const selectedCountries = ref<string[]>(getQueryArray(route.query.countries));
 const selectedYear = ref<string>(route.query.year?.toString() || "");
@@ -393,6 +394,7 @@ const apiParams = computed(() => ({
   cast: route.query.cast,
   director: route.query.director,
   type: route.query.type,
+  ongoing: route.query.ongoing,
   sort: route.query.sort || "recommended",
   page: route.query.page || 1,
   pageSize,
@@ -451,6 +453,7 @@ const resetFilters = () => {
   keyword.value = "";
   searchTypeMode.value = "all";
   selectedType.value = "";
+  ongoing.value = "";
   selectedGenres.value = [];
   selectedCountries.value = [];
   selectedYear.value = "";
@@ -492,6 +495,7 @@ watch(
     }
 
     selectedType.value = newQuery.type?.toString() || "";
+    ongoing.value = newQuery.ongoing?.toString() || "";
     selectedGenres.value = getQueryArray(newQuery.genres);
     selectedCountries.value = getQueryArray(newQuery.countries);
     selectedYear.value = newQuery.year?.toString() || "";
