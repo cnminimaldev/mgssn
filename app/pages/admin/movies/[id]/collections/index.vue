@@ -260,7 +260,14 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="mb-1 block text-xs text-zinc-500">タイプ (Type)</label>
-                <input v-model="autoForm.type" type="text" placeholder="sub/dub" class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+                <select 
+                  v-model="autoForm.type" 
+                  class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="sub">字幕 (Sub)</option>
+                  <option value="dub">吹き替え (Dub)</option>
+                  <option value="raw">Raw</option>
+                </select>
               </div>
               <div>
                 <label class="mb-1 block text-xs text-zinc-500">プロバイダー (Provider)</label>
@@ -489,7 +496,7 @@ const createError = ref('')
 
 const newCollection = reactive({
   name: '',
-  type: '',
+  type: 'sub',
   audio_language: '',
   subtitle_language: '',
   is_default: false,
