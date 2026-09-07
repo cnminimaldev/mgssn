@@ -19,7 +19,7 @@
         class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 pointer-events-none"
         loading="lazy"
       />
-      <div v-if="item.type === 'series'" class="absolute right-1 top-1 z-10">
+      <div v-if="item.type === 'series'" class="absolute right-1 top-[2px] z-10">
         <span
           class="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-white shadow-sm backdrop-blur-sm"
         >
@@ -79,14 +79,14 @@
       <!-- Nhãn Quốc gia -->
       <span 
         v-if="item.country" 
-        class="rounded bg-black/50 backdrop-blur-md border border-white/10 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-zinc-200 shadow-sm"
+        class="rounded bg-black/80 backdrop-blur-md border border-zinc-400 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-white shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
       >
         {{ item.country }}
       </span>
     </div>
 
     <!-- Nhãn SERIES góc trên bên phải (Giữ nguyên) -->
-    <div v-if="item.type === 'series'" class="absolute right-1 top-1 z-10">
+    <div v-if="item.type === 'series'" class="absolute right-1 top-[2px] z-10">
       <span
         class="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-white shadow-sm backdrop-blur-sm"
       >
