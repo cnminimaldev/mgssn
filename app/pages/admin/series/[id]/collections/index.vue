@@ -296,8 +296,25 @@
 
           <div class="grid grid-cols-12 gap-3 items-end">
             <div class="col-span-12 md:col-span-8">
-              <label class="block text-[10px] text-zinc-500 mb-1 uppercase">Link Pattern</label>
-              <input v-model="genConfig.pattern" type="text" class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors" :class="activeGenTab === 'video' ? 'text-emerald-400 focus:border-emerald-500' : 'text-yellow-400 focus:border-yellow-500'" />
+              <label class="block text-[10px] text-zinc-500 mb-1 uppercase">
+                {{ activeGenTab === 'video' ? 'Video Link Pattern' : 'Subtitle Link Pattern' }}
+              </label>
+              
+              <!-- Hiện ô nhập cho Video -->
+              <input 
+                v-if="activeGenTab === 'video'" 
+                v-model="genConfig.videoPattern" 
+                type="text" 
+                class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors text-emerald-400 focus:border-emerald-500" 
+              />
+              
+              <!-- Hiện ô nhập cho Subtitle -->
+              <input 
+                v-else 
+                v-model="genConfig.subPattern" 
+                type="text" 
+                class="w-full bg-black border border-zinc-700 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors text-yellow-400 focus:border-yellow-500" 
+              />
             </div>
             <div class="col-span-6 md:col-span-2">
               <label class="block text-[10px] text-zinc-500 mb-1">Start Ep</label>
@@ -510,7 +527,15 @@ const isAutoSaving = ref(false)
 
 const autoForm = reactive({ name: '', name_ja: '', type: 'sub', audio_language: '', subtitle_language: '', provider_id: null as number | null, is_default: false })
 const activeGenTab = ref<'video' | 'sub'>('video')
-const genConfig = reactive({ pattern: '', start: 1, end: 12, titlePrefix: '', titleSuffix: '' })
+// SỬA ĐOẠN NÀY
+const genConfig = reactive({ 
+  videoPattern: '', // Tách riêng pattern cho Video
+  subPattern: '',   // Tách riêng pattern cho Sub
+  start: 1, 
+  end: 12, 
+  titlePrefix: '', 
+  titleSuffix: '' 
+})
 
 type PreviewItem = { id: number; epNum: number; title: string; video: string; sub: string }
 const previewList = ref<PreviewItem[]>([])
@@ -554,41 +579,60 @@ watch(() => genConfig.titleSuffix, (newVal) => {
 })
 
 const applyQuickPattern = () => {
-  const template = activeGenTab.value === 'video' ? savedVideoPattern.value : savedSubPattern.value
-  if (!template) {
-    alert('Vui lòng cài đặt Default Pattern trong mục Bánh răng trước nhé!')
-    return
+  let hasPattern = false
+
+  // Tự động điền cho cả 2 ô ngầm bên dưới
+  if (savedVideoPattern.value) {
+    genConfig.videoPattern = savedVideoPattern.value.replace(/{slug}/g, seriesSlug.value)
+    hasPattern = true
   }
-  genConfig.pattern = template.replace(/{slug}/g, seriesSlug.value)
+  if (savedSubPattern.value) {
+    genConfig.subPattern = savedSubPattern.value.replace(/{slug}/g, seriesSlug.value)
+    hasPattern = true
+  }
+
+  if (!hasPattern) {
+    alert('Vui lòng cài đặt Default Pattern trong mục Bánh răng trước nhé!')
+  }
 }
 
 const clearForm = () => {
   if (!confirm('Tất cả nội dung sẽ bị xóa, bạn có chắc không?')) return
   autoForm.name = ''; autoForm.name_ja = ''; autoForm.type = 'sub'; autoForm.audio_language = ''; autoForm.subtitle_language = ''; autoForm.provider_id = null; autoForm.is_default = false
-  genConfig.pattern = ''; genConfig.start = 1; genConfig.end = 12; genConfig.titlePrefix = ''; genConfig.titleSuffix = ''
+  
+  // Xóa cả 2 pattern
+  genConfig.videoPattern = ''; 
+  genConfig.subPattern = ''; 
+  
+  genConfig.start = 1; genConfig.end = 12; genConfig.titlePrefix = ''; genConfig.titleSuffix = ''
   previewList.value = []
 }
 
-// Hàm Generate Link bắn thẳng vào mảng Preview
 const runGenerator = () => {
-  if (!genConfig.pattern) return
+  if (!genConfig.videoPattern && !genConfig.subPattern) {
+    alert('Vui lòng nhập ít nhất một Link Pattern (Video hoặc Sub) trước khi tạo.')
+    return
+  }
   
   for (let i = genConfig.start; i <= genConfig.end; i++) {
-    const url = genConfig.pattern.replace(/{n}/g, String(i))
+    // Sinh URL cho cả 2 nếu pattern tồn tại
+    const videoUrl = genConfig.videoPattern ? genConfig.videoPattern.replace(/{n}/g, String(i)) : ''
+    const subUrl = genConfig.subPattern ? genConfig.subPattern.replace(/{n}/g, String(i)) : ''
     const title = `${genConfig.titlePrefix}${i}${genConfig.titleSuffix}`
     
     const existing = previewList.value.find(item => item.epNum === i)
     if (existing) {
-       if (activeGenTab.value === 'video') existing.video = url
-       if (activeGenTab.value === 'sub') existing.sub = url
+       // Cập nhật ngầm cả 2 link vào bảng
+       if (videoUrl) existing.video = videoUrl
+       if (subUrl) existing.sub = subUrl
        if (!existing.title) existing.title = title
     } else {
        previewList.value.push({
          id: Date.now() + Math.random(),
          epNum: i,
          title: title,
-         video: activeGenTab.value === 'video' ? url : '',
-         sub: activeGenTab.value === 'sub' ? url : ''
+         video: videoUrl,
+         sub: subUrl
        })
     }
   }
