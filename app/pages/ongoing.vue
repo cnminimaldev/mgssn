@@ -5,11 +5,10 @@
       <header class="mb-8 border-b border-white/10 pb-6">
         <h1 class="flex items-center gap-3 text-2xl font-bold tracking-tight text-zinc-50 sm:text-3xl">
           <span class="inline-block h-8 w-2 rounded-full bg-gradient-to-b from-amber-400 to-orange-600 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></span>
-          放送中のシリーズ (Đang chiếu)
+          放送中のシリーズ
         </h1>
         <p class="mt-3 text-sm text-zinc-400">
           現在放送・配信中で、最新エピソードが定期的に追加されている作品のリストです。
-          (Danh sách các series đang phát sóng và được cập nhật tập mới thường xuyên)
         </p>
       </header>
 
