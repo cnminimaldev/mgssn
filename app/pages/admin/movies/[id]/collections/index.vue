@@ -67,12 +67,14 @@
 
           <div class="flex flex-col sm:flex-row gap-3 items-end">
             <div class="w-full sm:w-28 space-y-1">
-              <input
+              <select
                 v-model="newCollection.type"
-                type="text"
                 class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
-                placeholder="Type (sub/dub)"
-              />
+              >
+                <option value="sub">字幕 (Sub)</option>
+                <option value="dub">吹き替え (Dub)</option>
+                <option value="raw">Raw</option>
+              </select>
             </div>
             
             <div class="w-full sm:w-28 space-y-1">
@@ -215,7 +217,14 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="mb-1 block text-xs text-zinc-500">タイプ</label>
-            <input v-model="editForm.type" type="text" class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" placeholder="e.g. sub"/>
+            <select
+              v-model="editForm.type"
+              class="w-full rounded bg-black border border-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+            >
+              <option value="sub">字幕 (Sub)</option>
+              <option value="dub">吹き替え (Dub)</option>
+              <option value="raw">Raw</option>
+            </select>
           </div>
           <div>
             <label class="mb-1 block text-xs text-zinc-500">プロバイダー</label>
