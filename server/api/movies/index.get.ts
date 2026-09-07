@@ -33,6 +33,9 @@ type ApiMediaItem = {
   episodeCount?: number
   createdAt: string
   isPublic: boolean
+  isOngoing?: boolean
+  latestEpisodeText?: string | null
+  updatedAt?: string
 }
 
 export default defineEventHandler(async (event) => {
@@ -65,6 +68,7 @@ export default defineEventHandler(async (event) => {
   const pageSize = Number.isFinite(pageSizeParam) && pageSizeParam > 0 && pageSizeParam <= 100 ? pageSizeParam : 24
 
   const isAdmin = query.isAdmin === 'true'
+  const ongoingParam = query.ongoing === 'true'
 
   // --- 2. Build Query ---
   let dbQuery = client.from('all_contents').select('*', { count: 'exact' })
@@ -75,6 +79,10 @@ export default defineEventHandler(async (event) => {
   // --- 3. Filter (Áp dụng bộ lọc) ---
   if (!isAdmin) {
     dbQuery = dbQuery.eq('is_public', true)
+  }
+
+  if (ongoingParam) {
+    dbQuery = dbQuery.eq('is_ongoing', true)
   }
 
   if (typeParam === 'movie' || typeParam === 'series') {
@@ -198,6 +206,8 @@ export default defineEventHandler(async (event) => {
       dbQuery = dbQuery.order('year', { ascending: true })
     } else if (sortParam === 'title_asc') {
       dbQuery = dbQuery.order('title', { ascending: true })
+    } else if (sortParam === 'updated_at_desc') {
+      dbQuery = dbQuery.order('updated_at', { ascending: false })
     } else {
       dbQuery = dbQuery.order('created_at', { ascending: false })
     }
@@ -242,7 +252,10 @@ export default defineEventHandler(async (event) => {
       genre: row.genre_label || 'その他',
       episodeCount: row.episode_count || 0,
       createdAt: row.created_at,
-      isPublic: row.is_public !== false
+      isPublic: row.is_public !== false,
+      isOngoing: row.is_ongoing ?? false,
+      latestEpisodeText: row.latest_episode_text ?? null,
+      updatedAt: row.updated_at
     }
   })
 

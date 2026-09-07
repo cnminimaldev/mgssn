@@ -38,8 +38,9 @@
               <tr>
                 <th class="px-6 py-4 font-medium w-20">Image</th>
                 <th class="px-6 py-4 font-medium">Title</th>
-                <!-- [MỚI] Thêm cột Status -->
-                <th class="px-6 py-4 font-medium text-center">Status</th>
+                <th class="px-4 py-4 font-medium text-center">Status</th>
+                <!-- [MỚI] Cột Ongoing nhỏ gọn -->
+                <th class="px-4 py-4 font-medium text-center">Ongoing</th>
                 <th class="px-6 py-4 font-medium">Year</th>
                 <th class="px-6 py-4 font-medium">Country</th>
                 <th class="px-6 py-4 font-medium text-right">Action</th>
@@ -47,8 +48,8 @@
             </thead>
             <tbody class="divide-y divide-white/5">
               <tr v-if="pending" class="bg-black/20">
-                <!-- [MỚI] Tăng colspan lên 6 -->
-                <td colspan="6" class="px-6 py-10 text-center text-zinc-500">
+                <!-- [MỚI] Tăng colspan lên 7 -->
+                <td colspan="7" class="px-6 py-10 text-center text-zinc-500">
                   <div
                     class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-emerald-500"
                   ></div>
@@ -56,8 +57,8 @@
               </tr>
 
               <tr v-else-if="seriesList.length === 0" class="bg-black/20">
-                <!-- [MỚI] Tăng colspan lên 6 -->
-                <td colspan="6" class="px-6 py-10 text-center text-zinc-500">
+                <!-- [MỚI] Tăng colspan lên 7 -->
+                <td colspan="7" class="px-6 py-10 text-center text-zinc-500">
                   データがありません (No Data)
                 </td>
               </tr>
@@ -86,8 +87,7 @@
                   </div>
                 </td>
                 
-                <!-- [MỚI] Cột nút Status Public/Private -->
-                <td class="px-6 py-3 text-center">
+                <td class="px-4 py-3 text-center">
                   <button
                     @click="togglePublicStatus(item)"
                     :class="item.isPublic ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-zinc-800 text-zinc-500 border-zinc-700'"
@@ -97,6 +97,18 @@
                     <span v-if="item.isPublic" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                     <span v-else class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
                     {{ item.isPublic ? 'Public' : 'Private' }}
+                  </button>
+                </td>
+
+                <!-- [MỚI] Nút Toggle Ongoing -->
+                <td class="px-4 py-3 text-center">
+                  <button
+                    @click="toggleOngoingStatus(item)"
+                    :class="item.isOngoing ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_8px_rgba(245,158,11,0.2)]' : 'bg-zinc-800 text-zinc-600 border-zinc-700'"
+                    class="inline-flex items-center justify-center rounded-md border px-2 py-1 text-[10px] font-bold transition-all hover:opacity-80 w-12"
+                    title="Phim đang chiếu (Nhấn để đổi)"
+                  >
+                    {{ item.isOngoing ? 'ON' : 'OFF' }}
                   </button>
                 </td>
 
@@ -153,20 +165,19 @@ definePageMeta({
 });
 
 const page = ref(1);
-const searchInput = ref("");   // Biến gắn với ô nhập liệu
-const activeKeyword = ref(""); // Biến truyền vào API
+const searchInput = ref("");
+const activeKeyword = ref("");
 const supabase = useSupabaseClient<any>();
 
 const { data, pending, refresh } = await useFetch("/api/movies", {
   params: {
     page,
-    q: activeKeyword, // Truyền biến activeKeyword vào đây
+    q: activeKeyword,
     type: "series", 
     sort: "created_at",
     pageSize: 20,
     isAdmin: "true",
   },
-  // Khai báo cho Nuxt tự động gọi API khi page hoặc activeKeyword thay đổi
   watch: [page, activeKeyword], 
 });
 
@@ -181,12 +192,8 @@ watch(data, (newData) => {
 }, { immediate: true });
 
 const handleSearch = () => {
-  // Gán từ khóa vừa nhập vào biến API
   activeKeyword.value = searchInput.value;
-  // Reset về trang 1
   page.value = 1;
-  
-  // Không cần gọi refresh() nữa vì watcher sẽ tự động lo việc đó!
 };
 
 const togglePublicStatus = async (item: any) => {
@@ -203,6 +210,26 @@ const togglePublicStatus = async (item: any) => {
   } catch (e: any) {
     item.isPublic = !newStatus;
     alert("Trạng thái cập nhật thất bại: " + e.message);
+  }
+};
+
+// [MỚI] Hàm cập nhật trạng thái Đang chiếu
+const toggleOngoingStatus = async (item: any) => {
+  // Lật ngược trạng thái hiện tại (nếu undefined thì coi như false -> thành true)
+  const newStatus = !item.isOngoing;
+  item.isOngoing = newStatus;
+
+  try {
+    const { error } = await supabase
+      .from("series")
+      .update({ is_ongoing: newStatus })
+      .eq("id", item.id);
+
+    if (error) throw error;
+  } catch (e: any) {
+    // Nếu lỗi, trả về trạng thái cũ
+    item.isOngoing = !newStatus;
+    alert("Cập nhật trạng thái đang chiếu thất bại: " + e.message);
   }
 };
 </script>
