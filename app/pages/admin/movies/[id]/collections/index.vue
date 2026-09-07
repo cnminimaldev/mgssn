@@ -601,7 +601,7 @@ const runGenerator = () => {
        previewList.value.push({
          id: Date.now() + Math.random(),
          partNum: i,
-         title: genConfig.start === 1 && genConfig.end === 1 && !genConfig.titlePrefix && !genConfig.titleSuffix ? 'Full Movie' : title,
+         title: genConfig.start === 1 && genConfig.end === 1 && !genConfig.titlePrefix && !genConfig.titleSuffix ? 'フル' : title,
          video: videoUrl,
          sub: subUrl
        })
