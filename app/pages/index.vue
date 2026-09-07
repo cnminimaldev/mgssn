@@ -160,7 +160,7 @@
             title="放送中のシリーズ"
             :movies="ongoingSeries"
             sub-label="最新エピソード追加"
-            view-all-link="/search?ongoing=true&type=series"
+            view-all-link="/ongoing"
             :is-ongoing-row="true" 
           />
         </section>
