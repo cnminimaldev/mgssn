@@ -63,17 +63,21 @@
               
               <!-- Khối Dropdown xổ xuống -->
               <div class="absolute left-0 top-full mt-2 w-48 origin-top-left rounded-xl bg-zinc-900 border border-white/10 p-1.5 shadow-xl opacity-0 invisible group-hover/nav-cat:opacity-100 group-hover/nav-cat:visible transition-all duration-200 transform scale-95 group-hover/nav-cat:scale-100">
-                <NuxtLink to="/country/kr" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
-                  <span class="text-base">🇰🇷</span> 韓国作品
+                <NuxtLink to="/country/jp" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
+                  <img src="https://flagcdn.com/jp.svg" class="w-4 rounded-[2px] shadow-sm" alt="JP" />
+                  日本作品
                 </NuxtLink>
-                <NuxtLink to="/country/jp" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
-                  <span class="text-base">🇯🇵</span> 日本作品
+                <NuxtLink to="/country/kr" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
+                  <img src="https://flagcdn.com/kr.svg" class="w-4 rounded-[2px] shadow-sm" alt="KR" />
+                  韓国作品
                 </NuxtLink>
-                <NuxtLink to="/country/us" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
-                  <span class="text-base">🇺🇸</span> 米国作品
+                <NuxtLink to="/country/us" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
+                  <img src="https://flagcdn.com/us.svg" class="w-4 rounded-[2px] shadow-sm" alt="US" />
+                  米国作品
                 </NuxtLink>
-                <NuxtLink to="/country/cn" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
-                  <span class="text-base">🇨🇳</span> 中国作品
+                <NuxtLink to="/country/cn" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
+                  <img src="https://flagcdn.com/cn.svg" class="w-4 rounded-[2px] shadow-sm" alt="CN" />
+                  中国作品
                 </NuxtLink>
               </div>
             </div>
@@ -274,10 +278,22 @@
             </button>
             <!-- Khối thả xuống khi bấm vào -->
             <div v-show="isMobileCategoryOpen" class="pl-11 pr-2 space-y-1 mt-1 mb-2">
-              <NuxtLink to="/country/kr" @click="isDrawerOpen = false" class="block px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">🇰🇷 韓国作品</NuxtLink>
-              <NuxtLink to="/country/jp" @click="isDrawerOpen = false" class="block px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">🇯🇵 日本作品</NuxtLink>
-              <NuxtLink to="/country/us" @click="isDrawerOpen = false" class="block px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">🇺🇸 米国作品</NuxtLink>
-              <NuxtLink to="/country/cn" @click="isDrawerOpen = false" class="block px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">🇨🇳 中国作品</NuxtLink>
+              <NuxtLink to="/country/jp" @click="isDrawerOpen = false" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">
+                <img src="https://flagcdn.com/jp.svg" class="w-4 rounded-[2px] shadow-sm" alt="JP" />
+                日本作品
+              </NuxtLink>
+              <NuxtLink to="/country/kr" @click="isDrawerOpen = false" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">
+                <img src="https://flagcdn.com/kr.svg" class="w-4 rounded-[2px] shadow-sm" alt="KR" />
+                韓国作品
+              </NuxtLink>
+              <NuxtLink to="/country/us" @click="isDrawerOpen = false" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">
+                <img src="https://flagcdn.com/us.svg" class="w-4 rounded-[2px] shadow-sm" alt="US" />
+                米国作品
+              </NuxtLink>
+              <NuxtLink to="/country/cn" @click="isDrawerOpen = false" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">
+                <img src="https://flagcdn.com/cn.svg" class="w-4 rounded-[2px] shadow-sm" alt="CN" />
+                中国作品
+              </NuxtLink>
             </div>
           </div>
 
