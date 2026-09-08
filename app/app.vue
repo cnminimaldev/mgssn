@@ -51,6 +51,33 @@
               active-class="text-emerald-400"
               >ホーム</NuxtLink
             >
+            
+            <!-- [MỚI] MENU DROPDOWN DANH MỤC (DESKTOP) -->
+            <div class="relative group/nav-cat">
+              <button class="flex items-center gap-1 py-2 hover:text-white transition-colors outline-none">
+                カテゴリー
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 transition-transform duration-200 group-hover/nav-cat:rotate-180">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+              
+              <!-- Khối Dropdown xổ xuống -->
+              <div class="absolute left-0 top-full mt-2 w-48 origin-top-left rounded-xl bg-zinc-900 border border-white/10 p-1.5 shadow-xl opacity-0 invisible group-hover/nav-cat:opacity-100 group-hover/nav-cat:visible transition-all duration-200 transform scale-95 group-hover/nav-cat:scale-100">
+                <NuxtLink to="/country/kr" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
+                  <span class="text-base">🇰🇷</span> 韓国作品 (Hàn)
+                </NuxtLink>
+                <NuxtLink to="/country/jp" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
+                  <span class="text-base">🇯🇵</span> 日本作品 (Nhật)
+                </NuxtLink>
+                <NuxtLink to="/country/us" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
+                  <span class="text-base">🇺🇸</span> 米国作品 (Mỹ)
+                </NuxtLink>
+                <NuxtLink to="/country/cn" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
+                  <span class="text-base">🇨🇳</span> 中国作品 (Trung)
+                </NuxtLink>
+              </div>
+            </div>
+
             <NuxtLink
               to="/search"
               class="hover:text-white transition-colors"
@@ -190,7 +217,7 @@
       ></div>
 
       <div
-        class="fixed inset-y-0 right-0 z-[70] w-64 bg-[#0a0a0a] border-l border-white/10 shadow-2xl transform transition-transform duration-300 ease-out p-6 flex flex-col"
+        class="fixed inset-y-0 right-0 z-[70] w-64 bg-[#0a0a0a] border-l border-white/10 shadow-2xl transform transition-transform duration-300 ease-out p-6 flex flex-col overflow-y-auto"
         :class="isDrawerOpen ? 'translate-x-0' : 'translate-x-full'"
       >
         <div class="flex items-center justify-between mb-8">
@@ -223,41 +250,45 @@
             active-class="bg-emerald-500/10 text-emerald-400"
             @click="isDrawerOpen = false"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="w-5 h-5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
             </svg>
             ホーム
           </NuxtLink>
+
+          <!-- [MỚI] MENU ACCORDION DANH MỤC (MOBILE) -->
+          <div>
+            <button 
+              @click="isMobileCategoryOpen = !isMobileCategoryOpen" 
+              class="flex items-center justify-between w-full px-4 py-3 rounded-xl text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <div class="flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                </svg>
+                カテゴリー
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 transition-transform duration-200" :class="isMobileCategoryOpen ? 'rotate-180 text-emerald-400' : ''">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </button>
+            <!-- Khối thả xuống khi bấm vào -->
+            <div v-show="isMobileCategoryOpen" class="pl-11 pr-2 space-y-1 mt-1 mb-2">
+              <NuxtLink to="/country/kr" @click="isDrawerOpen = false" class="block px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">🇰🇷 韓国作品</NuxtLink>
+              <NuxtLink to="/country/jp" @click="isDrawerOpen = false" class="block px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">🇯🇵 日本作品</NuxtLink>
+              <NuxtLink to="/country/us" @click="isDrawerOpen = false" class="block px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">🇺🇸 米国作品</NuxtLink>
+              <NuxtLink to="/country/cn" @click="isDrawerOpen = false" class="block px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">🇨🇳 中国作品</NuxtLink>
+            </div>
+          </div>
+
           <NuxtLink
             to="/search"
             class="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
             active-class="bg-emerald-500/10 text-emerald-400"
             @click="isDrawerOpen = false"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="w-5 h-5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
             探す
           </NuxtLink>
@@ -276,19 +307,8 @@
             active-class="bg-emerald-500/10 text-emerald-400"
             @click="isDrawerOpen = false"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="w-5 h-5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 4.5v15m7.5-7.5h-15"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             マイリスト
           </NuxtLink>
@@ -370,36 +390,30 @@ const { user, isAdmin, logout, fetchProfile } = useAuth();
 const { fetchMyList, clearMyList } = useMyList();
 const supabaseUser = useSupabaseUser();
 const isDrawerOpen = ref(false);
+const isMobileCategoryOpen = ref(false); // [MỚI] Biến quản lý trạng thái mở/đóng menu Danh mục trên mobile
 const route = useRoute();
 const nuxtApp = useNuxtApp();
 const router = useRouter();
 
 // --- [LOGIC LOADING CẢI TIẾN] ---
-// Sử dụng Router Hook để bắt sự kiện NHANH NHẤT có thể
 const isPageLoading = ref(false);
 
-// 1. Kích hoạt Loading ngay khi Router bắt đầu điều hướng (trước cả preflight/middleware)
 router.beforeEach((to, from, next) => {
-  // Chỉ hiện loading nếu đổi trang khác
   if (to.path !== from.path) {
     isPageLoading.value = true;
   }
   next();
 });
 
-// 2. Tắt Loading khi trang đã load xong dữ liệu (Suspense resolved)
 nuxtApp.hook("page:finish", () => {
-  // Thêm một chút delay nhỏ (200ms) để tránh nháy màn hình nếu load quá nhanh
   setTimeout(() => {
     isPageLoading.value = false;
   }, 200);
 });
 
-// 3. Tắt Loading nếu có lỗi xảy ra để không bị treo
 nuxtApp.hook("app:error", () => {
   isPageLoading.value = false;
 });
-
 // ---------------------------------
 
 onMounted(() => {
@@ -438,16 +452,12 @@ const handleLogout = async () => {
 }
 
 /* [HIỆU ỨNG CHỈ CÓ KHI BIẾN MẤT] */
-/* Khi hiện (Enter): Không có transition -> Hiện ngay lập tức */
 .fade-enter-active {
   transition: none;
 }
-
-/* Khi ẩn (Leave): Fade out trong 0.3s cho mượt */
 .fade-leave-active {
   transition: opacity 0.3s ease;
 }
-
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
