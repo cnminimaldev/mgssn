@@ -64,16 +64,16 @@
               <!-- Khối Dropdown xổ xuống -->
               <div class="absolute left-0 top-full mt-2 w-48 origin-top-left rounded-xl bg-zinc-900 border border-white/10 p-1.5 shadow-xl opacity-0 invisible group-hover/nav-cat:opacity-100 group-hover/nav-cat:visible transition-all duration-200 transform scale-95 group-hover/nav-cat:scale-100">
                 <NuxtLink to="/country/kr" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
-                  <span class="text-base">🇰🇷</span> 韓国作品 (Hàn)
+                  <span class="text-base">🇰🇷</span> 韓国作品
                 </NuxtLink>
                 <NuxtLink to="/country/jp" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
-                  <span class="text-base">🇯🇵</span> 日本作品 (Nhật)
+                  <span class="text-base">🇯🇵</span> 日本作品
                 </NuxtLink>
                 <NuxtLink to="/country/us" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
-                  <span class="text-base">🇺🇸</span> 米国作品 (Mỹ)
+                  <span class="text-base">🇺🇸</span> 米国作品
                 </NuxtLink>
                 <NuxtLink to="/country/cn" class="flex items-center gap-2 block px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors">
-                  <span class="text-base">🇨🇳</span> 中国作品 (Trung)
+                  <span class="text-base">🇨🇳</span> 中国作品
                 </NuxtLink>
               </div>
             </div>
