@@ -64,9 +64,18 @@
             <h2 class="text-xs font-bold text-zinc-400 mb-2 border-b border-white/5 pb-1">処理ログ (Logs)</h2>
             <div class="flex-1 overflow-y-auto bg-black border border-zinc-700 rounded p-3 text-xs font-mono space-y-1 custom-scrollbar min-h-[250px] max-h-[400px]">
               <div v-if="logs.length === 0" class="text-zinc-600">待機中...</div>
-              <div v-for="(log, idx) in logs" :key="idx" :class="log.type === 'error' ? 'text-red-400' : (log.type === 'success' ? 'text-emerald-400' : 'text-zinc-400')">
-                <span class="text-zinc-600">[{{ log.time }}]</span> {{ log.msg }}
-              </div>
+              <div 
+              v-for="(log, idx) in logs" 
+              :key="idx" 
+              :class="{
+                'text-red-400': log.type === 'error',
+                'text-emerald-400': log.type === 'success',
+                'text-yellow-400': log.type === 'warning',
+                'text-zinc-400': log.type === 'info'
+              }"
+            >
+              <span class="text-zinc-600">[{{ log.time }}]</span> {{ log.msg }}
+            </div>
             </div>
           </div>
         </div>
@@ -89,7 +98,7 @@ const totalItems = ref(0)
 const currentItem = ref(0)
 const successCount = ref(0)
 const errorCount = ref(0)
-const logs = ref<{ time: string, msg: string, type: 'info' | 'success' | 'error' }[]>([])
+const logs = ref<{ time: string, msg: string, type: 'info' | 'success' | 'error' | 'warning' }[]>([])
 const genresList = ref<any[]>([])
 
 const progressPercent = computed(() => {
@@ -97,9 +106,9 @@ const progressPercent = computed(() => {
   return Math.round((currentItem.value / totalItems.value) * 100)
 })
 
-const addLog = (msg: string, type: 'info' | 'success' | 'error' = 'info') => {
+const addLog = (msg: string, type: 'info' | 'success' | 'error' | 'warning' = 'info') => {
   const time = new Date().toLocaleTimeString('ja-JP', { hour12: false })
-  logs.value.unshift({ time, msg, type }) // Push lên đầu để dễ nhìn
+  logs.value.unshift({ time, msg, type }) 
 }
 
 // Lấy danh sách thể loại để mapping ID
@@ -216,33 +225,39 @@ const startImport = async () => {
         updated_at: new Date(),
       }
 
-      // Chèn Movie
+      // --- 2. Chèn Movie ---
+      let movieId = null;
       const { data: newVal, error: insertError } = await supabase
         .from('movies')
         .insert(insertData)
         .select()
         .single()
 
-      if (insertError) throw insertError
-      const movieId = newVal.id
-
-      // Chèn Thể loại (Genres)
-      const genresRaw = extractField(block, 'genres')
-      if (genresRaw) {
-        const genreNames = genresRaw.split(',').map(g => g.trim().toLowerCase())
-        const matchedIds: number[] = []
-        for (const gName of genreNames) {
-          const found = genresList.value.find(g => 
-            g.name.toLowerCase() === gName || (g.name_ja && g.name_ja.toLowerCase() === gName)
-          )
-          if (found) matchedIds.push(found.id)
+      if (insertError) {
+        // Nếu lỗi là do trùng Slug (Mã lỗi 23505 của PostgreSQL hoặc chứa từ khóa movies_slug_key)
+        if (insertError.code === '23505' || insertError.message.includes('movies_slug_key')) {
+          
+          insertData.slug = `${slug}-2` // Tự động thêm -2
+          addLog(`警告: スラッグ重複を回避するため「${insertData.slug}」に変更しました`, 'warning')
+          
+          // Thử lưu lại lần 2
+          const { data: retryVal, error: retryError } = await supabase
+            .from('movies')
+            .insert(insertData)
+            .select()
+            .single()
+            
+          if (retryError) throw retryError // Nếu vẫn lỗi thì ném ra cho Catch (đỏ) xử lý
+          movieId = retryVal.id
+          
+        } else {
+          // Nếu là lỗi khác (thiếu trường, sai kiểu dữ liệu...)
+          throw insertError 
         }
-        
-        if (matchedIds.length > 0) {
-          const genreInserts = matchedIds.map(gid => ({ movie_id: movieId, genre_id: gid }))
-          await supabase.from('movie_genres').insert(genreInserts)
-        }
+      } else {
+        movieId = newVal.id
       }
+      // --- KẾT THÚC CHÈN MOVIE ---
 
       // Chèn Đạo diễn & Diễn viên (Crew)
       const directorLinks = await syncCrewBulk(movieId, extractField(block, 'director'), 'director')
