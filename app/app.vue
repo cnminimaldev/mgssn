@@ -79,6 +79,13 @@
                   <img src="https://flagcdn.com/cn.svg" class="w-4 rounded-[2px] shadow-sm" alt="CN" />
                   中国作品
                 </NuxtLink>
+
+                <div class="my-2 border-t border-white/5"></div>
+
+                <NuxtLink to="/posts" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-emerald-400 rounded-lg transition-colors group">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-zinc-500 group-hover:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v10a2 2 0 01-2 2z" /></svg>
+                  特集記事 <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded ml-auto border border-emerald-500/20">NEW</span>
+                </NuxtLink>
               </div>
             </div>
 
@@ -293,6 +300,13 @@
               <NuxtLink to="/country/cn" @click="isDrawerOpen = false" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">
                 <img src="https://flagcdn.com/cn.svg" class="w-4 rounded-[2px] shadow-sm" alt="CN" />
                 中国作品
+              </NuxtLink>
+
+              <div class="my-2 border-t border-white/5 mx-3"></div>
+
+              <NuxtLink to="/posts" @click="isDrawerOpen = false" class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v10a2 2 0 01-2 2z" /></svg>
+                特集記事
               </NuxtLink>
             </div>
           </div>

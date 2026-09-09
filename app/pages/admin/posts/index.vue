@@ -42,8 +42,19 @@
                 <td class="px-4 py-3 font-medium text-white">{{ post.title }}</td>
                 <td class="px-4 py-3 font-mono text-xs text-zinc-500">{{ post.slug }}</td>
                 <td class="px-4 py-3">
-                  <span v-if="post.status === 'published'" class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">公開中 (Published)</span>
-                  <span v-else class="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-400 border border-zinc-700">下書き (Draft)</span>
+                  <!-- Biến nhãn trạng thái thành nút bấm có hiệu ứng hover -->
+                  <button 
+                    @click="toggleStatus(post.id, post.status)" 
+                    class="transition-transform hover:scale-105 focus:outline-none"
+                    :title="post.status === 'published' ? 'クリックして非公開にする (Nhấn để ẩn)' : 'クリックして公開する (Nhấn để hiển thị)'"
+                  >
+                    <span v-if="post.status === 'published'" class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
+                      公開中 (Public)
+                    </span>
+                    <span v-else class="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-400 border border-zinc-700">
+                      下書き (Private)
+                    </span>
+                  </button>
                 </td>
                 <td class="px-4 py-3 text-xs">{{ new Date(post.updated_at).toLocaleDateString('ja-JP') }}</td>
                 <td class="px-4 py-3 text-right space-x-3">
@@ -82,6 +93,30 @@ const { data: postsData, pending, refresh } = await useAsyncData('admin-posts-li
 })
 
 const posts = computed(() => postsData.value ?? [])
+
+// Hàm Đổi trạng thái nhanh (Public / Unpublic)
+const toggleStatus = async (id: number, currentStatus: string) => {
+  // Đảo ngược trạng thái hiện tại
+  const newStatus = currentStatus === 'published' ? 'draft' : 'published'
+  
+  try {
+    const { error } = await supabase
+      .from('editor_posts')
+      .update({ 
+        status: newStatus,
+        updated_at: new Date() // Cập nhật luôn thời gian sửa đổi
+      })
+      .eq('id', id)
+      
+    if (error) throw error
+    
+    // Refresh lại danh sách để giao diện cập nhật ngay lập tức
+    refresh() 
+    
+  } catch (err: any) {
+    alert('状態の更新に失敗しました (Lỗi cập nhật trạng thái): ' + err.message)
+  }
+}
 
 // Hàm Xóa bài viết
 const deletePost = async (id: number) => {
