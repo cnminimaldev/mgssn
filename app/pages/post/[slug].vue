@@ -115,16 +115,16 @@ const parsedBlocks = computed(() => {
 })
 </script>
 
-<style>
-/* Căn chỉnh định dạng đẹp mắt cho văn bản bài viết (Mô phỏng Tailwind Typography) */
-.content-wrapper > * { margin-bottom: 1.5rem; }
-.prose p { margin-bottom: 1.5rem; }
-.prose h2 { font-size: 1.875rem; font-weight: 800; color: #fff; margin-top: 2.5rem; margin-bottom: 1rem; }
-.prose h3 { font-size: 1.5rem; font-weight: 700; color: #fff; margin-top: 2rem; margin-bottom: 1rem; }
-.prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.5rem; color: #d4d4d8; }
-.prose li { margin-bottom: 0.5rem; }
-.prose a { color: #10b981; text-decoration: none; border-bottom: 1px solid #10b981; transition: all 0.2s; }
-.prose a:hover { color: #34d399; border-bottom-color: #34d399; }
-.prose img { border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin: 2rem 0; width: 100%; }
-.prose u { text-decoration-color: #10b981; text-underline-offset: 4px; }
+<style scoped>
+/* Dùng :deep() để CSS chỉ có tác dụng với HTML được sinh ra từ v-html, không rò rỉ ra ngoài trang web */
+:deep(.content-wrapper > *) { margin-bottom: 1.5rem; }
+:deep(.prose p) { margin-bottom: 1.5rem; }
+:deep(.prose h2) { font-size: 1.875rem; font-weight: 800; color: #fff; margin-top: 2.5rem; margin-bottom: 1rem; }
+:deep(.prose h3) { font-size: 1.5rem; font-weight: 700; color: #fff; margin-top: 2rem; margin-bottom: 1rem; }
+:deep(.prose ul) { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.5rem; color: #d4d4d8; }
+:deep(.prose li) { margin-bottom: 0.5rem; }
+:deep(.prose a) { color: #10b981; text-decoration: none; border-bottom: 1px solid #10b981; transition: all 0.2s; }
+:deep(.prose a:hover) { color: #34d399; border-bottom-color: #34d399; }
+:deep(.prose img) { border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin: 2rem 0; width: 100%; }
+:deep(.prose u) { text-decoration-color: #10b981; text-underline-offset: 4px; }
 </style>

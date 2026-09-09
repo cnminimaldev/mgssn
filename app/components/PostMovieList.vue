@@ -11,7 +11,7 @@
     </div>
     
     <!-- Render lưới phim bằng MovieCard có sẵn -->
-    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+    <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 mt-6 mb-8">
       <div v-for="movie in movies" :key="movie.id" class="card-wrapper">
         <MovieCard :item="movie" />
       </div>
