@@ -29,6 +29,16 @@
                 <input v-model="post.slug" type="text" required class="w-full md:w-1/2 bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none text-white font-mono placeholder-zinc-700" />
               </div>
 
+              <div class="border-t border-white/5 pt-6 mt-6">
+                <label class="block text-xs font-medium text-zinc-400 mb-2">サムネイル (Ảnh bìa - Tỷ lệ 16:9)</label>
+                <FormImageUpload
+                    v-model="post.thumbnail_url"
+                    folder="posts"
+                    ratio="banner"
+                    class="w-full md:w-1/2"
+                />
+              </div>
+
               <div>
                 <label class="block text-xs font-medium text-zinc-400 mb-1">本文 (Nội dung bài viết)</label>
                 <!-- COMPONENT EDITOR -->
@@ -80,6 +90,7 @@ const saving = ref(false)
 const post = ref({
   title: '',
   slug: '',
+  thumbnail_url: '',
   content_html: '',
   status: 'draft'
 })
@@ -98,6 +109,7 @@ onMounted(async () => {
     // Đổ dữ liệu vào Form
     post.value.title = data.title
     post.value.slug = data.slug
+    post.value.thumbnail_url = data.thumbnail_url || ''
     post.value.content_html = data.content_html || ''
     post.value.status = data.status
 
@@ -125,6 +137,7 @@ const updatePost = async (publish: boolean) => {
       .update({
         title: post.value.title,
         slug: post.value.slug,
+        thumbnail_url: post.value.thumbnail_url,
         content_html: post.value.content_html,
         status: post.value.status,
         updated_at: new Date()

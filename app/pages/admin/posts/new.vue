@@ -45,6 +45,17 @@
               />
             </div>
 
+            <div class="border-t border-white/5 pt-6 mt-6">
+              <label class="block text-xs font-medium text-zinc-400 mb-2">サムネイル (Ảnh bìa - Tỷ lệ 16:9)</label>
+              <!-- Import trực tiếp FormImageUpload -->
+              <FormImageUpload
+                v-model="post.thumbnail_url"
+                folder="posts"
+                ratio="banner"
+                class="w-full md:w-1/2"
+              />
+            </div>
+
             <!-- GỌI COMPONENT RICH TEXT EDITOR VỪA TẠO VÀO ĐÂY -->
             <div>
               <label class="block text-xs font-medium text-zinc-400 mb-1">本文 (Nội dung bài viết)</label>
@@ -97,6 +108,7 @@ const saving = ref(false)
 const post = ref({
   title: '',
   slug: '',
+  thumbnail_url: '',
   content_html: '<p>ここから記事を書き始めましょう...</p>',
   status: 'draft'
 })
@@ -117,6 +129,7 @@ const savePost = async (publish: boolean) => {
       .insert({
         title: post.value.title,
         slug: post.value.slug,
+        thumbnail_url: post.value.thumbnail_url,
         content_html: post.value.content_html,
         status: post.value.status,
         created_at: new Date(),
