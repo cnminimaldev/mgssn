@@ -51,14 +51,77 @@
             <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-wider">進捗状況 (Tiến trình)</h2>
             
             <div class="mb-6">
-              <div class="flex justify-between text-xs text-zinc-400 mb-2">
+              <div class="flex justify-between items-end text-xs text-zinc-400 mb-2">
                 <span>Total: {{ totalItems }}</span>
-                <span>Success: <span class="text-emerald-400">{{ successCount }}</span> | Error: <span class="text-red-400">{{ errorCount }}</span></span>
+                <span class="flex items-center gap-2">
+                  <!-- Đếm Success -->
+                  <span>Success: <span class="text-emerald-400 font-bold">{{ successCount }}</span></span>
+                  <span class="text-zinc-700">|</span>
+                  
+                  <!-- Đếm Warning (Nút bấm) -->
+                  <span>
+                    Warning: 
+                    <button 
+                      type="button" 
+                      @click="showWarningList = !showWarningList"
+                      :disabled="warningCount === 0"
+                      class="font-bold transition-colors"
+                      :class="warningCount > 0 ? 'text-yellow-400 hover:text-yellow-300 hover:underline cursor-pointer' : 'text-zinc-600 cursor-default'"
+                    >
+                      {{ warningCount }}
+                    </button>
+                  </span>
+                  <span class="text-zinc-700">|</span>
+                  
+                  <!-- Đếm Error (Nút bấm) -->
+                  <span>
+                    Error: 
+                    <button 
+                      type="button"
+                      @click="showErrorList = !showErrorList"
+                      :disabled="errorCount === 0"
+                      class="font-bold transition-colors"
+                      :class="errorCount > 0 ? 'text-red-400 hover:text-red-300 hover:underline cursor-pointer' : 'text-zinc-600 cursor-default'"
+                    >
+                      {{ errorCount }}
+                    </button>
+                  </span>
+                </span>
               </div>
+              
+              <!-- Thanh Tiến trình -->
               <div class="w-full bg-zinc-800 rounded-full h-3 overflow-hidden">
                 <div class="bg-emerald-500 h-3 transition-all duration-300" :style="{ width: progressPercent + '%' }"></div>
               </div>
               <p class="text-center text-xs text-zinc-500 mt-2">{{ currentItem }} / {{ totalItems }}</p>
+
+              <!-- [MỚI] Danh sách các phim dính Warning -->
+              <div v-if="showWarningList && warningTitles.length > 0" class="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs animate-fade-in">
+                <div class="flex justify-between items-center mb-2 border-b border-yellow-500/20 pb-1">
+                  <strong class="text-yellow-400 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                    警告 (Danh sách Warning)
+                  </strong>
+                  <button @click="showWarningList = false" class="text-zinc-500 hover:text-white transition-colors">&times;</button>
+                </div>
+                <ul class="list-disc pl-5 text-zinc-300 space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+                  <li v-for="(t, i) in warningTitles" :key="i">{{ t }}</li>
+                </ul>
+              </div>
+
+              <!-- [MỚI] Danh sách các phim dính Error -->
+              <div v-if="showErrorList && errorTitles.length > 0" class="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs animate-fade-in">
+                <div class="flex justify-between items-center mb-2 border-b border-red-500/20 pb-1">
+                  <strong class="text-red-400 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                    エラー (Danh sách Error)
+                  </strong>
+                  <button @click="showErrorList = false" class="text-zinc-500 hover:text-white transition-colors">&times;</button>
+                </div>
+                <ul class="list-disc pl-5 text-zinc-300 space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+                  <li v-for="(t, i) in errorTitles" :key="i">{{ t }}</li>
+                </ul>
+              </div>
             </div>
 
             <h2 class="text-xs font-bold text-zinc-400 mb-2 border-b border-white/5 pb-1">処理ログ (Logs)</h2>
@@ -98,6 +161,11 @@ const totalItems = ref(0)
 const currentItem = ref(0)
 const successCount = ref(0)
 const errorCount = ref(0)
+const warningCount = ref(0)
+const warningTitles = ref<string[]>([])
+const errorTitles = ref<string[]>([])
+const showWarningList = ref(false)
+const showErrorList = ref(false)
 const logs = ref<{ time: string, msg: string, type: 'info' | 'success' | 'error' | 'warning' }[]>([])
 const genresList = ref<any[]>([])
 
@@ -185,6 +253,11 @@ const startImport = async () => {
   currentItem.value = 0
   successCount.value = 0
   errorCount.value = 0
+  warningCount.value = 0      // [THÊM]
+  warningTitles.value = []    // [THÊM]
+  errorTitles.value = []      // [THÊM]
+  showWarningList.value = false // [THÊM]
+  showErrorList.value = false   // [THÊM]
   logs.value = []
   
   addLog(`一括登録を開始します。全 ${totalItems.value} 件`, 'info')
@@ -239,6 +312,9 @@ const startImport = async () => {
           
           insertData.slug = `${slug}-2` // Tự động thêm -2
           addLog(`警告: スラッグ重複を回避するため「${insertData.slug}」に変更しました`, 'warning')
+
+          warningCount.value++
+          warningTitles.value.push(title)
           
           // Thử lưu lại lần 2
           const { data: retryVal, error: retryError } = await supabase
@@ -273,7 +349,8 @@ const startImport = async () => {
 
     } catch (e: any) {
       errorCount.value++
-      addLog(`エラー [${title}]:${e.message}`, 'error')
+      errorTitles.value.push(title)
+      addLog(`エラー [${title}]: ${e.message}`, 'error')
     }
   }
 
