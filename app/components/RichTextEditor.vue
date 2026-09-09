@@ -2,6 +2,7 @@
   <div class="bg-black border border-zinc-700 rounded-lg overflow-hidden focus-within:border-emerald-500 transition-colors">
     <!-- TOOLBAR -->
     <div v-if="editor" class="flex flex-wrap items-center gap-1 bg-zinc-900/80 border-b border-zinc-700 p-2">
+      <!-- 1. KIỂU CHỮ (Bold, Italic, Underline) -->
       <button 
         @click.prevent="editor.chain().focus().toggleBold().run()" 
         :class="{ 'bg-zinc-700 text-white': editor.isActive('bold'), 'text-zinc-400 hover:bg-zinc-800 hover:text-white': !editor.isActive('bold') }"
@@ -18,7 +19,27 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="4" x2="10" y2="4"></line><line x1="14" y1="20" x2="5" y2="20"></line><line x1="15" y1="4" x2="9" y2="20"></line></svg>
       </button>
 
+      <button 
+        @click.prevent="editor.chain().focus().toggleUnderline().run()" 
+        :class="{ 'bg-zinc-700 text-white': editor.isActive('underline'), 'text-zinc-400 hover:bg-zinc-800 hover:text-white': !editor.isActive('underline') }"
+        class="p-1.5 rounded transition" title="下線 (Underline)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 3v7a6 6 0 006 6 6 6 0 006-6V3"></path><line x1="4" y1="21" x2="20" y2="21"></line></svg>
+      </button>
+
       <div class="w-px h-5 bg-zinc-700 mx-1"></div>
+
+      <!-- 2. KÍCH THƯỚC & ĐẦU MỤC (Size, H2, H3) -->
+      <select 
+        @change="handleFontSizeChange"
+        class="bg-zinc-800 text-zinc-300 text-xs border border-zinc-600 rounded px-1.5 py-1 focus:outline-none focus:border-emerald-500 cursor-pointer"
+        >
+        <option value="">標準サイズ</option>
+        <option value="12px">12px (小)</option>
+        <option value="16px">16px (中)</option>
+        <option value="20px">20px (大)</option>
+        <option value="24px">24px (特大)</option>
+      </select>
 
       <button 
         @click.prevent="editor.chain().focus().toggleHeading({ level: 2 }).run()" 
@@ -38,6 +59,19 @@
 
       <div class="w-px h-5 bg-zinc-700 mx-1"></div>
 
+      <!-- 3. MÀU SẮC (Color Picker) -->
+      <div class="flex items-center gap-1 px-1" title="文字色 (Text Color)">
+        <input
+        type="color"
+        @input="handleColorChange"
+        :value="editor.getAttributes('textStyle').color || '#d4d4d8'"
+        class="w-5 h-5 p-0 border-0 rounded cursor-pointer bg-transparent"
+        >
+      </div>
+
+      <div class="w-px h-5 bg-zinc-700 mx-1"></div>
+
+      <!-- 4. DANH SÁCH & LIÊN KẾT -->
       <button 
         @click.prevent="editor.chain().focus().toggleBulletList().run()" 
         :class="{ 'bg-zinc-700 text-white': editor.isActive('bulletList'), 'text-zinc-400 hover:bg-zinc-800 hover:text-white': !editor.isActive('bulletList') }"
@@ -59,7 +93,7 @@
       <!-- NÚT CHÈN BLOCK PHIM (MAGIC BUTTON) -->
       <button 
         @click.prevent="insertMovieList"
-        class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 rounded text-xs font-bold transition-colors"
+        class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 rounded text-xs font-bold transition-colors shadow-sm"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" /></svg>
         作品リストを挿入
@@ -77,7 +111,10 @@ import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
-import { Node, mergeAttributes } from '@tiptap/core'
+import Underline from '@tiptap/extension-underline'
+import { TextStyle } from '@tiptap/extension-text-style'
+import Color from '@tiptap/extension-color'
+import { Node, Extension, mergeAttributes } from '@tiptap/core'
 
 const props = defineProps({
   modelValue: {
@@ -88,39 +125,80 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
+// Hàm xử lý đổi cỡ chữ an toàn với TypeScript
+const handleFontSizeChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement // Ép kiểu báo cho TS biết đây là thẻ Select
+  if (target && editor.value) {
+    editor.value.chain().focus().setFontSize(target.value).run()
+  }
+}
+
+// Hàm xử lý đổi màu chữ an toàn với TypeScript
+const handleColorChange = (event: Event) => {
+  const target = event.target as HTMLInputElement // Ép kiểu báo cho TS biết đây là thẻ Input
+  if (target && editor.value) {
+    editor.value.chain().focus().setColor(target.value).run()
+  }
+}
+
+// --- TẠO CUSTOM EXTENSION (FONT SIZE) ---
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addOptions() {
+    return { types: ['textStyle'] }
+  },
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize || null,
+            renderHTML: attributes => {
+              if (!attributes.fontSize) return {}
+              return { style: `font-size: ${attributes.fontSize}` }
+            },
+          },
+        },
+      },
+    ]
+  },
+  addCommands() {
+    return {
+      setFontSize: fontSize => ({ chain }) => {
+        if (!fontSize) {
+          return chain().setMark('textStyle', { fontSize: null }).run()
+        }
+        return chain().setMark('textStyle', { fontSize }).run()
+      },
+    }
+  },
+})
+
 // --- TẠO CUSTOM EXTENSION (KHỐI DANH SÁCH PHIM) ---
-// Đây là kỹ thuật giúp Tiptap hiểu một thẻ HTML đặc biệt không bị xóa đi
 const MovieListBlock = Node.create({
   name: 'movieListBlock',
   group: 'block',
-  atom: true, // Xem nó như một khối nguyên khối (không thể gõ chữ vào giữa khối này)
-  
-  // Lưu trữ các cấu hình bộ lọc (năm, quốc gia, thể loại)
+  atom: true, 
   addAttributes() {
     return {
-      filterData: {
-        default: '{}',
-      }
+      filterData: { default: '{}' }
     }
   },
-
-  // Khi tải HTML từ DB lên, nhận diện thẻ có data-type="movie-list"
   parseHTML() {
     return [{ tag: 'div[data-type="movie-list"]' }]
   },
-
-  // Khi hiển thị trong Admin (hoặc lưu vào DB), vẽ ra HTML này
   renderHTML({ HTMLAttributes }) {
     return ['div', mergeAttributes(HTMLAttributes, { 
       'data-type': 'movie-list', 
       class: 'my-6 p-6 bg-zinc-900 border border-emerald-500/30 rounded-xl text-center shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
     }), 
       ['div', { class: 'text-emerald-400 font-bold text-lg mb-1' }, '🎬 映画リストブロック'],
-      ['div', { class: 'text-zinc-500 text-xs' }, 'ユーザー画面ではここに作品リストが表示されます (Trên Frontend sẽ render thành danh sách phim)']
+      ['div', { class: 'text-zinc-500 text-xs' }, 'ユーザー画面ではここに作品リストが表示されます']
     ]
   }
 })
-// --------------------------------------------------
 
 const editor = useEditor({
   content: props.modelValue,
@@ -128,6 +206,10 @@ const editor = useEditor({
     StarterKit,
     Link.configure({ openOnClick: false }),
     Image,
+    Underline,
+    TextStyle,
+    Color,
+    FontSize,
     MovieListBlock,
   ],
   editorProps: {
@@ -136,21 +218,17 @@ const editor = useEditor({
     },
   },
   onUpdate: ({ editor }) => {
-    // Mỗi khi gõ phím, tự động đẩy HTML ra v-model để form nhận được
     emit('update:modelValue', editor.getHTML())
   },
 })
 
-// Đồng bộ từ ngoài vào trong nếu dữ liệu load từ API bị chậm
 watch(() => props.modelValue, (value) => {
   const isSame = editor.value?.getHTML() === value
   if (!isSame && editor.value) {
-    // [ĐÃ SỬA] Thay false thành object { emitUpdate: false }
     editor.value.commands.setContent(value, { emitUpdate: false })
   }
 })
 
-// Chèn Link
 const setLink = () => {
   const previousUrl = editor.value?.getAttributes('link').href
   const url = window.prompt('URLを入力してください:', previousUrl)
@@ -162,10 +240,7 @@ const setLink = () => {
   editor.value?.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
 }
 
-// Chèn khối Danh sách phim
 const insertMovieList = () => {
-  // TODO: Tương lai chúng ta có thể gọi Modal ở đây để user chọn bộ lọc.
-  // Hiện tại cứ chèn thẳng 1 khối giả lập cấu hình vào trước.
   const sampleFilter = JSON.stringify({ country: 'KR', limit: 12 })
   editor.value?.chain().focus().insertContent({
     type: 'movieListBlock',
@@ -179,7 +254,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style>
-/* CSS bổ sung để Editor đẹp hơn (Style Prose của Tiptap) */
 .ProseMirror p { margin-bottom: 1em; }
 .ProseMirror h2 { font-size: 1.5em; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.5em; color: white; }
 .ProseMirror h3 { font-size: 1.25em; font-weight: bold; margin-top: 1.2em; margin-bottom: 0.5em; color: white; }
