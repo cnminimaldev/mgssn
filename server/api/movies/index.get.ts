@@ -98,6 +98,13 @@ export default defineEventHandler(async (event) => {
     dbQuery = dbQuery.eq('year', yearNum)
   }
 
+  const slugsParam = typeof query.specific_slugs === 'string' ? query.specific_slugs : ''
+  const specificSlugs = slugsParam ? slugsParam.split(',').map((x) => x.trim()).filter(Boolean) : []
+
+  if (specificSlugs.length > 0) {
+    dbQuery = dbQuery.in('slug', specificSlugs)
+  }
+
   // TÌM KIẾM DIỄN VIÊN / ĐẠO DIỄN
   if (castParam || directorParam) {
     const roleFilter = castParam ? 'cast' : 'director';
