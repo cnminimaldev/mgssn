@@ -12,7 +12,6 @@
         </h1>
         <p class="text-sm text-zinc-500 mt-3">
           運営チームが厳選したおすすめ作品や、テーマ別の特集コラムをお届けします。
-          <br class="hidden sm:block"/>(Tuyển tập các tác phẩm và chủ đề đặc sắc được đội ngũ biên tập viên chọn lọc)
         </p>
       </header>
 
@@ -23,7 +22,7 @@
 
       <!-- Không có bài viết -->
       <div v-else-if="posts.length === 0" class="text-center py-20 text-zinc-500 border border-white/5 bg-zinc-900/30 rounded-2xl">
-        <p>公開されている記事がありません。(Chưa có bài viết nào được xuất bản)</p>
+        <p>公開されている記事がありません。</p>
       </div>
 
       <!-- Lưới bài viết (1 cột Mobile, 2 cột Tablet, 3 cột PC) -->
@@ -79,7 +78,7 @@ const supabase = useSupabaseClient<any>()
 
 // Tối ưu SEO cho trang Hub
 useSeoMeta({
-  title: "特集記事 (Editor's Selection) - NoriTV",
+  title: "特集記事 - NoriTV",
   description: "運営チームが厳選したおすすめ作品や特集コラムをお届けします。"
 })
 

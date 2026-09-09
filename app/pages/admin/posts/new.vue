@@ -11,7 +11,7 @@
             ダッシュボードに戻る
           </NuxtLink>
           <h1 class="text-2xl font-bold text-white">
-            新規記事作成 (Editor's Selection)
+            新規記事作成
           </h1>
           <p class="text-xs text-zinc-500 mt-1">
             特集記事を作成し、作品リストを埋め込みましょう
