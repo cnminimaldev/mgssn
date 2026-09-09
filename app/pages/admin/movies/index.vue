@@ -8,12 +8,28 @@
           </NuxtLink>
           <h1 class="text-2xl font-bold text-white">映画管理 (Movies)</h1>
         </div>
-        <NuxtLink 
-          to="/admin/movies/new" 
-          class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 transition shadow-lg shadow-emerald-900/20"
-        >
-          <span>＋</span> 新規登録
-        </NuxtLink>
+        
+        <!-- Khối chứa các nút hành động -->
+        <div class="flex items-center gap-3">
+          <!-- Nút Nhập Hàng Loạt (Màu Indigo) -->
+          <NuxtLink 
+            to="/admin/movies/bulk" 
+            class="flex items-center gap-2 rounded-lg bg-indigo-600/20 border border-indigo-500/30 px-4 py-2 text-sm font-bold text-indigo-400 hover:bg-indigo-600/40 transition shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            一括登録 (Bulk)
+          </NuxtLink>
+
+          <!-- Nút Thêm Mới Cũ (Màu Emerald) -->
+          <NuxtLink 
+            to="/admin/movies/new" 
+            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 transition shadow-lg shadow-emerald-900/20"
+          >
+            <span>＋</span> 新規登録
+          </NuxtLink>
+        </div>
       </div>
 
       <div class="overflow-hidden rounded-xl border border-white/10 bg-zinc-900/50">
