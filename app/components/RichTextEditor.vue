@@ -102,6 +102,13 @@
 
     <!-- KHU VỰC SOẠN THẢO -->
     <editor-content :editor="editor" class="p-4 min-h-[300px] text-zinc-300" />
+
+    <!-- [THÊM MỚI] GỌI MODAL -->
+    <MovieListConfigModal 
+      :show="showMovieModal" 
+      @close="showMovieModal = false" 
+      @apply="handleInsertMovieList" 
+    />
   </div>
 </template>
 
@@ -240,11 +247,25 @@ const setLink = () => {
   editor.value?.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
 }
 
+// [THÊM MỚI] Quản lý trạng thái Modal
+const showMovieModal = ref(false)
+
+// [SỬA LẠI] Nút chèn phim giờ chỉ mở Modal
 const insertMovieList = () => {
-  const sampleFilter = JSON.stringify({ country: 'KR', limit: 12 })
+  showMovieModal.value = true
+}
+
+// [THÊM MỚI] Hàm xử lý khi người dùng bấm "Chèn" trong Modal
+const handleInsertMovieList = (config: any) => {
+  // Ẩn modal
+  showMovieModal.value = false
+  
+  // Chuyển config thành chuỗi JSON và chèn vào Editor
+  const filterDataString = JSON.stringify(config)
+  
   editor.value?.chain().focus().insertContent({
     type: 'movieListBlock',
-    attrs: { filterData: sampleFilter }
+    attrs: { filterData: filterDataString }
   }).run()
 }
 
