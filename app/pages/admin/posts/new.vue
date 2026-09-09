@@ -19,7 +19,7 @@
         </div>
       </div>
 
-      <form @submit.prevent="savePost" class="space-y-8 animate-fade-in">
+      <form @submit.prevent class="space-y-8 animate-fade-in">
         <div class="bg-zinc-900/50 border border-white/5 rounded-xl p-6">
           
           <div class="space-y-6">
@@ -55,10 +55,24 @@
         </div>
 
         <div class="flex items-center justify-end gap-4 pt-4 border-t border-white/5">
-          <button type="button" class="px-4 py-2 rounded text-sm text-zinc-400 hover:text-white transition">
+          <!-- Nút Lưu Nháp -->
+          <button 
+            type="button" 
+            @click="savePost(false)"
+            :disabled="saving"
+            class="px-4 py-2 rounded text-sm text-zinc-400 hover:text-white transition disabled:opacity-50"
+          >
             下書き保存 (Lưu nháp)
           </button>
-          <button type="submit" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-emerald-900/20 transition">
+          
+          <!-- Nút Xuất bản -->
+          <button 
+            type="button"
+            @click="savePost(true)"
+            :disabled="saving"
+            class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-emerald-900/20 transition disabled:opacity-50"
+          >
+            <span v-if="saving" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
             公開する (Publish)
           </button>
         </div>
@@ -69,22 +83,60 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { definePageMeta } from '#imports'
-// Import component bạn vừa tạo (Nuxt 3 có thể tự động import, nhưng cứ ghi cho chắc)
+import { definePageMeta, useSupabaseClient, useRouter } from '#imports'
 import RichTextEditor from '~/components/RichTextEditor.vue'
 
 definePageMeta({
   middleware: 'admin',
 })
 
+const supabase = useSupabaseClient<any>()
+const router = useRouter()
+const saving = ref(false)
+
 const post = ref({
   title: '',
   slug: '',
-  content_html: '<p>ここから記事を書き始めましょう... (Bắt đầu viết bài tại đây...)</p>'
+  content_html: '<p>ここから記事を書き始めましょう...</p>',
+  status: 'draft'
 })
 
-const savePost = () => {
-  console.log('Dữ liệu bài viết chuẩn bị lưu vào DB:', post.value)
-  alert('Dữ liệu HTML đã được tạo thành công! Hãy mở Console F12 để xem code.')
+// Hàm lưu bài viết
+const savePost = async (publish: boolean) => {
+  if (!post.value.title || !post.value.slug) {
+    alert('タイトルとスラッグは必須です (Tiêu đề và Slug là bắt buộc)')
+    return
+  }
+
+  saving.value = true
+  post.value.status = publish ? 'published' : 'draft'
+
+  try {
+    const { data, error } = await supabase
+      .from('editor_posts')
+      .insert({
+        title: post.value.title,
+        slug: post.value.slug,
+        content_html: post.value.content_html,
+        status: post.value.status,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    alert(publish ? '記事を公開しました！ (Đã xuất bản bài viết!)' : '下書きを保存しました。 (Đã lưu nháp!)')
+    
+    // Lưu xong thì chuyển hướng về danh sách bài viết (bạn có thể tạo trang này sau)
+    router.push('/admin') 
+    
+  } catch (error: any) {
+    console.error(error)
+    alert('エラーが発生しました (Có lỗi xảy ra): ' + error.message)
+  } finally {
+    saving.value = false
+  }
 }
 </script>
