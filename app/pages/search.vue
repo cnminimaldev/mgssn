@@ -27,7 +27,6 @@
         >
           <div class="flex flex-1 flex-col gap-2 sm:flex-row">
             <div class="flex-1 flex gap-2">
-              <!-- Ô nhập từ khóa hiện tại của bạn -->
               <div class="flex-1">
                 <label class="mb-1 block text-[11px] text-zinc-400 sm:text-xs">
                   キーワード
@@ -40,7 +39,6 @@
                   @keydown.enter="triggerSearch"
                 />
               </div>
-              <!-- Dropdown lựa chọn chế độ -->
               <div class="w-32 sm:w-40">
                 <label class="mb-1 block text-[11px] text-zinc-400 sm:text-xs">
                   検索対象
@@ -106,7 +104,29 @@
           </div>
         </div>
 
-        <div class="mt-4 flex flex-col gap-4 sm:flex-row">
+        <!-- Nút toggle bộ lọc trên Mobile -->
+        <button
+          type="button"
+          class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 py-2.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-800 sm:hidden"
+          @click="showMobileFilters = !showMobileFilters"
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            class="h-4 w-4 transition-transform duration-300" 
+            :class="{ 'rotate-180': showMobileFilters }" 
+            viewBox="0 0 20 20" 
+            fill="currentColor"
+          >
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+          {{ showMobileFilters ? 'フィルターを閉じる' : '詳細フィルター' }}
+        </button>
+
+        <!-- Khối Thể loại & Quốc gia (Ẩn/Hiện trên Mobile) -->
+        <div 
+          class="mt-4 flex-col gap-4 sm:mt-4 sm:flex sm:flex-row"
+          :class="showMobileFilters ? 'flex' : 'hidden'"
+        >
           <div class="flex-1">
             <div class="mb-2 flex items-center justify-between">
               <label class="text-[11px] text-zinc-400 sm:text-xs">
@@ -235,12 +255,15 @@
         エラーが発生しました: {{ error.message }}
       </div>
 
-      <div v-else>
-        <p class="mb-4 text-xs text-zinc-400 sm:text-sm">
-          検索結果:
-          <span class="font-semibold text-zinc-50">{{ total }}</span>
-          件
-        </p>
+      <!-- Đã thêm ref="resultsContainer" làm điểm neo cuộn trang -->
+      <div v-else ref="resultsContainer">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-xs text-zinc-400 sm:text-sm">
+            検索結果:
+            <span class="font-semibold text-zinc-50">{{ total }}</span>
+            件
+          </p>
+        </div>
 
         <div
           v-if="movies.length"
@@ -298,7 +321,6 @@ import {
   useHead,
   useRequestURL,
 } from "#imports";
-// MovieCard được Nuxt auto-import
 
 // --- UTILS ---
 const getQueryArray = (val: any): string[] => {
@@ -328,10 +350,9 @@ type MoviesResponse = {
 const route = useRoute();
 const router = useRouter();
 
-// --- 1. LOCAL STATE (DRAFT) ---
+// --- 1. LOCAL STATE ---
 const keyword = ref(route.query.q?.toString() || route.query.cast?.toString() || route.query.director?.toString() || "");
 
-// Xác định chế độ tìm kiếm hiện tại từ URL query
 const getInitialSearchMode = () => {
   if (route.query.cast) return "cast";
   if (route.query.director) return "director";
@@ -339,7 +360,6 @@ const getInitialSearchMode = () => {
 };
 const searchTypeMode = ref(getInitialSearchMode());
 
-// Gợi ý placeholder linh hoạt theo chế độ
 const searchPlaceholder = computed(() => {
   if (searchTypeMode.value === "cast") return "例: 南沙良";
   if (searchTypeMode.value === "director") return "例: 是枝裕和";
@@ -347,15 +367,18 @@ const searchPlaceholder = computed(() => {
 });
 
 const selectedType = ref(route.query.type?.toString() || "");
-const ongoing = ref(route.query.ongoing?.toString() || "")
+const ongoing = ref(route.query.ongoing?.toString() || "");
 const selectedGenres = ref<string[]>(getQueryArray(route.query.genres));
 const selectedCountries = ref<string[]>(getQueryArray(route.query.countries));
 const selectedYear = ref<string>(route.query.year?.toString() || "");
 const sortKey = ref(route.query.sort?.toString() || "recommended");
 
-// Page lấy từ URL
 const page = ref(Number(route.query.page) || 1);
 const pageSize = 24;
+
+// Trạng thái Mobile UX
+const showMobileFilters = ref(false);
+const resultsContainer = ref<HTMLElement | null>(null);
 
 // --- 2. SEO META ---
 const url = useRequestURL();
@@ -425,7 +448,6 @@ const totalPages = computed(() => {
 const triggerSearch = () => {
   const query: any = {};
 
-  // Gán từ khóa vào param tương ứng dựa vào dropdown đang chọn
   if (keyword.value) {
     if (searchTypeMode.value === "cast") {
       query.cast = keyword.value;
@@ -444,9 +466,18 @@ const triggerSearch = () => {
   if (selectedYear.value) query.year = selectedYear.value;
   if (sortKey.value !== "recommended") query.sort = sortKey.value;
 
-  query.page = 1; // Luôn reset về trang 1
+  query.page = 1; 
 
   router.push({ path: "/search", query });
+
+  // Tự động đóng bộ lọc trên Mobile và cuộn xuống kết quả
+  showMobileFilters.value = false;
+  setTimeout(() => {
+    if (resultsContainer.value) {
+      const y = resultsContainer.value.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  }, 100);
 };
 
 const resetFilters = () => {
@@ -464,6 +495,14 @@ const resetFilters = () => {
 const changePage = (newPage: number) => {
   const query = { ...route.query, page: String(newPage) };
   router.push({ path: "/search", query });
+
+  // Cuộn lên top kết quả khi chuyển trang
+  setTimeout(() => {
+    if (resultsContainer.value) {
+      const y = resultsContainer.value.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  }, 100);
 };
 
 // UI Toggles (Chỉ cập nhật Local State)
