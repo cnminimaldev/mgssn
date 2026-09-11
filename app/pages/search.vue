@@ -572,17 +572,26 @@ const resetFilters = () => {
   triggerSearch();
 };
 
+// Commented for using later
+// const changePage = (newPage: number) => {
+//   const query = { ...route.query, page: String(newPage) };
+//   router.push({ path: "/search", query });
+
+//   // Cuộn lên top kết quả khi chuyển trang
+//   setTimeout(() => {
+//     if (resultsContainer.value) {
+//       const y = resultsContainer.value.getBoundingClientRect().top + window.scrollY - 80;
+//       window.scrollTo({ top: y, behavior: "smooth" });
+//     }
+//   }, 100);
+// };
 const changePage = (newPage: number) => {
   const query = { ...route.query, page: String(newPage) };
   router.push({ path: "/search", query });
 
-  // Cuộn lên top kết quả khi chuyển trang
-  setTimeout(() => {
-    if (resultsContainer.value) {
-      const y = resultsContainer.value.getBoundingClientRect().top + window.scrollY - 80;
-      window.scrollTo({ top: y, behavior: "smooth" });
-    }
-  }, 100);
+  // Cuộn ngay lập tức lên đầu trang mà không cần chờ setTimeout hay resultsContainer
+  // Tránh việc lỗi cuộn do giao diện bị ẩn trong lúc loading
+  window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
 // UI Toggles (Chỉ cập nhật Local State)
