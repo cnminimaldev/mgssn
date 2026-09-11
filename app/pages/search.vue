@@ -278,33 +278,66 @@
           一致する作品が見つかりませんでした。
         </p>
 
+        <!-- Khối Phân trang Mới -->
         <div
           v-if="totalPages > 1"
-          class="mt-10 flex items-center justify-center gap-4 text-sm"
+          class="mt-10 flex flex-col items-center justify-center gap-4 text-sm"
         >
-          <button
-            type="button"
-            class="rounded-md border border-zinc-700 px-4 py-1.5 text-xs text-zinc-100 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 transition"
-            :disabled="page <= 1"
-            @click="changePage(page - 1)"
-          >
-            前へ
-          </button>
+          <!-- Hàng 1: Các nút bấm trang -->
+          <div class="flex items-center gap-1 sm:gap-2">
+            <button
+              type="button"
+              class="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 transition"
+              :disabled="page <= 1"
+              @click="changePage(page - 1)"
+            >
+              前へ
+            </button>
 
-          <span class="text-xs text-zinc-400">
-            <span class="text-zinc-100 font-medium">{{ page }}</span>
-            /
-            <span class="text-zinc-100">{{ totalPages }}</span>
-          </span>
+            <!-- Vòng lặp hiển thị số trang và dấu ... -->
+            <template v-for="(p, index) in visiblePages" :key="index">
+              <button
+                v-if="p !== '...'"
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-md text-xs transition"
+                :class="p === page ? 'bg-emerald-500 font-bold text-black shadow-lg shadow-emerald-500/20' : 'border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:border-zinc-600 hover:text-white'"
+                @click="changePage(Number(p))"
+              >
+                {{ p }}
+              </button>
+              <span v-else class="px-1 text-xs text-zinc-600">...</span>
+            </template>
 
-          <button
-            type="button"
-            class="rounded-md border border-zinc-700 px-4 py-1.5 text-xs text-zinc-100 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 transition"
-            :disabled="page >= totalPages"
-            @click="changePage(page + 1)"
-          >
-            次へ
-          </button>
+            <button
+              type="button"
+              class="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 transition"
+              :disabled="page >= totalPages"
+              @click="changePage(page + 1)"
+            >
+              次へ
+            </button>
+          </div>
+
+          <!-- Hàng 2: Nhập số trang tùy biến -->
+          <div class="mt-2 flex items-center gap-2">
+            <span class="text-xs text-zinc-500">ページ移動:</span>
+            <input
+              v-model="customPageInput"
+              @keydown.enter="jumpToPage"
+              type="number"
+              min="1"
+              :max="totalPages"
+              class="w-16 rounded-md border border-zinc-700 bg-black px-2 py-1.5 text-xs text-center text-white focus:border-emerald-500 focus:outline-none"
+              placeholder="No."
+            />
+            <button
+              type="button"
+              @click="jumpToPage"
+              class="rounded-md bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition"
+            >
+              移動
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -443,6 +476,53 @@ const totalPages = computed(() => {
   return Math.max(1, Math.ceil(t / pageSize));
 });
 
+// --- LOGIC PHÂN TRANG NÂNG CAO ---
+
+// Tính toán mảng các trang hiển thị (Bao gồm dấu ...)
+const visiblePages = computed(() => {
+  const current = page.value;
+  const total = totalPages.value;
+  const delta = 1; // Số lượng trang kề bên trái/phải muốn hiển thị
+  const range = [];
+  const rangeWithDots = [];
+  let l: number | undefined;
+
+  // Lọc ra các trang cần giữ lại (Trang 1, Trang cuối, và các trang lân cận hiện tại)
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
+  }
+
+  // Chèn dấu "..." vào những khoảng trống
+  for (let i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1);
+      } else if (i - l !== 1) {
+        rangeWithDots.push('...');
+      }
+    }
+    rangeWithDots.push(i);
+    l = i;
+  }
+
+  return rangeWithDots;
+});
+
+// Biến và hàm cho tính năng Nhập trang tùy biến
+const customPageInput = ref("");
+
+const jumpToPage = () => {
+  const p = parseInt(customPageInput.value);
+  if (!isNaN(p) && p >= 1 && p <= totalPages.value) {
+    changePage(p);
+    customPageInput.value = ""; // Xóa trắng ô nhập sau khi chuyển trang thành công
+  } else {
+    alert(`1から${totalPages.value}までの数字を入力してください。 (Vui lòng nhập số từ 1 đến ${totalPages.value})`);
+    customPageInput.value = "";
+  }
+};
 // --- 5. ACTION HANDLERS ---
 
 const triggerSearch = () => {
