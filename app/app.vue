@@ -412,7 +412,19 @@ import { ref, watch, onMounted } from "vue";
 import { useAuth } from "~/composables/useAuth";
 import { useMyList } from "~/composables/useMyList";
 import { useAds } from '~/composables/useAds';
-import { useRoute, useSupabaseUser, useNuxtApp, useRouter } from "#imports";
+import { useRoute, useSupabaseUser, useNuxtApp, useRouter, useRequestURL, useHead } from "#imports";
+
+const url = useRequestURL();
+const canonicalUrl = `${url.origin}${url.pathname}`;
+
+useHead({
+  link: [
+    {
+      rel: 'canonical',
+      href: canonicalUrl
+    }
+  ]
+});
 
 const { fetchAds } = useAds();
 await fetchAds();
@@ -425,7 +437,6 @@ const route = useRoute();
 const nuxtApp = useNuxtApp();
 const router = useRouter();
 
-// --- [LOGIC LOADING CẢI TIẾN] ---
 const isPageLoading = ref(false);
 
 router.beforeEach((to, from, next) => {
@@ -481,7 +492,6 @@ const handleLogout = async () => {
   transform: translateX(0);
 }
 
-/* [HIỆU ỨNG CHỈ CÓ KHI BIẾN MẤT] */
 .fade-enter-active {
   transition: none;
 }
